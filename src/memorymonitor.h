@@ -2,6 +2,7 @@
 #ifndef MEMORYMONITOR_H
 #define MEMORYMONITOR_H
 #include "monitorbase.h"
+
 class MemoryMonitor:public MonitorBase
 {
     Q_OBJECT

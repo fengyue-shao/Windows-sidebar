@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.16)
 project(qt_rainmeter VERSION 0.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 20)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 find_package(Qt6 REQUIRED COMPONENTS Core)
@@ -23,6 +24,13 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES monitorbase.h monitorbase.cpp
         SOURCES memorymonitor.h memorymonitor.cpp
         SOURCES networkmonitor.h networkmonitor.cpp
+        QML_FILES Sidebar.qml
+        QML_FILES
+        QML_FILES WidgetCard.qml
+        QML_FILES Timebar.qml
+        SOURCES mediamonitor.h mediamonitor.cpp
+        SOURCES mediaworker.h mediaworker.cpp
+        SOURCES coverimageprovider.h coverimageprovider.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -38,6 +46,7 @@ set_target_properties(appqt_rainmeter PROPERTIES
 
 target_link_libraries(appqt_rainmeter
     PRIVATE Qt6::Quick
+    windowsapp
 )
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
