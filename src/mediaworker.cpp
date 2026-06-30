@@ -4,6 +4,7 @@
 #include <QDir>
 #include <QFile>
 #include <QImage>
+#include <QTimer>
 #include <winrt/base.h>
 #include <winrt/windows.Foundation.h>
 #include <winrt/windows.Foundation.collections.h>
@@ -15,7 +16,96 @@ MediaWorker::MediaWorker(QObject *parent)
     : QObject{parent}
 {
 }
-void MediaWorker::update(){
+void MediaWorker::updateCover(QImage &coverImage)
+{
+    try
+    {
+        auto media = m_session.TryGetMediaPropertiesAsync().get();
+        auto thumbnail = media.Thumbnail();
+        bool needRetry = false;
+
+        if (!thumbnail)
+        {
+            needRetry = true;
+        }
+        else
+        {
+            auto stream = thumbnail.OpenReadAsync().get();
+            if (!stream || stream.Size() == 0)
+            {
+                needRetry = true;
+            }
+            else
+            {
+                auto size = static_cast<uint32_t>(stream.Size());
+
+                Windows::Storage::Streams::Buffer buffer(size);
+
+                auto readBuffer =
+                    stream.ReadAsync(
+                              buffer,
+                              size,
+                              Windows::Storage::Streams::InputStreamOptions::None)
+                        .get();
+                if (readBuffer.Length() == 0)
+                {
+                    needRetry = true;
+                }
+                else
+                {
+                    auto reader =
+                        Windows::Storage::Streams::DataReader::FromBuffer(readBuffer);
+
+                    QByteArray imageData;
+                    imageData.resize(readBuffer.Length());
+
+                    reader.ReadBytes(
+                        winrt::array_view<uint8_t>(
+                            reinterpret_cast<uint8_t *>(imageData.data()),
+                            reinterpret_cast<uint8_t *>(imageData.data() + imageData.size())));
+
+                    if (!coverImage.loadFromData(imageData))
+                    {
+                        needRetry = true;
+                    }
+                }
+            }
+        }
+
+        if (needRetry && !m_coverRetryPending)
+        {
+            m_coverRetryPending = true;
+            qDebug()<<"retry to get img";
+            QTimer::singleShot(1500, this, [this]()
+                               {
+                                   m_coverRetryPending = false;
+
+                                   if (!m_session)
+                                       return;
+
+                                   updateInfo();
+                               });
+        }
+    }
+    catch (...)
+    {
+        if (!m_coverRetryPending)
+        {
+            m_coverRetryPending = true;
+
+            QTimer::singleShot(200, this, [this]()
+                               {
+                                   m_coverRetryPending = false;
+
+                                   if (!m_session)
+                                       return;
+
+                                   updateInfo();
+                               });
+        }
+    }
+}
+void MediaWorker::updateInfo(){
     try{
         auto session=m_session;
         if(!session){
@@ -26,49 +116,23 @@ void MediaWorker::update(){
         QString title=QString::fromWCharArray(media.Title().c_str());
         QString artist=QString::fromWCharArray(media.Artist().c_str());
         QString album=QString::fromWCharArray(media.AlbumTitle().c_str());
-        bool playing=session.GetPlaybackInfo().PlaybackStatus()==GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
         QImage coverImage;
-        auto thumbnail = media.Thumbnail();
-
-        if (thumbnail)
-        {
-            try
-            {
-                auto streamRef = thumbnail;
-
-                auto stream =
-                    streamRef.OpenReadAsync().get();
-
-                auto size =
-                    static_cast<uint32_t>(stream.Size());
-
-                Windows::Storage::Streams::Buffer buffer(size);
-
-                stream.ReadAsync(
-                          buffer,
-                          size,
-                          Windows::Storage::Streams::InputStreamOptions::None)
-                    .get();
-
-                auto reader =
-                    Windows::Storage::Streams::DataReader::FromBuffer(buffer);
-
-                QByteArray imageData;
-                imageData.resize(size);
-
-                reader.ReadBytes(
-                    winrt::array_view<uint8_t>(
-                        reinterpret_cast<uint8_t*>(imageData.data()),
-                        reinterpret_cast<uint8_t*>(imageData.data() + size)));
-                coverImage.loadFromData(imageData);
-            }
-            catch (...)
-            {
-            }
-        }
-        emit mediaUpdated(title,artist,album,playing,coverImage);
+        updateCover(coverImage);
+        emit mediaInfoUpdated(title,artist,album,coverImage);
     }catch(...){
-        qDebug()<<"GSMTC error";
+        qDebug()<<"GMSTC error";
+    }
+}
+void MediaWorker::updatePS(){
+    try{
+        auto session=m_session;
+        if(!session){
+            return;
+        }
+        bool playing=session.GetPlaybackInfo().PlaybackStatus()==GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
+        emit mediaPSUpdated(playing);
+    }catch(...){
+        qDebug()<<"GMSTC error";
     }
 }
 void MediaWorker::initialize()
@@ -104,13 +168,12 @@ void MediaWorker::registerSession()
 
     if (!m_session)
     {
-        emit mediaUpdated(
+        emit mediaInfoUpdated(
             "",
             "",
             "",
-            false,
             QImage());
-
+        emit mediaPSUpdated(false);
         return;
     }
 
@@ -120,21 +183,21 @@ void MediaWorker::registerSession()
             {
                 QMetaObject::invokeMethod(
                     this,
-                    &MediaWorker::update,
+                    &MediaWorker::updateInfo,
                     Qt::QueuedConnection);
             });
-
+    updateInfo();
     m_playbackToken =
         m_session.PlaybackInfoChanged(
             [this](auto&&, auto&&)
             {
                 QMetaObject::invokeMethod(
                     this,
-                    &MediaWorker::update,
+                    &MediaWorker::updatePS,
                     Qt::QueuedConnection);
             });
-
-    m_timelineToken =
+    updatePS();
+    /*m_timelineToken =
         m_session.TimelinePropertiesChanged(
             [this](auto&&, auto&&)
             {
@@ -142,9 +205,9 @@ void MediaWorker::registerSession()
                     this,
                     &MediaWorker::update,
                     Qt::QueuedConnection);
-            });
+            });*/
 
-    update();
+    //update();
 }
 void MediaWorker::unregisterSession()
 {
@@ -153,7 +216,7 @@ void MediaWorker::unregisterSession()
 
     m_session.MediaPropertiesChanged(m_mediaToken);
     m_session.PlaybackInfoChanged(m_playbackToken);
-    m_session.TimelinePropertiesChanged(m_timelineToken);
+    //m_session.TimelinePropertiesChanged(m_timelineToken);
 
     m_session = nullptr;
 }

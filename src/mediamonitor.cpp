@@ -13,42 +13,49 @@ MediaMonitor::MediaMonitor(QObject *parent)
     auto worker = new MediaWorker;
 
     worker->moveToThread(&m_thread);
-
     connect(
         worker,
-        &MediaWorker::mediaUpdated,
+        &MediaWorker::mediaInfoUpdated,
         this,
         [this](
             const QString& title,
             const QString& artist,
             const QString& album,
-            bool playing,
             const QImage& coverImage)
         {
             bool changed =
                 title != m_title
                 || artist != m_artist
-                || album != m_album
-                           || playing != m_playing;
-
-
+                || album != m_album;
+            if(!coverImage.isNull()){
+                changed=true;
+            }
             if (!changed)
                 return;
-
             m_title = title;
             m_artist = artist;
             m_album = album;
-            m_playing = playing;
-
             if(m_coverProvider)
             {
                 m_coverProvider->setImage(
                     coverImage);
-                ++m_coverVersion;
+                m_coverVersion+=1;
             }
             emit mediaChanged();
+        }, Qt::QueuedConnection);
+    connect(
+        worker,
+        &MediaWorker::mediaPSUpdated,
+        this,
+        [this](
+            bool playing)
+        {
+            bool changed =playing != m_playing;
+            if (!changed)
+                return;
+            m_playing = playing;
+            emit mediaChanged();
         });
-
     connect(
         &m_thread,
         &QThread::finished,
@@ -62,7 +69,6 @@ MediaMonitor::MediaMonitor(QObject *parent)
         &MediaWorker::initialize);
 
     m_thread.start();
-
 }
 MediaMonitor::~MediaMonitor(){
     m_thread.quit();
