@@ -1,5 +1,4 @@
 #include "mediamonitor.h"
-#include "mediaworker.h"
 #include "coverimageprovider.h"
 #include <QDebug>
 #include <winrt/base.h>
@@ -10,11 +9,11 @@ using namespace Windows::Media::Control;
 MediaMonitor::MediaMonitor(QObject *parent)
     : QObject(parent)
 {
-    auto worker = new MediaWorker;
+    m_worker = new MediaWorker;
 
-    worker->moveToThread(&m_thread);
+    m_worker->moveToThread(&m_thread);
     connect(
-        worker,
+        m_worker,
         &MediaWorker::mediaInfoUpdated,
         this,
         [this](
@@ -44,7 +43,7 @@ MediaMonitor::MediaMonitor(QObject *parent)
             emit mediaChanged();
         }, Qt::QueuedConnection);
     connect(
-        worker,
+        m_worker,
         &MediaWorker::mediaPSUpdated,
         this,
         [this](
@@ -59,13 +58,13 @@ MediaMonitor::MediaMonitor(QObject *parent)
     connect(
         &m_thread,
         &QThread::finished,
-        worker,
+        m_worker,
         &QObject::deleteLater);
 
     connect(
         &m_thread,
         &QThread::started,
-        worker,
+        m_worker,
         &MediaWorker::initialize);
 
     m_thread.start();
@@ -91,4 +90,17 @@ void MediaMonitor::setCoverProvider(CoverImageProvider* provider){
 };
 int MediaMonitor::coverVersion() const{
     return m_coverVersion;
+}
+void MediaMonitor::togglePlayPause()
+{
+    QMetaObject::invokeMethod(
+        m_worker,
+        &MediaWorker::togglePlayPause,
+        Qt::QueuedConnection);
+}
+void MediaMonitor::next(){
+    QMetaObject::invokeMethod(m_worker,&MediaWorker::next,Qt::QueuedConnection);
+}
+void MediaMonitor::previous(){
+    QMetaObject::invokeMethod(m_worker,&MediaWorker::previous,Qt::QueuedConnection);
 }

@@ -60,41 +60,10 @@ Item {
         }
 
         spacing: 12
+        MediaBar{
 
-
-        Column{
-            spacing:6
-            Row{
-                spacing:12
-                Image{
-                    width:80
-                    height:80
-                    source:"image://cover/current?"+mediaMonitor.coverVersion
-                    fillMode:Image.PreserveAspectCrop
-                }
-                Column{
-                    spacing:6
-                    Text{
-                       id:mediatitle
-                       text:mediaMonitor.title
-                       color:"white"
-                    }
-                    Text{
-                        text:mediaMonitor.artist
-                        color:"#AAAAAA"
-                    }
-                    Text{
-                        text:mediaMonitor.album
-                        color:"#AAAAAA"
-                    }
-                }
-            }
-
-            Text{
-                text:mediaMonitor.playing?"⏸":"▶"
-                color:"lightgreen"
-            }
         }
+
         Row{
             spacing:10
             WidgetCard {

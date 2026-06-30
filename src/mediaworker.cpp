@@ -220,3 +220,49 @@ void MediaWorker::unregisterSession()
 
     m_session = nullptr;
 }
+void MediaWorker::togglePlayPause()
+{
+    if (!m_session)
+        return;
+
+    try
+    {
+        m_session
+            .TryTogglePlayPauseAsync()
+            .get();
+    }
+    catch (...)
+    {
+        qDebug() << "Toggle failed";
+    }
+}
+void MediaWorker::next()
+{
+    if (!m_session)
+        return;
+
+    try
+    {
+        m_session
+            .TrySkipNextAsync()
+            .get();
+    }
+    catch (...)
+    {
+    }
+}
+void MediaWorker::previous()
+{
+    if (!m_session)
+        return;
+
+    try
+    {
+        m_session
+            .TrySkipPreviousAsync()
+            .get();
+    }
+    catch (...)
+    {
+    }
+}

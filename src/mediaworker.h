@@ -15,6 +15,10 @@ signals:
     void mediaInfoUpdated(const QString& title,const QString& artist,const QString& album,const QImage& coverImage);
     void mediaPSUpdated(bool playing);
     //void mediaTimelineUpdated(Timeline timeline);
+public slots:
+    void togglePlayPause();
+    void next();
+    void previous();
 private:
     void registerSession();
     void unregisterSession();

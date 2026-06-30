@@ -3,6 +3,7 @@
 #define MEDIAMONITOR_H
 #include <QObject>
 #include <QThread>
+#include "mediaworker.h"
 class CoverImageProvider;
 
 class MediaMonitor : public QObject
@@ -14,10 +15,7 @@ class MediaMonitor : public QObject
     Q_PROPERTY(QString album READ album NOTIFY mediaChanged FINAL)
     Q_PROPERTY(bool playing READ playing NOTIFY mediaChanged FINAL)
 
-    Q_PROPERTY(int coverVersion
-                   READ coverVersion
-                       NOTIFY mediaChanged
-                           FINAL)
+    Q_PROPERTY(int coverVersion READ coverVersion NOTIFY mediaChanged FINAL)
 
 public:
     explicit MediaMonitor(QObject *parent = nullptr);
@@ -35,7 +33,10 @@ public:
 
 signals:
     void mediaChanged();
-
+public slots:
+    void togglePlayPause();
+    void next();
+    void previous();
 private:
     QString m_artist;
     QString m_title;
@@ -44,7 +45,7 @@ private:
     QThread m_thread;
 
     CoverImageProvider* m_coverProvider = nullptr;
-
+    MediaWorker *m_worker=nullptr;
     int m_coverVersion = 0;
 };
 
