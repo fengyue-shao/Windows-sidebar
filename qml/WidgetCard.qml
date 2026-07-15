@@ -11,7 +11,7 @@ Rectangle {
 
     radius: 12
 
-    color: "#303030"
+    color: "#12FFFFFF"
 
     Text {
         anchors.centerIn: parent

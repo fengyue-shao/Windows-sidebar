@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Core)
+find_package(Qt6 REQUIRED COMPONENTS Svg)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
@@ -31,6 +32,12 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES mediamonitor.h mediamonitor.cpp
         SOURCES mediaworker.h mediaworker.cpp
         SOURCES coverimageprovider.h coverimageprovider.cpp
+        QML_FILES MediaBar.qml
+        RESOURCES assets/icons/ic_fluent_next_48_regular.svg assets/icons/ic_fluent_pause_48_regular.svg assets/icons/ic_fluent_play_48_regular.svg assets/icons/ic_fluent_previous_48_regular.svg
+        SOURCES Notification.h
+        SOURCES notificationmodel.h notificationmodel.cpp
+        QML_FILES NotificationItem.qml
+        QML_FILES NotificationArea.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -51,6 +58,7 @@ target_link_libraries(appqt_rainmeter
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
 target_link_libraries(appqt_rainmeter PRIVATE iphlpapi)
+target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
 
 include(GNUInstallDirs)
 install(TARGETS appqt_rainmeter

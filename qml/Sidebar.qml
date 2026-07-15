@@ -63,7 +63,9 @@ Item {
         MediaBar{
 
         }
-
+        NotificationArea{
+            model:notificationModel
+        }
         Row{
             spacing:10
             WidgetCard {
@@ -88,10 +90,5 @@ Item {
             title:"↓: "+networkMonitor.downloadSpeedText
         }
 
-        WidgetCard {
-            id:messagebar
-           title: "Custom"
-          cardHeight: 200
-        }
     }
 }
