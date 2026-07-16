@@ -5,12 +5,12 @@
 #include <QMetaType>
 #include <QImage>
 #include <winrt/base.h>
-#include "cpumonitor.h"
-#include "MemoryMonitor.h"
-#include "networkmonitor.h"
-#include "mediamonitor.h"
-#include "coverimageprovider.h"
-#include "notificationmodel.h"
+#include "include/cpumonitor.h"
+#include "include/MemoryMonitor.h"
+#include "include/networkmonitor.h"
+#include "include/mediamonitor.h"
+#include "include/coverimageprovider.h"
+#include "include/notificationmodel.h"
 int main(int argc, char *argv[])
 {
     QGuiApplication app(argc, argv);

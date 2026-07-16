@@ -1,4 +1,4 @@
-#include "coverimageprovider.h"
+#include "include/coverimageprovider.h"
 
 CoverImageProvider::CoverImageProvider() :QQuickImageProvider(QQuickImageProvider::Image){
 

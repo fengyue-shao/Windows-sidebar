@@ -7,37 +7,22 @@ set(CMAKE_CXX_STANDARD 20)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Svg)
 
 qt_standard_project_setup(REQUIRES 6.8)
 
 qt_add_executable(appqt_rainmeter
-    main.cpp
+    src/main.cpp
 )
 
 qt_add_qml_module(appqt_rainmeter
     URI qt_rainmeter
     VERSION 1.0
     QML_FILES
-        Main.qml
-        SOURCES cpumonitor.h cpumonitor.cpp
-        SOURCES monitorbase.h monitorbase.cpp
-        SOURCES memorymonitor.h memorymonitor.cpp
-        SOURCES networkmonitor.h networkmonitor.cpp
-        QML_FILES Sidebar.qml
-        QML_FILES
-        QML_FILES WidgetCard.qml
-        QML_FILES Timebar.qml
-        SOURCES mediamonitor.h mediamonitor.cpp
-        SOURCES mediaworker.h mediaworker.cpp
-        SOURCES coverimageprovider.h coverimageprovider.cpp
-        QML_FILES MediaBar.qml
+        qml/Main.qml
+        SOURCES include/coverimageprovider.h include/cpumonitor.h include/mediamonitor.h include/mediaworker.h include/memorymonitor.h include/monitorbase.h include/networkmonitor.h include/Notification.h include/notificationmodel.h src/coverimageprovider.cpp src/cpumonitor.cpp src/mediamonitor.cpp src/mediaworker.cpp src/memorymonitor.cpp src/monitorbase.cpp src/networkmonitor.cpp src/notificationmodel.cpp
+        QML_FILES qml/MediaBar.qml qml/NotificationArea.qml qml/NotificationItem.qml qml/Sidebar.qml qml/Timebar.qml qml/WidgetCard.qml
         RESOURCES assets/icons/ic_fluent_next_48_regular.svg assets/icons/ic_fluent_pause_48_regular.svg assets/icons/ic_fluent_play_48_regular.svg assets/icons/ic_fluent_previous_48_regular.svg
-        SOURCES Notification.h
-        SOURCES notificationmodel.h notificationmodel.cpp
-        QML_FILES NotificationItem.qml
-        QML_FILES NotificationArea.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -55,7 +40,6 @@ target_link_libraries(appqt_rainmeter
     PRIVATE Qt6::Quick
     windowsapp
 )
-target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
 target_link_libraries(appqt_rainmeter PRIVATE iphlpapi)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)

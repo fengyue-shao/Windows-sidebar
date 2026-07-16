@@ -65,7 +65,7 @@ Rectangle{
         Image{
             width:20
             height:20
-            source: Qt.resolvedUrl("assets/icons/ic_fluent_previous_48_regular.svg")
+            source:Qt.resolvedUrl("assets/icons/ic_fluent_pervious_48_regular.svg")
             MouseArea{
                 anchors.fill:parent
                 onClicked:mediaMonitor.previous()

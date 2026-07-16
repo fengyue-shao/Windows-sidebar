@@ -1,5 +1,5 @@
-#include "mediamonitor.h"
-#include "coverimageprovider.h"
+#include "include/mediamonitor.h"
+#include "include/coverimageprovider.h"
 #include <QDebug>
 #include <winrt/base.h>
 #include <winrt/Windows.Foundation.h>

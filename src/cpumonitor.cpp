@@ -1,4 +1,4 @@
-#include "CpuMonitor.h"
+#include "include/CpuMonitor.h"
 
 #include <windows.h>
 

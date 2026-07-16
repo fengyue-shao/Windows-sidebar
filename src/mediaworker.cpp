@@ -1,4 +1,4 @@
-#include "mediaworker.h"
+#include "include/mediaworker.h"
 #include <QDebug>
 #include <QBuffer>
 #include <QDir>
