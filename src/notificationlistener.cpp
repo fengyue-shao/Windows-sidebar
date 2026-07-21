@@ -32,6 +32,35 @@ void NotificationListener::start()
     requestPermissionAndStart();
 }
 
+void NotificationListener::removeNotification(const QString &id)
+{
+    if (!m_started)
+        return;
+
+    bool ok = false;
+    const uint notificationId = id.toUInt(&ok);
+    if (!ok)
+        return;
+
+    try {
+        m_listener.RemoveNotification(notificationId);
+    } catch (const winrt::hresult_error &error) {
+        reportException(error);
+    }
+}
+
+void NotificationListener::clearNotifications()
+{
+    if (!m_started)
+        return;
+
+    try {
+        m_listener.ClearNotifications();
+    } catch (const winrt::hresult_error &error) {
+        reportException(error);
+    }
+}
+
 winrt::Windows::Foundation::IAsyncAction NotificationListener::requestPermissionAndStart()
 {
     QPointer<NotificationListener> self(this);

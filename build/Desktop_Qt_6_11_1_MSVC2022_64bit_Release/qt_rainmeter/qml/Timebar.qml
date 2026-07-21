@@ -1,43 +1,73 @@
 import QtQuick
+import QtQuick.Layouts
 
-Rectangle {
+Item {
     id: root
-    property string title: "timebar"
-    height: 80
-    width: parent.width
-    property string currentTime
-    property string currentDateandWeek
+
+    property date now: new Date()
+
     Timer {
         interval: 1000
         running: true
         repeat: true
+        triggeredOnStart: true
+        onTriggered: root.now = new Date()
+    }
 
-        onTriggered: {
-            currentTime = Qt.formatTime(new Date(), "hh:mm:ss");
-            currentDateandWeek=new Date().toLocaleDateString(Qt.locale(),"dddd,MMMM d,yyyy")
+    RowLayout {
+        anchors.fill: parent
+        spacing: 11
+
+        Text {
+            text: Qt.formatTime(root.now, "HH:mm")
+            color: "#FAFFFFFF"
+            font.pixelSize: 29
+            font.weight: Font.Medium
+            font.letterSpacing: -0.8
+        }
+
+        Rectangle {
+            Layout.preferredWidth: secondsText.implicitWidth + 12
+            Layout.preferredHeight: 23
+            radius: 8
+            color: "#1D61A9FF"
+
+            Text {
+                id: secondsText
+                anchors.centerIn: parent
+                text: Qt.formatTime(root.now, "ss")
+                color: "#B8D9ECFF"
+                font.pixelSize: 11
+                font.family: "Consolas"
+            }
+        }
+
+        ColumnLayout {
+            Layout.fillWidth: true
+            spacing: 0
+
+            Text {
+                Layout.alignment: Qt.AlignRight
+                text: root.now.toLocaleDateString(Qt.locale(), "dddd")
+                color: "#C8FFFFFF"
+                font.pixelSize: 12
+                font.weight: Font.DemiBold
+            }
+
+            Text {
+                Layout.alignment: Qt.AlignRight
+                text: root.now.toLocaleDateString(Qt.locale(), "M月d日")
+                color: "#6FFFFFFF"
+                font.pixelSize: 11
+            }
         }
     }
-    Text {
-        anchors{
-            left:parent.left
-            top:parent.top
-            topMargin: 10.0
-            leftMargin: 20.0
-        }
-        id:currenttime
-        font.pixelSize: 30
-        text:currentTime
-        color:"white"
-    }
-    Text{
-        anchors{
-            left:parent.left
-            leftMargin:20.0
-            top:currenttime.bottom
-        }
-        id:dateandweek
-        font.pixelSize:15
-        color:"white"
-        text: currentDateandWeek
+
+    Rectangle {
+        anchors.left: parent.left
+        anchors.right: parent.right
+        anchors.bottom: parent.bottom
+        height: 1
+        color: "#16FFFFFF"
     }
 }

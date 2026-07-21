@@ -15,6 +15,10 @@ public:
 
     void start();
 
+public slots:
+    void removeNotification(const QString &id);
+    void clearNotifications();
+
 signals:
     void notificationAdded(const Notification &notification);
     void notificationRemoved(const QString &id);

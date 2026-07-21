@@ -15,7 +15,7 @@
                         }
                     ],
                     "index": 0,
-                    "lineNumber": 19,
+                    "lineNumber": 23,
                     "name": "notificationAdded",
                     "returnType": "void"
                 },
@@ -28,7 +28,7 @@
                         }
                     ],
                     "index": 1,
-                    "lineNumber": 20,
+                    "lineNumber": 24,
                     "name": "notificationRemoved",
                     "returnType": "void"
                 },
@@ -41,14 +41,14 @@
                         }
                     ],
                     "index": 2,
-                    "lineNumber": 21,
+                    "lineNumber": 25,
                     "name": "notificationUpdated",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
                     "index": 3,
-                    "lineNumber": 22,
+                    "lineNumber": 26,
                     "name": "accessDenied",
                     "returnType": "void"
                 },
@@ -61,8 +61,30 @@
                         }
                     ],
                     "index": 4,
-                    "lineNumber": 23,
+                    "lineNumber": 27,
                     "name": "errorOccurred",
+                    "returnType": "void"
+                }
+            ],
+            "slots": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "id",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 5,
+                    "lineNumber": 19,
+                    "name": "removeNotification",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 6,
+                    "lineNumber": 20,
+                    "name": "clearNotifications",
                     "returnType": "void"
                 }
             ],

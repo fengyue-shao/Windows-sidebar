@@ -86,11 +86,16 @@ void NotificationModel::removeNotification(int row)
     if (row < 0 || row >= m_notifications.size())
         return;
 
+    const QString id = m_notifications.at(row).id;
+
     beginRemoveRows(QModelIndex(), row, row);
 
     m_notifications.removeAt(row);
 
     endRemoveRows();
+
+    if (!id.isEmpty())
+        emit removalRequested(id);
 }
 void NotificationModel::removeById(const QString &id)
 {
@@ -98,18 +103,24 @@ void NotificationModel::removeById(const QString &id)
     {
         if (m_notifications[i].id == id)
         {
-            removeNotification(i);
+            beginRemoveRows(QModelIndex(), i, i);
+            m_notifications.removeAt(i);
+            endRemoveRows();
             return;
         }
     }
 }
 void NotificationModel::clear()
 {
+    if (m_notifications.isEmpty())
+        return;
+
     beginResetModel();
 
     m_notifications.clear();
 
     endResetModel();
+    emit clearRequested();
 }
 
 Notification NotificationModel::notification(int row) const

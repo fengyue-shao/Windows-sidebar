@@ -7,66 +7,130 @@
                     "entries": [
                         {
                             "codegenResult": 0,
-                            "column": 12,
-                            "durationMicroseconds": 1000,
-                            "functionName": "width",
+                            "column": 24,
+                            "durationMicroseconds": 0,
+                            "functionName": "now",
                             "line": 7,
                             "message": ""
                         },
                         {
-                            "codegenResult": 2,
+                            "codegenResult": 0,
                             "column": 22,
                             "durationMicroseconds": 0,
                             "functionName": "onTriggered",
-                            "line": 15,
-                            "message": "Cannot find name currentTime"
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 14,
-                            "durationMicroseconds": 0,
-                            "functionName": "text",
-                            "line": 29,
-                            "message": "Cannot access value for name currentTime"
+                            "line": 14,
+                            "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 18,
+                            "column": 23,
                             "durationMicroseconds": 0,
-                            "functionName": "left",
+                            "functionName": "fill",
+                            "line": 18,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 19,
+                            "durationMicroseconds": 0,
+                            "functionName": "text",
                             "line": 22,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 17,
+                            "column": 26,
                             "durationMicroseconds": 0,
-                            "functionName": "top",
-                            "line": 23,
+                            "functionName": "weight",
+                            "line": 25,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 36,
+                            "durationMicroseconds": 0,
+                            "functionName": "preferredWidth",
+                            "line": 30,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 23,
+                            "durationMicroseconds": 0,
+                            "functionName": "text",
+                            "line": 38,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 35,
+                            "durationMicroseconds": 0,
+                            "functionName": "centerIn",
+                            "line": 37,
                             "message": ""
                         },
                         {
                             "codegenResult": 2,
-                            "column": 15,
+                            "column": 23,
                             "durationMicroseconds": 0,
                             "functionName": "text",
-                            "line": 41,
-                            "message": "Cannot access value for name currentDateandWeek"
+                            "line": 51,
+                            "message": "Cannot generate efficient code for call to untyped JavaScript function"
                         },
                         {
                             "codegenResult": 0,
-                            "column": 18,
+                            "column": 35,
                             "durationMicroseconds": 0,
-                            "functionName": "left",
-                            "line": 34,
+                            "functionName": "alignment",
+                            "line": 50,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 17,
+                            "column": 30,
                             "durationMicroseconds": 0,
-                            "functionName": "top",
-                            "line": 36,
+                            "functionName": "weight",
+                            "line": 54,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 23,
+                            "durationMicroseconds": 0,
+                            "functionName": "text",
+                            "line": 59,
+                            "message": "Cannot generate efficient code for call to untyped JavaScript function"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 35,
+                            "durationMicroseconds": 0,
+                            "functionName": "alignment",
+                            "line": 58,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 23,
+                            "durationMicroseconds": 0,
+                            "functionName": "left",
+                            "line": 67,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 24,
+                            "durationMicroseconds": 0,
+                            "functionName": "right",
+                            "line": 68,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 25,
+                            "durationMicroseconds": 0,
+                            "functionName": "bottom",
+                            "line": 69,
                             "message": ""
                         }
                     ],

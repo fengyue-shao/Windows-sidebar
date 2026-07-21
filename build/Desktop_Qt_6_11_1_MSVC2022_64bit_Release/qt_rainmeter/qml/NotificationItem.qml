@@ -5,224 +5,175 @@ import QtQuick.Layouts
 Item {
     id: root
 
-    property string appName
-    property string title
-    property string content
+    property string appName: ""
+    property string title: ""
+    property string content: ""
     property url appIcon
     property bool unread: true
+    property bool removable: true
     property string timeText: ""
-    property int row: -1
 
     signal removeRequested()
     signal markReadRequested()
     signal markUnreadRequested()
     signal clicked()
 
-    implicitWidth: 320
-    implicitHeight: 80
+    implicitHeight: content.length > 0 ? 94 : 76
 
-    HoverHandler {
-        id: hoverHandler
-    }
-
+    HoverHandler { id: hover }
     TapHandler {
         acceptedButtons: Qt.LeftButton
-
         onTapped: {
             root.clicked()
-
             if (root.unread)
                 root.markReadRequested()
-            else
-                root.markUnreadRequested()
         }
     }
 
     Rectangle {
         anchors.fill: parent
+        radius: 13
+        color: hover.hovered ? "#20FFFFFF"
+                             : root.unread ? "#16FFFFFF" : "#0DFFFFFF"
+        border.width: 1
+        border.color: hover.hovered ? "#30FFFFFF" : "#12FFFFFF"
 
-        radius: 12
-
-        color: hoverHandler.hovered ?
-                   "#28FFFFFF"
-                 : unread ?
-                       "#20FFFFFF"
-                     : "#14FFFFFF"
-
-        border.width: hoverHandler.hovered ? 1 : 0
-        border.color: "#45FFFFFF"
-
-        Behavior on color {
-            ColorAnimation {
-                duration: 120
-            }
-        }
-
-        Behavior on border.width {
-            NumberAnimation {
-                duration: 120
-            }
-        }
-
-        // 左侧未读蓝条
         Rectangle {
-
-            width: unread ? 4 : 0
-
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
-
+            width: root.unread ? 3 : 0
             radius: 2
-
-            color: "#4DA3FF"
-
-            Behavior on width {
-                NumberAnimation {
-                    duration: 120
-                }
-            }
+            color: "#61A9FF"
+            Behavior on width { NumberAnimation { duration: 140 } }
         }
 
         RowLayout {
-
             anchors.fill: parent
-            anchors.margins: 12
+            anchors.leftMargin: 12
+            anchors.rightMargin: 10
+            anchors.topMargin: 10
+            anchors.bottomMargin: 10
+            spacing: 11
 
-            spacing: 12
+            Rectangle {
+                Layout.preferredWidth: 38
+                Layout.preferredHeight: 38
+                Layout.alignment: Qt.AlignTop
+                radius: 11
+                color: "#18FFFFFF"
 
-            Image {
+                Text {
+                    anchors.centerIn: parent
+                    text: root.appName.length > 0 ? root.appName.charAt(0).toUpperCase() : "·"
+                    color: "#BFFFFFFF"
+                    font.pixelSize: 15
+                    font.weight: Font.DemiBold
+                }
 
-                Layout.preferredWidth: 36
-                Layout.preferredHeight: 36
-
-                source: appIcon
-
-                fillMode: Image.PreserveAspectFit
+                Image {
+                    id: iconImage
+                    anchors.fill: parent
+                    anchors.margins: 5
+                    source: root.appIcon
+                    fillMode: Image.PreserveAspectFit
+                    visible: status === Image.Ready
+                    asynchronous: true
+                }
             }
 
             ColumnLayout {
-
                 Layout.fillWidth: true
-
+                Layout.fillHeight: true
                 spacing: 2
 
                 RowLayout {
-
                     Layout.fillWidth: true
+                    spacing: 6
 
                     Text {
-
                         Layout.fillWidth: true
-
-                        text: appName
-
-                        color: "white"
-
-                        font.bold: true
-
-                        font.pixelSize: 14
-
+                        text: root.appName || "系统通知"
+                        color: "#EFFFFFFF"
+                        font.pixelSize: 12
+                        font.weight: Font.DemiBold
                         elide: Text.ElideRight
                     }
 
                     Text {
-
-                        text: timeText
-
-                        color: "#AAAAAA"
-
-                        font.pixelSize: 11
+                        text: root.timeText
+                        color: "#68FFFFFF"
+                        font.pixelSize: 10
                     }
 
-                    // 给菜单按钮预留固定宽度
-                    Item {
-                        Layout.preferredWidth: 28
-                        Layout.preferredHeight: 1
+                    Rectangle {
+                        visible: root.unread
+                        Layout.preferredWidth: 6
+                        Layout.preferredHeight: 6
+                        radius: 3
+                        color: "#61A9FF"
                     }
                 }
 
                 Text {
-
                     Layout.fillWidth: true
-
-                    text: title
-
-                    color: "#EEEEEE"
-
-                    font.pixelSize: 13
-
-                    elide: Text.ElideRight
-                }
-
-                Text {
-
-                    Layout.fillWidth: true
-
-                    text: content
-
-                    color: "#BBBBBB"
-
+                    visible: root.title.length > 0
+                    text: root.title
+                    color: "#D8FFFFFF"
                     font.pixelSize: 12
+                    elide: Text.ElideRight
+                }
 
+                Text {
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    visible: root.content.length > 0
+                    text: root.content
+                    color: "#8EFFFFFF"
+                    font.pixelSize: 11
                     maximumLineCount: 2
-
                     wrapMode: Text.Wrap
-
                     elide: Text.ElideRight
                 }
             }
+
+            Rectangle {
+                Layout.preferredWidth: 28
+                Layout.preferredHeight: 28
+                Layout.alignment: Qt.AlignTop
+                radius: 9
+                color: menuHover.hovered ? "#24FFFFFF" : "transparent"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "···"
+                    color: "#A0FFFFFF"
+                    font.pixelSize: 13
+                    font.weight: Font.Bold
+                }
+
+                HoverHandler { id: menuHover }
+                TapHandler { onTapped: menu.open() }
+            }
         }
 
-        ToolButton {
+        Behavior on color { ColorAnimation { duration: 120 } }
+    }
 
-            anchors.top: parent.top
-            anchors.right: parent.right
+    Menu {
+        id: menu
 
-            anchors.topMargin: 6
-            anchors.rightMargin: 6
-
-            width: 24
-            height: 24
-
-            text: "⋮"
-
-            opacity: hoverHandler.hovered ? 1 : 0
-            enabled: hoverHandler.hovered
-
-            Behavior on opacity {
-                NumberAnimation {
-                    duration: 120
-                }
-            }
-
-            onClicked: menu.open()
+        MenuItem {
+            text: root.unread ? "标记为已读" : "标记为未读"
+            onTriggered: root.unread ? root.markReadRequested() : root.markUnreadRequested()
         }
 
-        Menu {
+        MenuSeparator { }
 
-            id: menu
-
-            MenuItem {
-
-                text: unread ? "标记已读" : "标记未读"
-
-                onTriggered: {
-
-                    if (unread)
-                        root.markReadRequested()
-                    else
-                        root.markUnreadRequested()
-                }
-            }
-
-            MenuItem {
-
-                text: "删除"
-
-                onTriggered:
-                    root.removeRequested()
-            }
+        MenuItem {
+            text: "从通知中心删除"
+            enabled: root.removable
+            onTriggered: root.removeRequested()
         }
     }
 }

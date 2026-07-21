@@ -1,8 +1,14 @@
 appqt_rainmeter_autogen/timestamp: \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/base.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.applicationmodel.0.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.applicationmodel.1.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.applicationmodel.2.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.applicationmodel.appservice.0.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.applicationmodel.appservice.1.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.applicationmodel.appservice.2.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.data.xml.dom.0.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.data.xml.dom.1.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.data.xml.dom.2.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.foundation.0.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.foundation.1.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.foundation.2.h \
@@ -34,10 +40,23 @@ appqt_rainmeter_autogen/timestamp: \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.storage.streams.2.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.system.0.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.system.1.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.system.2.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.system.remotesystems.0.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.system.remotesystems.1.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.0.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.1.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.2.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.notifications.0.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.notifications.1.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.notifications.2.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.notifications.management.0.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.notifications.management.1.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/impl/windows.ui.notifications.management.2.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/windows.media.control.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/windows.media.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/windows.ui.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/windows.ui.notifications.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/cppwinrt/winrt/windows.ui.notifications.management.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/assert.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt_malloc.h \
@@ -45,12 +64,15 @@ appqt_rainmeter_autogen/timestamp: \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt_memcpy_s.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt_memory.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt_search.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt_stdio_config.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt_wstdio.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt_wstdlib.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/corecrt_wstring.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/errno.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/float.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/math.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/stddef.h \
+	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/stdio.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/stdlib.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/ucrt/string.h \
 	C:/Program\ Files\ (x86)/Windows\ Kits/10/Include/10.0.28000.0/um/DirectXMath.h \
@@ -65,10 +87,12 @@ appqt_rainmeter_autogen/timestamp: \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/atomic \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/charconv \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/chrono \
+	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/climits \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/cmath \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/concurrencysal.h \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/cstddef \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/cstdint \
+	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/cstdlib \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/cstring \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/exception \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/experimental/coroutine \
@@ -87,6 +111,7 @@ appqt_rainmeter_autogen/timestamp: \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/optional \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/ostream \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/sal.h \
+	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/set \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/stdarg.h \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/stdbool.h \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/stdexcept \
@@ -97,6 +122,7 @@ appqt_rainmeter_autogen/timestamp: \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/tuple \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/type_traits \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/unordered_map \
+	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/unordered_set \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/utility \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/vadefs.h \
 	C:/Program\ Files/Microsoft\ Visual\ Studio/18/Community/VC/Tools/MSVC/14.51.36231/include/variant \

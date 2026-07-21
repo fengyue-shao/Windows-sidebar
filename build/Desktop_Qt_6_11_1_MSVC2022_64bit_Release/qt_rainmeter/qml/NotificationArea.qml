@@ -3,116 +3,142 @@ import QtQuick.Controls
 import QtQuick.Layouts
 
 ColumnLayout {
-
     id: root
 
     property var model
-
-    spacing: 10
-    width:0.9*parent.width
-    height:500
+    spacing: 9
 
     RowLayout {
-
         Layout.fillWidth: true
+        spacing: 8
 
         Text {
-
-            text: "Notifications"
-
-            color: "white"
-
-            font.pixelSize: 18
-
-            font.bold: true
-
             Layout.fillWidth: true
+            text: "通知"
+            color: "#EFFFFFFF"
+            font.pixelSize: 16
+            font.weight: Font.DemiBold
         }
 
-        ToolButton {
-            text: "✓"
+        Rectangle {
+            visible: notificationModel.unreadCount() > 0
+            implicitWidth: countText.implicitWidth + 14
+            implicitHeight: 24
+            radius: 12
+            color: "#2861A9FF"
 
-            onClicked:
-                notificationModel.markAllAsRead()
-
-            ToolTip.text: "全部已读"
-
-            ToolTip.visible: hovered
+            Text {
+                id: countText
+                anchors.centerIn: parent
+                text: notificationModel.unreadCount()
+                color: "#DFFFFFFF"
+                font.pixelSize: 11
+                font.weight: Font.DemiBold
+            }
         }
 
-        ToolButton {
+        HeaderButton {
+            text: "全部已读"
+            enabled: notificationModel.unreadCount() > 0
+            onClicked: notificationModel.markAllAsRead()
+        }
 
-            text: "🗑"
-
-            onClicked:
-                notificationModel.clear()
-
-            ToolTip.text: "清空通知"
-
-            ToolTip.visible: hovered
+        HeaderButton {
+            text: "清空"
+            destructive: true
+            enabled: listView.count > 0
+            onClicked: notificationModel.clear()
         }
     }
 
     Rectangle {
-
         Layout.fillWidth: true
         Layout.fillHeight: true
-
+        Layout.minimumHeight: 120
         radius: 16
-
-        color: "#12FFFFFF"
+        color: "#0CFFFFFF"
+        border.width: 1
+        border.color: "#14FFFFFF"
+        clip: true
 
         ListView {
-
             id: listView
-
             anchors.fill: parent
-
             anchors.margins: 8
-
-            spacing: 8
-
+            spacing: 7
             clip: true
-
             model: root.model
+            boundsBehavior: Flickable.StopAtBounds
 
             delegate: NotificationItem {
-
                 width: listView.width
-
                 appName: model.appName
                 title: model.title
                 content: model.content
                 appIcon: model.appIcon
                 unread: model.unread
-
-                timeText: Qt.formatTime(model.timestamp, "hh:mm")
-
+                removable: model.removable
+                timeText: Qt.formatTime(model.timestamp, "HH:mm")
                 onRemoveRequested: root.model.removeNotification(index)
-
                 onMarkReadRequested: root.model.markAsRead(index)
-
                 onMarkUnreadRequested: root.model.markAsUnread(index)
             }
 
-            ScrollBar.vertical: ScrollBar {
+            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
 
-                policy: ScrollBar.AsNeeded
-                visible:false
+            add: Transition {
+                NumberAnimation { properties: "opacity,scale"; from: 0; to: 1; duration: 180 }
+            }
+            displaced: Transition {
+                NumberAnimation { properties: "x,y"; duration: 180; easing.type: Easing.OutCubic }
             }
         }
 
-        Text {
-
+        Column {
             anchors.centerIn: parent
-
             visible: listView.count === 0
+            spacing: 7
 
-            text: "暂无通知"
-
-            color: "#80FFFFFF"
-
-            font.pixelSize: 14
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "✓"
+                color: "#5061A9FF"
+                font.pixelSize: 30
+            }
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                text: "暂无通知"
+                color: "#70FFFFFF"
+                font.pixelSize: 13
+            }
         }
+    }
+
+    component HeaderButton: Rectangle {
+        id: button
+
+        property string text
+        property bool destructive: false
+        signal clicked()
+
+        implicitWidth: label.implicitWidth + 16
+        implicitHeight: 28
+        radius: 9
+        color: !enabled ? "#08FFFFFF"
+                        : hover.hovered ? (destructive ? "#35FF6B6B" : "#24FFFFFF")
+                                        : "#12FFFFFF"
+        opacity: enabled ? 1 : 0.45
+
+        Text {
+            id: label
+            anchors.centerIn: parent
+            text: button.text
+            color: button.destructive ? "#E8FF8A8A" : "#B8FFFFFF"
+            font.pixelSize: 11
+        }
+
+        HoverHandler { id: hover }
+        TapHandler { enabled: button.enabled; onTapped: button.clicked() }
+        Behavior on color { ColorAnimation { duration: 100 } }
     }
 }

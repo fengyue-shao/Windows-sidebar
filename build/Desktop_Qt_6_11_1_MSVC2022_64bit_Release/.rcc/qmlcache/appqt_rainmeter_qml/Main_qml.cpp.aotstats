@@ -7,82 +7,82 @@
                     "entries": [
                         {
                             "codegenResult": 0,
-                            "column": 11,
+                            "column": 12,
                             "durationMicroseconds": 0,
                             "functionName": "flags",
-                            "line": 6,
+                            "line": 8,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 41,
+                            "column": 42,
                             "durationMicroseconds": 0,
                             "functionName": "expandedWidth",
-                            "line": 9,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 11,
-                            "durationMicroseconds": 0,
-                            "functionName": "width",
-                            "line": 11,
+                            "line": 12,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
                             "column": 12,
                             "durationMicroseconds": 0,
-                            "functionName": "height",
-                            "line": 12,
+                            "functionName": "width",
+                            "line": 15,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 7,
+                            "column": 13,
+                            "durationMicroseconds": 0,
+                            "functionName": "height",
+                            "line": 16,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 8,
                             "durationMicroseconds": 0,
                             "functionName": "x",
-                            "line": 13,
+                            "line": 17,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 20,
+                            "column": 21,
                             "durationMicroseconds": 0,
                             "functionName": "onWidthChanged",
-                            "line": 21,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 25,
-                            "durationMicroseconds": 0,
-                            "functionName": "type",
-                            "line": 18,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 18,
-                            "durationMicroseconds": 0,
-                            "functionName": "expanded",
                             "line": 24,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 27,
+                            "column": 55,
                             "durationMicroseconds": 0,
-                            "functionName": "onToggleRequested",
-                            "line": 25,
+                            "functionName": "type",
+                            "line": 21,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 22,
+                            "column": 19,
+                            "durationMicroseconds": 0,
+                            "functionName": "expanded",
+                            "line": 28,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 28,
+                            "durationMicroseconds": 0,
+                            "functionName": "onToggleRequested",
+                            "line": 29,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 23,
                             "durationMicroseconds": 0,
                             "functionName": "fill",
-                            "line": 23,
+                            "line": 27,
                             "message": ""
                         }
                     ],

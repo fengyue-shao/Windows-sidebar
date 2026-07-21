@@ -35,6 +35,10 @@ int main(int argc, char *argv[])
                      &notificationModel, &NotificationModel::addNotification);
     QObject::connect(&notificationListener, &NotificationListener::notificationRemoved,
                      &notificationModel, &NotificationModel::removeById);
+    QObject::connect(&notificationModel, &NotificationModel::removalRequested,
+                     &notificationListener, &NotificationListener::removeNotification);
+    QObject::connect(&notificationModel, &NotificationModel::clearRequested,
+                     &notificationListener, &NotificationListener::clearNotifications);
     QObject::connect(&notificationListener, &NotificationListener::accessDenied,
                      [] {
                          qWarning() << "Access to Windows notifications was denied";

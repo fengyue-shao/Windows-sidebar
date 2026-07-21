@@ -12,7 +12,7 @@
                             "type": "Notification"
                         }
                     ],
-                    "index": 0,
+                    "index": 2,
                     "lineNumber": 26,
                     "name": "addNotification",
                     "returnType": "void"
@@ -25,7 +25,7 @@
                             "type": "int"
                         }
                     ],
-                    "index": 1,
+                    "index": 3,
                     "lineNumber": 28,
                     "name": "removeNotification",
                     "returnType": "void"
@@ -38,14 +38,14 @@
                             "type": "QString"
                         }
                     ],
-                    "index": 2,
+                    "index": 4,
                     "lineNumber": 29,
                     "name": "removeById",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
-                    "index": 3,
+                    "index": 5,
                     "lineNumber": 30,
                     "name": "clear",
                     "returnType": "void"
@@ -58,7 +58,7 @@
                             "type": "int"
                         }
                     ],
-                    "index": 4,
+                    "index": 6,
                     "lineNumber": 31,
                     "name": "markAsRead",
                     "returnType": "void"
@@ -71,21 +71,21 @@
                             "type": "int"
                         }
                     ],
-                    "index": 5,
+                    "index": 7,
                     "lineNumber": 32,
                     "name": "markAsUnread",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
-                    "index": 6,
+                    "index": 8,
                     "lineNumber": 33,
                     "name": "markAllAsRead",
                     "returnType": "void"
                 },
                 {
                     "access": "public",
-                    "index": 7,
+                    "index": 9,
                     "isConst": true,
                     "lineNumber": 34,
                     "name": "unreadCount",
@@ -94,6 +94,28 @@
             ],
             "object": true,
             "qualifiedClassName": "NotificationModel",
+            "signals": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "id",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 38,
+                    "name": "removalRequested",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 1,
+                    "lineNumber": 39,
+                    "name": "clearRequested",
+                    "returnType": "void"
+                }
+            ],
             "superClasses": [
                 {
                     "access": "public",

@@ -39,14 +39,16 @@ template <> constexpr inline auto NotificationModel::qt_create_metaobjectdata<qt
     namespace QMC = QtMocConstants;
     QtMocHelpers::StringRefStorage qt_stringData {
         "NotificationModel",
-        "addNotification",
+        "removalRequested",
         "",
+        "id",
+        "clearRequested",
+        "addNotification",
         "Notification",
         "notification",
         "removeNotification",
         "row",
         "removeById",
-        "id",
         "clear",
         "markAsRead",
         "markAsUnread",
@@ -55,32 +57,38 @@ template <> constexpr inline auto NotificationModel::qt_create_metaobjectdata<qt
     };
 
     QtMocHelpers::UintData qt_methods {
+        // Signal 'removalRequested'
+        QtMocHelpers::SignalData<void(const QString &)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 3 },
+        }}),
+        // Signal 'clearRequested'
+        QtMocHelpers::SignalData<void()>(4, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'addNotification'
-        QtMocHelpers::MethodData<void(const Notification &)>(1, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { 0x80000000 | 3, 4 },
+        QtMocHelpers::MethodData<void(const Notification &)>(5, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { 0x80000000 | 6, 7 },
         }}),
         // Method 'removeNotification'
-        QtMocHelpers::MethodData<void(int)>(5, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 6 },
+        QtMocHelpers::MethodData<void(int)>(8, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 9 },
         }}),
         // Method 'removeById'
-        QtMocHelpers::MethodData<void(const QString &)>(7, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::QString, 8 },
+        QtMocHelpers::MethodData<void(const QString &)>(10, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 3 },
         }}),
         // Method 'clear'
-        QtMocHelpers::MethodData<void()>(9, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(11, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'markAsRead'
-        QtMocHelpers::MethodData<void(int)>(10, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 6 },
+        QtMocHelpers::MethodData<void(int)>(12, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 9 },
         }}),
         // Method 'markAsUnread'
-        QtMocHelpers::MethodData<void(int)>(11, 2, QMC::AccessPublic, QMetaType::Void, {{
-            { QMetaType::Int, 6 },
+        QtMocHelpers::MethodData<void(int)>(13, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::Int, 9 },
         }}),
         // Method 'markAllAsRead'
-        QtMocHelpers::MethodData<void()>(12, 2, QMC::AccessPublic, QMetaType::Void),
+        QtMocHelpers::MethodData<void()>(14, 2, QMC::AccessPublic, QMetaType::Void),
         // Method 'unreadCount'
-        QtMocHelpers::MethodData<int() const>(13, 2, QMC::AccessPublic, QMetaType::Int),
+        QtMocHelpers::MethodData<int() const>(15, 2, QMC::AccessPublic, QMetaType::Int),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -104,14 +112,16 @@ void NotificationModel::qt_static_metacall(QObject *_o, QMetaObject::Call _c, in
     auto *_t = static_cast<NotificationModel *>(_o);
     if (_c == QMetaObject::InvokeMetaMethod) {
         switch (_id) {
-        case 0: _t->addNotification((*reinterpret_cast<std::add_pointer_t<Notification>>(_a[1]))); break;
-        case 1: _t->removeNotification((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
-        case 2: _t->removeById((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
-        case 3: _t->clear(); break;
-        case 4: _t->markAsRead((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
-        case 5: _t->markAsUnread((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
-        case 6: _t->markAllAsRead(); break;
-        case 7: { int _r = _t->unreadCount();
+        case 0: _t->removalRequested((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 1: _t->clearRequested(); break;
+        case 2: _t->addNotification((*reinterpret_cast<std::add_pointer_t<Notification>>(_a[1]))); break;
+        case 3: _t->removeNotification((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 4: _t->removeById((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 5: _t->clear(); break;
+        case 6: _t->markAsRead((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 7: _t->markAsUnread((*reinterpret_cast<std::add_pointer_t<int>>(_a[1]))); break;
+        case 8: _t->markAllAsRead(); break;
+        case 9: { int _r = _t->unreadCount();
             if (_a[0]) *reinterpret_cast<int*>(_a[0]) = std::move(_r); }  break;
         default: ;
         }
@@ -119,7 +129,7 @@ void NotificationModel::qt_static_metacall(QObject *_o, QMetaObject::Call _c, in
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
         switch (_id) {
         default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
-        case 0:
+        case 2:
             switch (*reinterpret_cast<int*>(_a[1])) {
             default: *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType(); break;
             case 0:
@@ -127,6 +137,12 @@ void NotificationModel::qt_static_metacall(QObject *_o, QMetaObject::Call _c, in
             }
             break;
         }
+    }
+    if (_c == QMetaObject::IndexOfMethod) {
+        if (QtMocHelpers::indexOfMethod<void (NotificationModel::*)(const QString & )>(_a, &NotificationModel::removalRequested, 0))
+            return;
+        if (QtMocHelpers::indexOfMethod<void (NotificationModel::*)()>(_a, &NotificationModel::clearRequested, 1))
+            return;
     }
 }
 
@@ -149,15 +165,27 @@ int NotificationModel::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 8)
+        if (_id < 10)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 8;
+        _id -= 10;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 8)
+        if (_id < 10)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 8;
+        _id -= 10;
     }
     return _id;
+}
+
+// SIGNAL 0
+void NotificationModel::removalRequested(const QString & _t1)
+{
+    QMetaObject::activate<void>(this, &staticMetaObject, 0, nullptr, _t1);
+}
+
+// SIGNAL 1
+void NotificationModel::clearRequested()
+{
+    QMetaObject::activate(this, &staticMetaObject, 1, nullptr);
 }
 QT_WARNING_POP

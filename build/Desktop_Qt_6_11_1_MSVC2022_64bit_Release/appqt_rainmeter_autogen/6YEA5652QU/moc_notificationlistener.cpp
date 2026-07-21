@@ -48,7 +48,9 @@ template <> constexpr inline auto NotificationListener::qt_create_metaobjectdata
         "notificationUpdated",
         "accessDenied",
         "errorOccurred",
-        "message"
+        "message",
+        "removeNotification",
+        "clearNotifications"
     };
 
     QtMocHelpers::UintData qt_methods {
@@ -70,6 +72,12 @@ template <> constexpr inline auto NotificationListener::qt_create_metaobjectdata
         QtMocHelpers::SignalData<void(const QString &)>(9, 2, QMC::AccessPublic, QMetaType::Void, {{
             { QMetaType::QString, 10 },
         }}),
+        // Slot 'removeNotification'
+        QtMocHelpers::SlotData<void(const QString &)>(11, 2, QMC::AccessPublic, QMetaType::Void, {{
+            { QMetaType::QString, 6 },
+        }}),
+        // Slot 'clearNotifications'
+        QtMocHelpers::SlotData<void()>(12, 2, QMC::AccessPublic, QMetaType::Void),
     };
     QtMocHelpers::UintData qt_properties {
     };
@@ -98,6 +106,8 @@ void NotificationListener::qt_static_metacall(QObject *_o, QMetaObject::Call _c,
         case 2: _t->notificationUpdated((*reinterpret_cast<std::add_pointer_t<Notification>>(_a[1]))); break;
         case 3: _t->accessDenied(); break;
         case 4: _t->errorOccurred((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 5: _t->removeNotification((*reinterpret_cast<std::add_pointer_t<QString>>(_a[1]))); break;
+        case 6: _t->clearNotifications(); break;
         default: ;
         }
     }
@@ -153,14 +163,14 @@ int NotificationListener::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 5)
+        if (_id < 7)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 5;
+        _id -= 7;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 5)
+        if (_id < 7)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 5;
+        _id -= 7;
     }
     return _id;
 }

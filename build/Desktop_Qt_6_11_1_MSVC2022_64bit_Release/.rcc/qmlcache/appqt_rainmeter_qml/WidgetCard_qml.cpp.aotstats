@@ -8,33 +8,105 @@
                         {
                             "codegenResult": 0,
                             "column": 12,
-                            "durationMicroseconds": 2000,
-                            "functionName": "width",
-                            "line": 9,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 13,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 13,
+                            "column": 23,
+                            "durationMicroseconds": 0,
+                            "functionName": "fill",
+                            "line": 20,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 25,
                             "durationMicroseconds": 0,
                             "functionName": "height",
-                            "line": 10,
+                            "line": 35,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 25,
+                            "durationMicroseconds": 0,
+                            "functionName": "radius",
+                            "line": 36,
+                            "message": "Cannot load property radius from (component in D:/project/windowsbar/Windows-sidebar/qml/WidgetCard.qml)::parent with type QQuickItem."
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 24,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 37,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 15,
+                            "column": 31,
+                            "durationMicroseconds": 0,
+                            "functionName": "left",
+                            "line": 32,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 32,
+                            "durationMicroseconds": 0,
+                            "functionName": "right",
+                            "line": 33,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 33,
+                            "durationMicroseconds": 0,
+                            "functionName": "bottom",
+                            "line": 34,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 84,
+                            "durationMicroseconds": 0,
+                            "functionName": "type",
+                            "line": 38,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 23,
                             "durationMicroseconds": 0,
                             "functionName": "text",
-                            "line": 19,
+                            "line": 47,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 27,
+                            "column": 30,
                             "durationMicroseconds": 0,
-                            "functionName": "centerIn",
-                            "line": 17,
+                            "functionName": "weight",
+                            "line": 50,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 23,
+                            "durationMicroseconds": 0,
+                            "functionName": "text",
+                            "line": 54,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 30,
+                            "durationMicroseconds": 0,
+                            "functionName": "weight",
+                            "line": 57,
                             "message": ""
                         }
                     ],

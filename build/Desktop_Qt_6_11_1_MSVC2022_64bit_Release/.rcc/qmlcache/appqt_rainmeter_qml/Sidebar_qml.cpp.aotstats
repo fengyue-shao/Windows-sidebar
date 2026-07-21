@@ -7,171 +7,259 @@
                     "entries": [
                         {
                             "codegenResult": 0,
-                            "column": 22,
+                            "column": 23,
                             "durationMicroseconds": 0,
                             "functionName": "fill",
-                            "line": 10,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 19,
-                            "durationMicroseconds": 0,
-                            "functionName": "onClicked",
-                            "line": 17,
-                            "message": "Cannot access value for name expanded"
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 22,
-                            "durationMicroseconds": 0,
-                            "functionName": "fill",
-                            "line": 16,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 22,
-                            "durationMicroseconds": 0,
-                            "functionName": "left",
-                            "line": 28,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 32,
-                            "durationMicroseconds": 0,
-                            "functionName": "verticalCenter",
-                            "line": 29,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 18,
-                            "durationMicroseconds": 0,
-                            "functionName": "text",
-                            "line": 32,
-                            "message": "Cannot access value for name expanded"
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 31,
-                            "durationMicroseconds": 0,
-                            "functionName": "centerIn",
-                            "line": 31,
+                            "line": 12,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
                             "column": 23,
                             "durationMicroseconds": 0,
-                            "functionName": "onClicked",
-                            "line": 38,
+                            "functionName": "width",
+                            "line": 14,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 27,
+                            "durationMicroseconds": 0,
+                            "functionName": "left",
+                            "line": 18,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
                             "column": 26,
                             "durationMicroseconds": 0,
-                            "functionName": "fill",
-                            "line": 37,
+                            "functionName": "top",
+                            "line": 19,
                             "message": ""
                         },
                         {
-                            "codegenResult": 2,
-                            "column": 17,
+                            "codegenResult": 0,
+                            "column": 29,
                             "durationMicroseconds": 0,
-                            "functionName": "visible",
-                            "line": 45,
-                            "message": "Cannot access value for name expanded"
+                            "functionName": "bottom",
+                            "line": 20,
+                            "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 15,
+                            "column": 18,
                             "durationMicroseconds": 0,
-                            "functionName": "color",
-                            "line": 47,
+                            "functionName": "enabled",
+                            "line": 28,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
                             "column": 22,
                             "durationMicroseconds": 0,
-                            "functionName": "top",
-                            "line": 46,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 18,
-                            "durationMicroseconds": 0,
-                            "functionName": "visible",
-                            "line": 51,
-                            "message": "Cannot access value for name expanded"
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 18,
-                            "durationMicroseconds": 0,
-                            "functionName": "top",
-                            "line": 54,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 19,
-                            "durationMicroseconds": 0,
-                            "functionName": "left",
-                            "line": 55,
+                            "functionName": "cursorShape",
+                            "line": 29,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
                             "column": 20,
                             "durationMicroseconds": 0,
-                            "functionName": "right",
-                            "line": 56,
+                            "functionName": "onClicked",
+                            "line": 30,
                             "message": ""
                         },
                         {
-                            "codegenResult": 2,
-                            "column": 19,
+                            "codegenResult": 0,
+                            "column": 23,
                             "durationMicroseconds": 0,
-                            "functionName": "model",
-                            "line": 67,
-                            "message": "Cannot access value for name notificationModel"
+                            "functionName": "fill",
+                            "line": 27,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 18,
+                            "durationMicroseconds": 0,
+                            "functionName": "visible",
+                            "line": 40,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 18,
+                            "durationMicroseconds": 0,
+                            "functionName": "opacity",
+                            "line": 41,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 23,
+                            "durationMicroseconds": 0,
+                            "functionName": "fill",
+                            "line": 34,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 26,
+                            "durationMicroseconds": 0,
+                            "functionName": "weight",
+                            "line": 52,
+                            "message": ""
                         },
                         {
                             "codegenResult": 2,
                             "column": 24,
                             "durationMicroseconds": 0,
-                            "functionName": "title",
-                            "line": 74,
+                            "functionName": "value",
+                            "line": 65,
                             "message": "Cannot access value for name cpuMonitor"
                         },
                         {
                             "codegenResult": 2,
-                            "column": 23,
+                            "column": 27,
                             "durationMicroseconds": 0,
-                            "functionName": "title",
-                            "line": 79,
+                            "functionName": "progress",
+                            "line": 66,
+                            "message": "Cannot access value for name cpuMonitor"
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 24,
+                            "durationMicroseconds": 0,
+                            "functionName": "value",
+                            "line": 74,
                             "message": "Cannot access value for name memoryMonitor"
                         },
                         {
                             "codegenResult": 2,
-                            "column": 19,
+                            "column": 27,
                             "durationMicroseconds": 0,
-                            "functionName": "title",
-                            "line": 85,
-                            "message": "Cannot access value for name networkMonitor"
+                            "functionName": "progress",
+                            "line": 75,
+                            "message": "Cannot access value for name memoryMonitor"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 31,
+                            "durationMicroseconds": 0,
+                            "functionName": "fill",
+                            "line": 89,
+                            "message": ""
                         },
                         {
                             "codegenResult": 2,
-                            "column": 19,
+                            "column": 34,
                             "durationMicroseconds": 0,
-                            "functionName": "title",
-                            "line": 90,
+                            "functionName": "text",
+                            "line": 98,
                             "message": "Cannot access value for name networkMonitor"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 121,
+                            "durationMicroseconds": 0,
+                            "functionName": "weight",
+                            "line": 98,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 34,
+                            "durationMicroseconds": 0,
+                            "functionName": "text",
+                            "line": 107,
+                            "message": "Cannot access value for name networkMonitor"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 119,
+                            "durationMicroseconds": 0,
+                            "functionName": "weight",
+                            "line": 107,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 37,
+                            "durationMicroseconds": 0,
+                            "functionName": "preferredHeight",
+                            "line": 114,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 20,
+                            "durationMicroseconds": 0,
+                            "functionName": "model",
+                            "line": 120,
+                            "message": "Cannot access value for name notificationModel"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 16,
+                            "durationMicroseconds": 0,
+                            "functionName": "width",
+                            "line": 128,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 16,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 131,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 23,
+                            "durationMicroseconds": 0,
+                            "functionName": "left",
+                            "line": 126,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 33,
+                            "durationMicroseconds": 0,
+                            "functionName": "verticalCenter",
+                            "line": 127,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 22,
+                            "durationMicroseconds": 0,
+                            "functionName": "visible",
+                            "line": 135,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 23,
+                            "durationMicroseconds": 0,
+                            "functionName": "rotation",
+                            "line": 137,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 31,
+                            "durationMicroseconds": 0,
+                            "functionName": "centerIn",
+                            "line": 134,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 32,
+                            "durationMicroseconds": 0,
+                            "functionName": "onTapped",
+                            "line": 143,
+                            "message": ""
                         }
                     ],
                     "filePath": "D:/project/windowsbar/Windows-sidebar/qml/Sidebar.qml"

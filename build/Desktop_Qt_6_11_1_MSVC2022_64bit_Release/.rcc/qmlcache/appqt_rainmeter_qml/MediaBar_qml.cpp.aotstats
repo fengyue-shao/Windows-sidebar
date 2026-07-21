@@ -6,196 +6,316 @@
                 {
                     "entries": [
                         {
-                            "codegenResult": 0,
-                            "column": 13,
-                            "durationMicroseconds": 2000,
-                            "functionName": "visible",
-                            "line": 6,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 12,
+                            "codegenResult": 2,
+                            "column": 38,
                             "durationMicroseconds": 0,
-                            "functionName": "width",
-                            "line": 7,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 13,
-                            "durationMicroseconds": 0,
-                            "functionName": "height",
+                            "functionName": "hasMedia",
                             "line": 8,
+                            "message": "Cannot access value for name mediaMonitor"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 14,
+                            "durationMicroseconds": 0,
+                            "functionName": "visible",
+                            "line": 9,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 12,
+                            "column": 23,
                             "durationMicroseconds": 0,
-                            "functionName": "color",
-                            "line": 15,
+                            "functionName": "fill",
+                            "line": 12,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 18,
+                            "column": 26,
                             "durationMicroseconds": 0,
-                            "functionName": "left",
-                            "line": 21,
+                            "functionName": "orientation",
+                            "line": 17,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 17,
+                            "column": 27,
                             "durationMicroseconds": 0,
-                            "functionName": "top",
-                            "line": 23,
+                            "functionName": "fill",
+                            "line": 27,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 20,
+                            "column": 39,
                             "durationMicroseconds": 0,
-                            "functionName": "bottom",
-                            "line": 25,
+                            "functionName": "centerIn",
+                            "line": 39,
                             "message": ""
                         },
                         {
                             "codegenResult": 2,
-                            "column": 20,
+                            "column": 29,
                             "durationMicroseconds": 0,
                             "functionName": "source",
-                            "line": 34,
-                            "message": "Cannot access value for name mediaMonitor"
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 22,
-                            "durationMicroseconds": 0,
-                            "functionName": "fillMode",
-                            "line": 35,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 21,
-                            "durationMicroseconds": 0,
-                            "functionName": "text",
-                            "line": 41,
-                            "message": "Cannot access value for name mediaMonitor"
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 22,
-                            "durationMicroseconds": 0,
-                            "functionName": "text",
                             "line": 47,
                             "message": "Cannot access value for name mediaMonitor"
                         },
                         {
+                            "codegenResult": 0,
+                            "column": 31,
+                            "durationMicroseconds": 0,
+                            "functionName": "fillMode",
+                            "line": 48,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 35,
+                            "durationMicroseconds": 0,
+                            "functionName": "fill",
+                            "line": 46,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 35,
+                            "durationMicroseconds": 0,
+                            "functionName": "left",
+                            "line": 53,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 36,
+                            "durationMicroseconds": 0,
+                            "functionName": "right",
+                            "line": 54,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 37,
+                            "durationMicroseconds": 0,
+                            "functionName": "bottom",
+                            "line": 55,
+                            "message": ""
+                        },
+                        {
                             "codegenResult": 2,
-                            "column": 22,
+                            "column": 31,
                             "durationMicroseconds": 0,
                             "functionName": "text",
-                            "line": 51,
+                            "line": 66,
                             "message": "Cannot access value for name mediaMonitor"
                         },
                         {
                             "codegenResult": 0,
-                            "column": 17,
+                            "column": 39,
                             "durationMicroseconds": 0,
-                            "functionName": "spacing",
+                            "functionName": "left",
+                            "line": 63,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 41,
+                            "durationMicroseconds": 0,
+                            "functionName": "bottom",
                             "line": 64,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 19,
+                            "column": 38,
                             "durationMicroseconds": 0,
-                            "functionName": "right",
-                            "line": 59,
+                            "functionName": "weight",
+                            "line": 69,
                             "message": ""
                         },
                         {
                             "codegenResult": 0,
-                            "column": 20,
+                            "column": 34,
                             "durationMicroseconds": 0,
-                            "functionName": "bottom",
-                            "line": 61,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 20,
-                            "durationMicroseconds": 0,
-                            "functionName": "source",
-                            "line": 68,
+                            "functionName": "weight",
+                            "line": 83,
                             "message": ""
                         },
                         {
                             "codegenResult": 2,
                             "column": 27,
                             "durationMicroseconds": 0,
-                            "functionName": "onClicked",
-                            "line": 71,
-                            "message": "Cannot access value for name mediaMonitor"
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 30,
-                            "durationMicroseconds": 0,
-                            "functionName": "fill",
-                            "line": 70,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 21,
-                            "durationMicroseconds": 0,
-                            "functionName": "source",
-                            "line": 77,
-                            "message": "Cannot access value for name mediaMonitor"
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 27,
-                            "durationMicroseconds": 0,
-                            "functionName": "onClicked",
-                            "line": 80,
-                            "message": "Cannot access value for name mediaMonitor"
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 30,
-                            "durationMicroseconds": 0,
-                            "functionName": "fill",
-                            "line": 79,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 0,
-                            "column": 20,
-                            "durationMicroseconds": 0,
-                            "functionName": "source",
-                            "line": 86,
-                            "message": ""
-                        },
-                        {
-                            "codegenResult": 2,
-                            "column": 27,
-                            "durationMicroseconds": 0,
-                            "functionName": "onClicked",
+                            "functionName": "text",
                             "line": 89,
                             "message": "Cannot access value for name mediaMonitor"
                         },
                         {
                             "codegenResult": 0,
-                            "column": 30,
+                            "column": 31,
                             "durationMicroseconds": 0,
-                            "functionName": "fill",
-                            "line": 88,
+                            "functionName": "wrapMode",
+                            "line": 94,
                             "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 28,
+                            "durationMicroseconds": 0,
+                            "functionName": "elide",
+                            "line": 95,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 34,
+                            "durationMicroseconds": 0,
+                            "functionName": "weight",
+                            "line": 92,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 27,
+                            "durationMicroseconds": 0,
+                            "functionName": "text",
+                            "line": 100,
+                            "message": "Cannot access value for name mediaMonitor"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 28,
+                            "durationMicroseconds": 0,
+                            "functionName": "elide",
+                            "line": 103,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 32,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 116,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 37,
+                            "durationMicroseconds": 0,
+                            "functionName": "source",
+                            "line": 121,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 47,
+                            "durationMicroseconds": 0,
+                            "functionName": "centerIn",
+                            "line": 119,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 65,
+                            "durationMicroseconds": 0,
+                            "functionName": "onTapped",
+                            "line": 124,
+                            "message": "Cannot access value for name mediaMonitor"
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 42,
+                            "durationMicroseconds": 0,
+                            "functionName": "visible",
+                            "line": 125,
+                            "message": "Could not find property \"visible\"."
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 32,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 133,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 37,
+                            "durationMicroseconds": 0,
+                            "functionName": "source",
+                            "line": 138,
+                            "message": "Cannot access value for name mediaMonitor"
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 47,
+                            "durationMicroseconds": 0,
+                            "functionName": "centerIn",
+                            "line": 136,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 61,
+                            "durationMicroseconds": 0,
+                            "functionName": "onTapped",
+                            "line": 143,
+                            "message": "Cannot access value for name mediaMonitor"
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 42,
+                            "durationMicroseconds": 0,
+                            "functionName": "visible",
+                            "line": 144,
+                            "message": "Could not find property \"visible\"."
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 39,
+                            "durationMicroseconds": 0,
+                            "functionName": "text",
+                            "line": 145,
+                            "message": "Could not find property \"text\"."
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 32,
+                            "durationMicroseconds": 0,
+                            "functionName": "color",
+                            "line": 152,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 37,
+                            "durationMicroseconds": 0,
+                            "functionName": "source",
+                            "line": 157,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 0,
+                            "column": 47,
+                            "durationMicroseconds": 0,
+                            "functionName": "centerIn",
+                            "line": 155,
+                            "message": ""
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 61,
+                            "durationMicroseconds": 0,
+                            "functionName": "onTapped",
+                            "line": 160,
+                            "message": "Cannot access value for name mediaMonitor"
+                        },
+                        {
+                            "codegenResult": 2,
+                            "column": 42,
+                            "durationMicroseconds": 0,
+                            "functionName": "visible",
+                            "line": 161,
+                            "message": "Could not find property \"visible\"."
                         }
                     ],
                     "filePath": "D:/project/windowsbar/Windows-sidebar/qml/MediaBar.qml"

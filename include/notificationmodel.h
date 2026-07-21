@@ -34,6 +34,10 @@ public:
     Q_INVOKABLE int unreadCount()const;
     bool contains(const QString &id)const;
 
+signals:
+    void removalRequested(const QString &id);
+    void clearRequested();
+
 private:
     QVector<Notification>m_notifications;
 };
