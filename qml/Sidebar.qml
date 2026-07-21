@@ -11,16 +11,16 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: "#F21A1B20"
+        color: themeManager.background
         border.width: root.expanded ? 1 : 0
-        border.color: "#30FFFFFF"
+        border.color: themeManager.borderStrong
 
         Rectangle {
             anchors.left: parent.left
             anchors.top: parent.top
             anchors.bottom: parent.bottom
             width: 1
-            color: "#3AFFFFFF"
+            color: themeManager.borderStrong
         }
     }
 
@@ -70,7 +70,7 @@ Item {
                         Text {
                             Layout.fillWidth: true
                             text: "媒体控制"
-                            color: "#EFFFFFFF"
+                            color: themeManager.textPrimary
                             font.pixelSize: 17
                             font.weight: Font.DemiBold
                         }
@@ -78,7 +78,7 @@ Item {
                         Text {
                             visible: mediaMonitor.title.length > 0
                             text: mediaMonitor.playing ? "正在播放" : "已暂停"
-                            color: mediaMonitor.playing ? "#75BFFFA1" : "#65FFFFFF"
+                            color: mediaMonitor.playing ? themeManager.success : themeManager.textMuted
                             font.pixelSize: 10
                         }
                     }
@@ -99,21 +99,21 @@ Item {
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "♪"
-                        color: "#4261A9FF"
+                        color: themeManager.accentSoft
                         font.pixelSize: 36
                     }
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "暂无媒体会话"
-                        color: "#70FFFFFF"
+                        color: themeManager.textMuted
                         font.pixelSize: 13
                     }
 
                     Text {
                         anchors.horizontalCenter: parent.horizontalCenter
                         text: "开始播放音乐或视频后会显示在这里"
-                        color: "#45FFFFFF"
+                        color: themeManager.textFaint
                         font.pixelSize: 10
                     }
                 }
@@ -142,13 +142,13 @@ Item {
         width: root.expanded ? 22 : 8
         height: 72
         radius: 11
-        color: toggleHover.hovered ? "#5461A9FF" : "#344A4D58"
+        color: toggleHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
 
         Text {
             anchors.centerIn: parent
             visible: root.expanded
             text: "›"
-            color: "#DFFFFFFF"
+            color: themeManager.textPrimary
             font.pixelSize: 22
         }
 

@@ -7,12 +7,12 @@ Rectangle {
     property string label: "指标"
     property string value: "0%"
     property real progress: 0
-    property color accent: "#61A9FF"
+    property color accent: themeManager.accent
 
     radius: 12
-    color: hover.hovered ? "#19FFFFFF" : "#0EFFFFFF"
+    color: hover.hovered ? themeManager.surfaceHover : themeManager.surface
     border.width: 1
-    border.color: "#16FFFFFF"
+    border.color: themeManager.border
 
     HoverHandler { id: hover }
 
@@ -26,7 +26,7 @@ Rectangle {
             Layout.preferredWidth: 5
             Layout.preferredHeight: 28
             radius: 3
-            color: "#20FFFFFF"
+            color: themeManager.track
 
             Rectangle {
                 anchors.left: parent.left
@@ -45,14 +45,14 @@ Rectangle {
 
             Text {
                 text: root.label
-                color: "#72FFFFFF"
+                color: themeManager.textMuted
                 font.pixelSize: 10
                 font.weight: Font.DemiBold
             }
 
             Text {
                 text: root.value
-                color: "#EFFFFFFF"
+                color: themeManager.textPrimary
                 font.pixelSize: 16
                 font.weight: Font.DemiBold
             }

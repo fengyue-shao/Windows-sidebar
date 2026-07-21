@@ -15,7 +15,7 @@ ColumnLayout {
         Text {
             Layout.fillWidth: true
             text: "通知"
-            color: "#EFFFFFFF"
+            color: themeManager.textPrimary
             font.pixelSize: 16
             font.weight: Font.DemiBold
         }
@@ -25,13 +25,13 @@ ColumnLayout {
             implicitWidth: countText.implicitWidth + 14
             implicitHeight: 24
             radius: 12
-            color: "#2861A9FF"
+            color: themeManager.accentSoft
 
             Text {
                 id: countText
                 anchors.centerIn: parent
                 text: notificationModel.unreadCount()
-                color: "#DFFFFFFF"
+                color: themeManager.textPrimary
                 font.pixelSize: 11
                 font.weight: Font.DemiBold
             }
@@ -56,9 +56,9 @@ ColumnLayout {
         Layout.fillHeight: true
         Layout.minimumHeight: 120
         radius: 16
-        color: "#0CFFFFFF"
+        color: themeManager.surface
         border.width: 1
-        border.color: "#14FFFFFF"
+        border.color: themeManager.border
         clip: true
 
         ListView {
@@ -102,13 +102,13 @@ ColumnLayout {
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "✓"
-                color: "#5061A9FF"
+                color: themeManager.accentSoft
                 font.pixelSize: 30
             }
             Text {
                 anchors.horizontalCenter: parent.horizontalCenter
                 text: "暂无通知"
-                color: "#70FFFFFF"
+                color: themeManager.textMuted
                 font.pixelSize: 13
             }
         }
@@ -124,16 +124,16 @@ ColumnLayout {
         implicitWidth: label.implicitWidth + 16
         implicitHeight: 28
         radius: 9
-        color: !enabled ? "#08FFFFFF"
-                        : hover.hovered ? (destructive ? "#35FF6B6B" : "#24FFFFFF")
-                                        : "#12FFFFFF"
+        color: !enabled ? themeManager.surface
+                        : hover.hovered ? (destructive ? themeManager.dangerSoft : themeManager.surfaceHover)
+                                        : themeManager.surface
         opacity: enabled ? 1 : 0.45
 
         Text {
             id: label
             anchors.centerIn: parent
             text: button.text
-            color: button.destructive ? "#E8FF8A8A" : "#B8FFFFFF"
+            color: button.destructive ? themeManager.danger : themeManager.textSecondary
             font.pixelSize: 11
         }
 

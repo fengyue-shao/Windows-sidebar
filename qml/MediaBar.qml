@@ -15,13 +15,13 @@ Item {
 
         gradient: Gradient {
             orientation: Gradient.Horizontal
-            GradientStop { position: 0.0; color: "#302D4264" }
-            GradientStop { position: 0.58; color: "#E8222732" }
-            GradientStop { position: 1.0; color: "#F21B1D23" }
+            GradientStop { position: 0.0; color: themeManager.mediaStart }
+            GradientStop { position: 0.58; color: themeManager.mediaMiddle }
+            GradientStop { position: 1.0; color: themeManager.mediaEnd }
         }
 
         border.width: 1
-        border.color: "#28FFFFFF"
+        border.color: themeManager.borderStrong
 
         RowLayout {
             anchors.fill: parent
@@ -46,13 +46,13 @@ Item {
                 Layout.preferredHeight: fittedHeight
                 Layout.alignment: Qt.AlignVCenter
                 radius: 15
-                color: "#30202730"
+                color: themeManager.mediaCover
                 clip: true
 
                 Text {
                     anchors.centerIn: parent
                     text: "♪"
-                    color: "#456EA9E8"
+                    color: themeManager.accentSoft
                     font.pixelSize: 34
                 }
 
@@ -70,8 +70,8 @@ Item {
                     anchors.bottom: parent.bottom
                     height: 28
                     gradient: Gradient {
-                        GradientStop { position: 0; color: "#00000000" }
-                        GradientStop { position: 1; color: "#B0000000" }
+                        GradientStop { position: 0; color: themeManager.overlayStart }
+                        GradientStop { position: 1; color: themeManager.overlayEnd }
                     }
 
                     Text {
@@ -79,7 +79,7 @@ Item {
                         anchors.bottom: parent.bottom
                         anchors.margins: 7
                         text: mediaMonitor.playing ? "正在播放" : "已暂停"
-                        color: "#E8FFFFFF"
+                        color: themeManager.overlayText
                         font.pixelSize: 9
                         font.weight: Font.DemiBold
                     }
@@ -93,7 +93,7 @@ Item {
 
                 Text {
                     text: "MEDIA"
-                    color: "#728FBEF2"
+                    color: themeManager.accent
                     font.pixelSize: 9
                     font.weight: Font.Bold
                     font.letterSpacing: 1.4
@@ -103,7 +103,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 21
                     text: mediaMonitor.title
-                    textColor: "#F7FFFFFF"
+                    textColor: themeManager.textPrimary
                     pixelSize: 15
                     fontWeight: Font.DemiBold
                     scrollPixelsPerSecond: 38
@@ -113,7 +113,7 @@ Item {
                     Layout.fillWidth: true
                     Layout.preferredHeight: 16
                     text: mediaMonitor.artist || "未知艺术家"
-                    textColor: "#9FFFFFFF"
+                    textColor: themeManager.textSecondary
                     pixelSize: 11
                 }
 
@@ -122,7 +122,7 @@ Item {
                     Layout.preferredHeight: 15
                     visible: mediaMonitor.album.length > 0
                     text: mediaMonitor.album
-                    textColor: "#70FFFFFF"
+                    textColor: themeManager.textMuted
                     pixelSize: 10
                 }
 
@@ -136,7 +136,8 @@ Item {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
                         radius: 10
-                        color: previousTap.pressed ? "#365D83AE" : previousHover.hovered ? "#24FFFFFF" : "#13FFFFFF"
+                        color: previousTap.pressed ? themeManager.accentSoft
+                                                   : previousHover.hovered ? themeManager.surfaceHover : themeManager.surface
 
                         Image {
                             anchors.centerIn: parent
@@ -153,7 +154,8 @@ Item {
                         Layout.preferredWidth: 40
                         Layout.preferredHeight: 40
                         radius: 13
-                        color: playTap.pressed ? "#C76BA7EA" : playHover.hovered ? "#FF79B9FF" : "#EA68AEFA"
+                        color: playTap.pressed ? themeManager.accent
+                                              : playHover.hovered ? themeManager.accentHover : themeManager.accent
 
                         Image {
                             anchors.centerIn: parent
@@ -172,7 +174,8 @@ Item {
                         Layout.preferredWidth: 32
                         Layout.preferredHeight: 32
                         radius: 10
-                        color: nextTap.pressed ? "#365D83AE" : nextHover.hovered ? "#24FFFFFF" : "#13FFFFFF"
+                        color: nextTap.pressed ? themeManager.accentSoft
+                                               : nextHover.hovered ? themeManager.surfaceHover : themeManager.surface
 
                         Image {
                             anchors.centerIn: parent

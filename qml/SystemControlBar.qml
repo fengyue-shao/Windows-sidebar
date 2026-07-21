@@ -11,9 +11,9 @@ Rectangle {
 
     implicitHeight: 58
     radius: 16
-    color: "#E923252C"
+    color: themeManager.surfaceStrong
     border.width: 1
-    border.color: "#24FFFFFF"
+    border.color: themeManager.borderStrong
 
     RowLayout {
         anchors.fill: parent
@@ -47,27 +47,59 @@ Rectangle {
         Rectangle {
             Layout.preferredWidth: 1
             Layout.preferredHeight: 28
-            color: "#20FFFFFF"
+            color: themeManager.track
         }
 
         Rectangle {
             Layout.preferredWidth: 44
             Layout.fillHeight: true
             radius: 11
-            color: exitTap.pressed ? "#55FF6565"
-                                   : exitHover.hovered ? "#30FF6565" : "transparent"
+            color: settingsTap.pressed ? themeManager.accentSoft
+                                       : settingsHover.hovered ? themeManager.surfaceHover : themeManager.overlayStart
 
             Text {
                 anchors.centerIn: parent
-                text: "⏻"
-                color: exitHover.hovered ? "#FFFF9292" : "#A8FFFFFF"
-                font.pixelSize: 18
+                text: "⚙"
+                color: settingsHover.hovered ? themeManager.textPrimary : themeManager.textSecondary
+                font.pixelSize: 17
             }
 
-            HoverHandler { id: exitHover }
-            TapHandler { id: exitTap; onTapped: root.exitRequested() }
-            ToolTip.visible: exitHover.hovered
-            ToolTip.text: "退出 Windows Sidebar"
+            HoverHandler { id: settingsHover }
+            TapHandler { id: settingsTap; onTapped: settingsMenu.open() }
+            ToolTip.visible: settingsHover.hovered
+            ToolTip.text: "设置"
+        }
+    }
+
+    Menu {
+        id: settingsMenu
+        x: root.width - width
+        y: -height - 6
+
+        MenuItem {
+            text: "跟随系统"
+            checkable: true
+            checked: themeManager.mode === 0
+            onTriggered: themeManager.setMode(0)
+        }
+        MenuItem {
+            text: "白天模式"
+            checkable: true
+            checked: themeManager.mode === 1
+            onTriggered: themeManager.setMode(1)
+        }
+        MenuItem {
+            text: "黑夜模式"
+            checkable: true
+            checked: themeManager.mode === 2
+            onTriggered: themeManager.setMode(2)
+        }
+
+        MenuSeparator { }
+
+        MenuItem {
+            text: "退出 Windows Sidebar"
+            onTriggered: root.exitRequested()
         }
     }
 
@@ -81,8 +113,8 @@ Rectangle {
 
         Layout.fillHeight: true
         radius: 11
-        color: selected ? "#2461A9FF"
-                        : buttonHover.hovered ? "#16FFFFFF" : "transparent"
+        color: selected ? themeManager.accentSoft
+                        : buttonHover.hovered ? themeManager.surfaceHover : themeManager.overlayStart
 
         Row {
             anchors.centerIn: parent
@@ -90,13 +122,13 @@ Rectangle {
 
             Text {
                 text: button.symbol
-                color: button.selected ? "#9DCCFF" : "#7FFFFFFF"
+                color: button.selected ? themeManager.accent : themeManager.textMuted
                 font.pixelSize: 11
             }
 
             Text {
                 text: button.label
-                color: button.selected ? "#EFFFFFFF" : "#8FFFFFFF"
+                color: button.selected ? themeManager.textPrimary : themeManager.textMuted
                 font.pixelSize: 11
                 font.weight: button.selected ? Font.DemiBold : Font.Normal
             }
@@ -109,7 +141,7 @@ Rectangle {
             width: button.selected ? 18 : 0
             height: 2
             radius: 1
-            color: "#71B6FF"
+            color: themeManager.accent
             Behavior on width { NumberAnimation { duration: 140 } }
         }
 

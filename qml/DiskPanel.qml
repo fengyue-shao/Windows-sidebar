@@ -9,9 +9,9 @@ Rectangle {
 
     implicitHeight: 42 + Math.min(3, diskMonitor.count) * 42
     radius: 14
-    color: "#0EFFFFFF"
+    color: themeManager.surface
     border.width: 1
-    border.color: "#16FFFFFF"
+    border.color: themeManager.border
     clip: true
 
     ColumnLayout {
@@ -28,14 +28,14 @@ Rectangle {
             Text {
                 Layout.fillWidth: true
                 text: "磁盘空间"
-                color: "#A8FFFFFF"
+                color: themeManager.textSecondary
                 font.pixelSize: 11
                 font.weight: Font.DemiBold
             }
 
             Text {
                 text: diskMonitor.count + " 个分区"
-                color: "#58FFFFFF"
+                color: themeManager.textFaint
                 font.pixelSize: 9
             }
         }
@@ -60,7 +60,7 @@ Rectangle {
                     Text {
                         Layout.preferredWidth: 28
                         text: model.rootPath.substring(0, 2)
-                        color: "#EFFFFFFF"
+                        color: themeManager.textPrimary
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
                     }
@@ -76,13 +76,13 @@ Rectangle {
                             Text {
                                 Layout.fillWidth: true
                                 text: model.usedText + " / " + model.totalText
-                                color: "#86FFFFFF"
+                                color: themeManager.textMuted
                                 font.pixelSize: 9
                             }
 
                             Text {
                                 text: model.usage.toFixed(0) + "%"
-                                color: model.usage >= 90 ? "#FFFF8989" : "#A8FFFFFF"
+                                color: model.usage >= 90 ? themeManager.danger : themeManager.textSecondary
                                 font.pixelSize: 9
                                 font.weight: Font.DemiBold
                             }
@@ -92,13 +92,13 @@ Rectangle {
                             Layout.fillWidth: true
                             Layout.preferredHeight: 3
                             radius: 2
-                            color: "#18FFFFFF"
+                            color: themeManager.track
 
                             Rectangle {
                                 width: parent.width * Math.min(1, model.usage / 100)
                                 height: parent.height
                                 radius: parent.radius
-                                color: model.usage >= 90 ? "#FF6F6F" : "#62C4A4"
+                                color: model.usage >= 90 ? themeManager.danger : themeManager.success
                                 Behavior on width { NumberAnimation { duration: 300 } }
                             }
                         }

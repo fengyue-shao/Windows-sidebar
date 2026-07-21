@@ -4,7 +4,7 @@ Item {
     id: root
 
     property string text: ""
-    property color textColor: "white"
+    property color textColor: themeManager.textPrimary
     property int pixelSize: 12
     property int fontWeight: Font.Normal
     property real scrollPixelsPerSecond: 34

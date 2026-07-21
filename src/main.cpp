@@ -16,11 +16,14 @@
 #include "include/networkmonitor.h"
 #include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
+#include "include/thememanager.h"
 
 int main(int argc, char *argv[])
 {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     QGuiApplication app(argc, argv);
+    QCoreApplication::setOrganizationName("WindowsSidebar");
+    QCoreApplication::setApplicationName("WindowsSidebar");
     qRegisterMetaType<QImage>("QImage");
     qRegisterMetaType<Notification>("Notification");
 
@@ -34,6 +37,7 @@ int main(int argc, char *argv[])
     NotificationModel notificationModel;
     NotificationListener notificationListener;
     MonitorScheduler monitorScheduler;
+    ThemeManager themeManager;
 
     monitorScheduler.addModule(&cpuMonitor, 1000);
     monitorScheduler.addModule(&memoryMonitor, 1000);
@@ -71,6 +75,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
     engine.rootContext()->setContextProperty("notificationModel", &notificationModel);
+    engine.rootContext()->setContextProperty("themeManager", &themeManager);
     engine.addImageProvider("cover", coverProvider);
 
     QObject::connect(

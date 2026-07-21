@@ -33,10 +33,10 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 13
-        color: hover.hovered ? "#20FFFFFF"
-                             : root.unread ? "#16FFFFFF" : "#0DFFFFFF"
+        color: hover.hovered ? themeManager.surfaceHover
+                             : root.unread ? themeManager.surfaceStrong : themeManager.surface
         border.width: 1
-        border.color: hover.hovered ? "#30FFFFFF" : "#12FFFFFF"
+        border.color: hover.hovered ? themeManager.borderStrong : themeManager.border
 
         Rectangle {
             anchors.left: parent.left
@@ -44,7 +44,7 @@ Item {
             anchors.bottom: parent.bottom
             width: root.unread ? 3 : 0
             radius: 2
-            color: "#61A9FF"
+            color: themeManager.accent
             Behavior on width { NumberAnimation { duration: 140 } }
         }
 
@@ -61,12 +61,12 @@ Item {
                 Layout.preferredHeight: 38
                 Layout.alignment: Qt.AlignTop
                 radius: 11
-                color: "#18FFFFFF"
+                color: themeManager.track
 
                 Text {
                     anchors.centerIn: parent
                     text: root.appName.length > 0 ? root.appName.charAt(0).toUpperCase() : "·"
-                    color: "#BFFFFFFF"
+                    color: themeManager.textSecondary
                     font.pixelSize: 15
                     font.weight: Font.DemiBold
                 }
@@ -94,7 +94,7 @@ Item {
                     Text {
                         Layout.fillWidth: true
                         text: root.appName || "系统通知"
-                        color: "#EFFFFFFF"
+                        color: themeManager.textPrimary
                         font.pixelSize: 12
                         font.weight: Font.DemiBold
                         elide: Text.ElideRight
@@ -102,7 +102,7 @@ Item {
 
                     Text {
                         text: root.timeText
-                        color: "#68FFFFFF"
+                        color: themeManager.textFaint
                         font.pixelSize: 10
                     }
 
@@ -111,7 +111,7 @@ Item {
                         Layout.preferredWidth: 6
                         Layout.preferredHeight: 6
                         radius: 3
-                        color: "#61A9FF"
+                        color: themeManager.accent
                     }
                 }
 
@@ -119,7 +119,7 @@ Item {
                     Layout.fillWidth: true
                     visible: root.title.length > 0
                     text: root.title
-                    color: "#D8FFFFFF"
+                    color: themeManager.textSecondary
                     font.pixelSize: 12
                     elide: Text.ElideRight
                 }
@@ -129,7 +129,7 @@ Item {
                     Layout.fillHeight: true
                     visible: root.content.length > 0
                     text: root.content
-                    color: "#8EFFFFFF"
+                    color: themeManager.textMuted
                     font.pixelSize: 11
                     maximumLineCount: 2
                     wrapMode: Text.Wrap
@@ -142,12 +142,12 @@ Item {
                 Layout.preferredHeight: 28
                 Layout.alignment: Qt.AlignTop
                 radius: 9
-                color: menuHover.hovered ? "#24FFFFFF" : "transparent"
+                color: menuHover.hovered ? themeManager.surfaceHover : themeManager.overlayStart
 
                 Text {
                     anchors.centerIn: parent
                     text: "···"
-                    color: "#A0FFFFFF"
+                    color: themeManager.textSecondary
                     font.pixelSize: 13
                     font.weight: Font.Bold
                 }

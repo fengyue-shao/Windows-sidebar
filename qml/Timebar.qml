@@ -20,7 +20,7 @@ Item {
 
         Text {
             text: Qt.formatTime(root.now, "HH:mm")
-            color: "#FAFFFFFF"
+            color: themeManager.textPrimary
             font.pixelSize: 29
             font.weight: Font.Medium
             font.letterSpacing: -0.8
@@ -30,13 +30,13 @@ Item {
             Layout.preferredWidth: secondsText.implicitWidth + 12
             Layout.preferredHeight: 23
             radius: 8
-            color: "#1D61A9FF"
+            color: themeManager.accentSoft
 
             Text {
                 id: secondsText
                 anchors.centerIn: parent
                 text: Qt.formatTime(root.now, "ss")
-                color: "#B8D9ECFF"
+                color: themeManager.accent
                 font.pixelSize: 11
                 font.family: "Consolas"
             }
@@ -49,7 +49,7 @@ Item {
             Text {
                 Layout.alignment: Qt.AlignRight
                 text: root.now.toLocaleDateString(Qt.locale(), "dddd")
-                color: "#C8FFFFFF"
+                color: themeManager.textSecondary
                 font.pixelSize: 12
                 font.weight: Font.DemiBold
             }
@@ -57,7 +57,7 @@ Item {
             Text {
                 Layout.alignment: Qt.AlignRight
                 text: root.now.toLocaleDateString(Qt.locale(), "M月d日")
-                color: "#6FFFFFFF"
+                color: themeManager.textMuted
                 font.pixelSize: 11
             }
         }
@@ -68,6 +68,6 @@ Item {
         anchors.right: parent.right
         anchors.bottom: parent.bottom
         height: 1
-        color: "#16FFFFFF"
+        color: themeManager.border
     }
 }
