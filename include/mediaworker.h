@@ -12,20 +12,14 @@ public:
 public slots:
     void initialize();
 signals:
-    void mediaInfoUpdated(const QString& title,const QString& artist,const QString& album,const QImage& coverImage);
+    void mediaInfoUpdated(const QString& title,const QString& artist,const QString& album,
+                          const QString& provider,const QImage& coverImage);
     void mediaPSUpdated(bool playing);
     //void mediaTimelineUpdated(Timeline timeline);
 public slots:
     void togglePlayPause();
     void next();
     void previous();
-private:
-    void registerSession();
-    void unregisterSession();
-    void updateInfo();
-    void updatePS();
-    void updateCover(QImage& coverImage);
-    //void updateTimeline();
 private:
     using SessionManager =
         winrt::Windows::Media::Control::
@@ -35,6 +29,14 @@ private:
         winrt::Windows::Media::Control::
         GlobalSystemMediaTransportControlsSession;
 
+    void registerSession();
+    void unregisterSession();
+    void updateInfo();
+    void updatePS();
+    void updateCover(QImage& coverImage);
+    static QString providerName(const Session &session);
+    //void updateTimeline();
+private:
     SessionManager m_manager{ nullptr };
     Session m_session{ nullptr };
     bool m_coverRetryPending = false;

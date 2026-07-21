@@ -91,12 +91,33 @@ Item {
                 Layout.fillHeight: true
                 spacing: 2
 
-                Text {
-                    text: "MEDIA"
-                    color: themeManager.accent
-                    font.pixelSize: 9
-                    font.weight: Font.Bold
-                    font.letterSpacing: 1.4
+                RowLayout {
+                    Layout.fillWidth: true
+                    spacing: 7
+
+                    Text {
+                        text: "MEDIA"
+                        color: themeManager.accent
+                        font.pixelSize: 9
+                        font.weight: Font.Bold
+                        font.letterSpacing: 1.4
+                    }
+
+                    Rectangle {
+                        Layout.preferredWidth: 3
+                        Layout.preferredHeight: 3
+                        radius: 2
+                        color: themeManager.textFaint
+                    }
+
+                    MediaMarquee {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: 13
+                        text: mediaMonitor.provider || "未知来源"
+                        textColor: themeManager.textMuted
+                        pixelSize: 9
+                        scrollPixelsPerSecond: 28
+                    }
                 }
 
                 MediaMarquee {

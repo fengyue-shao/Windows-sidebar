@@ -7,7 +7,7 @@ Rectangle {
 
     property var model
 
-    implicitHeight: 42 + Math.min(3, diskMonitor.count) * 42
+    implicitHeight: 42 + Math.min(5, diskMonitor.count) * 42
     radius: 14
     color: themeManager.surface
     border.width: 1
@@ -107,7 +107,7 @@ Rectangle {
             }
 
             ScrollBar.vertical: ScrollBar {
-                policy: diskMonitor.count > 3 ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
+                policy: diskMonitor.count > 5 ? ScrollBar.AsNeeded : ScrollBar.AlwaysOff
             }
         }
     }

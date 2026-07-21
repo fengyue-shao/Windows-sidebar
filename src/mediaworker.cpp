@@ -6,6 +6,7 @@
 #include <QImage>
 #include <QTimer>
 #include <winrt/base.h>
+#include <winrt/Windows.ApplicationModel.h>
 #include <winrt/windows.Foundation.h>
 #include <winrt/windows.Foundation.collections.h>
 #include <winrt/Windows.Media.Control.h>
@@ -116,9 +117,10 @@ void MediaWorker::updateInfo(){
         QString title=QString::fromWCharArray(media.Title().c_str());
         QString artist=QString::fromWCharArray(media.Artist().c_str());
         QString album=QString::fromWCharArray(media.AlbumTitle().c_str());
+        const QString provider = providerName(session);
         QImage coverImage;
         updateCover(coverImage);
-        emit mediaInfoUpdated(title,artist,album,coverImage);
+        emit mediaInfoUpdated(title,artist,album,provider,coverImage);
     }catch(...){
         qDebug()<<"GMSTC error";
     }
@@ -169,6 +171,7 @@ void MediaWorker::registerSession()
     if (!m_session)
     {
         emit mediaInfoUpdated(
+            "",
             "",
             "",
             "",
@@ -265,4 +268,30 @@ void MediaWorker::previous()
     catch (...)
     {
     }
+}
+
+QString MediaWorker::providerName(const Session &session)
+{
+    if (!session)
+        return {};
+
+    const winrt::hstring sourceId = session.SourceAppUserModelId();
+    try {
+        const auto appInfo =
+            Windows::ApplicationModel::AppInfo::GetFromAppUserModelId(sourceId);
+        const QString displayName = QString::fromWCharArray(
+            appInfo.DisplayInfo().DisplayName().c_str());
+        if (!displayName.isEmpty())
+            return displayName;
+    } catch (...) {
+    }
+
+    QString fallback = QString::fromWCharArray(sourceId.c_str());
+    if (fallback.contains('!'))
+        fallback = fallback.section('!', -1);
+    if (fallback.endsWith(".exe", Qt::CaseInsensitive))
+        fallback.chop(4);
+    if (fallback.contains('.'))
+        fallback = fallback.section('.', -1);
+    return fallback.isEmpty() ? QStringLiteral("未知来源") : fallback;
 }
