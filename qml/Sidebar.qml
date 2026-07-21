@@ -94,26 +94,62 @@ Item {
             border.width: 1
             border.color: "#18FFFFFF"
 
-            RowLayout {
+            Item {
                 anchors.fill: parent
                 anchors.leftMargin: 16
                 anchors.rightMargin: 16
-                spacing: 16
 
-                ColumnLayout {
-                    Layout.fillWidth: true
+                Column {
+                    anchors.left: parent.left
+                    anchors.right: centerDivider.left
+                    anchors.rightMargin: 12
+                    anchors.verticalCenter: parent.verticalCenter
                     spacing: 3
-                    Text { text: "下载"; color: "#80FFFFFF"; font.pixelSize: 11 }
-                    Text { text: networkMonitor.downloadSpeedText; color: "#F2FFFFFF"; font.pixelSize: 15; font.weight: Font.DemiBold }
+                    Text {
+                        width: parent.width
+                        text: "下载"
+                        color: "#80FFFFFF"
+                        font.pixelSize: 11
+                    }
+                    Text {
+                        width: parent.width
+                        text: networkMonitor.downloadSpeedText
+                        color: "#F2FFFFFF"
+                        font.pixelSize: 15
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                    }
                 }
 
-                Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 30; color: "#20FFFFFF" }
+                Rectangle {
+                    id: centerDivider
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 1
+                    height: 30
+                    color: "#20FFFFFF"
+                }
 
-                ColumnLayout {
-                    Layout.fillWidth: true
+                Column {
+                    anchors.left: centerDivider.right
+                    anchors.leftMargin: 12
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
                     spacing: 3
-                    Text { text: "上传"; color: "#80FFFFFF"; font.pixelSize: 11 }
-                    Text { text: networkMonitor.uploadSpeedText; color: "#F2FFFFFF"; font.pixelSize: 15; font.weight: Font.DemiBold }
+                    Text {
+                        width: parent.width
+                        text: "上传"
+                        color: "#80FFFFFF"
+                        font.pixelSize: 11
+                    }
+                    Text {
+                        width: parent.width
+                        text: networkMonitor.uploadSpeedText
+                        color: "#F2FFFFFF"
+                        font.pixelSize: 15
+                        font.weight: Font.DemiBold
+                        elide: Text.ElideRight
+                    }
                 }
             }
         }

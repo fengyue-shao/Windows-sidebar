@@ -29,10 +29,24 @@ Item {
             spacing: 14
 
             Rectangle {
-                Layout.preferredWidth: 106
-                Layout.preferredHeight: 106
+                id: coverFrame
+
+                readonly property real sourceAspect: coverImage.status === Image.Ready
+                                                     && coverImage.sourceSize.height > 0
+                                                     ? coverImage.sourceSize.width / coverImage.sourceSize.height
+                                                     : 1.0
+                readonly property real fittedWidth: sourceAspect >= 1.0
+                                                    ? Math.min(148, 106 * sourceAspect)
+                                                    : Math.max(70, 106 * sourceAspect)
+                readonly property real fittedHeight: sourceAspect >= 1.0
+                                                     ? fittedWidth / sourceAspect
+                                                     : 106
+
+                Layout.preferredWidth: fittedWidth
+                Layout.preferredHeight: fittedHeight
+                Layout.alignment: Qt.AlignVCenter
                 radius: 15
-                color: "#18202730"
+                color: "#30202730"
                 clip: true
 
                 Text {
@@ -43,9 +57,10 @@ Item {
                 }
 
                 Image {
+                    id: coverImage
                     anchors.fill: parent
                     source: "image://cover/current?" + mediaMonitor.coverVersion
-                    fillMode: Image.PreserveAspectCrop
+                    fillMode: Image.PreserveAspectFit
                     asynchronous: true
                 }
 
@@ -84,23 +99,31 @@ Item {
                     font.letterSpacing: 1.4
                 }
 
-                Text {
+                MediaMarquee {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 21
                     text: mediaMonitor.title
-                    color: "#F7FFFFFF"
-                    font.pixelSize: 15
-                    font.weight: Font.DemiBold
-                    maximumLineCount: 2
-                    wrapMode: Text.Wrap
-                    elide: Text.ElideRight
+                    textColor: "#F7FFFFFF"
+                    pixelSize: 15
+                    fontWeight: Font.DemiBold
+                    scrollPixelsPerSecond: 38
                 }
 
-                Text {
+                MediaMarquee {
                     Layout.fillWidth: true
+                    Layout.preferredHeight: 16
                     text: mediaMonitor.artist || "未知艺术家"
-                    color: "#9FFFFFFF"
-                    font.pixelSize: 11
-                    elide: Text.ElideRight
+                    textColor: "#9FFFFFFF"
+                    pixelSize: 11
+                }
+
+                MediaMarquee {
+                    Layout.fillWidth: true
+                    Layout.preferredHeight: 15
+                    visible: mediaMonitor.album.length > 0
+                    text: mediaMonitor.album
+                    textColor: "#70FFFFFF"
+                    pixelSize: 10
                 }
 
                 Item { Layout.fillHeight: true }
