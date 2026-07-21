@@ -8,6 +8,8 @@
 
 #include "include/coverimageprovider.h"
 #include "include/cpumonitor.h"
+#include "include/diskmonitor.h"
+#include "include/gpumonitor.h"
 #include "include/mediamonitor.h"
 #include "include/memorymonitor.h"
 #include "include/networkmonitor.h"
@@ -23,6 +25,8 @@ int main(int argc, char *argv[])
 
     QQmlApplicationEngine engine;
     CpuMonitor cpuMonitor;
+    GpuMonitor gpuMonitor;
+    DiskMonitor diskMonitor;
     MemoryMonitor memoryMonitor;
     NetworkMonitor networkMonitor;
     MediaMonitor mediaMonitor;
@@ -52,6 +56,8 @@ int main(int argc, char *argv[])
     auto *coverProvider = new CoverImageProvider;
     mediaMonitor.setCoverProvider(coverProvider);
     engine.rootContext()->setContextProperty("cpuMonitor", &cpuMonitor);
+    engine.rootContext()->setContextProperty("gpuMonitor", &gpuMonitor);
+    engine.rootContext()->setContextProperty("diskMonitor", &diskMonitor);
     engine.rootContext()->setContextProperty("memoryMonitor", &memoryMonitor);
     engine.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);

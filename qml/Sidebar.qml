@@ -75,6 +75,15 @@ Item {
                 progress: memoryMonitor.usage / 100
                 accent: "#9B8CFF"
             }
+
+            WidgetCard {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                label: "GPU"
+                value: gpuMonitor.usage.toFixed(0) + "%"
+                progress: gpuMonitor.usage / 100
+                accent: "#F19A68"
+            }
         }
 
         Rectangle {
@@ -107,6 +116,12 @@ Item {
                     Text { text: networkMonitor.uploadSpeedText; color: "#F2FFFFFF"; font.pixelSize: 15; font.weight: Font.DemiBold }
                 }
             }
+        }
+
+        DiskPanel {
+            Layout.fillWidth: true
+            Layout.preferredHeight: implicitHeight
+            model: diskMonitor
         }
 
         MediaBar {
