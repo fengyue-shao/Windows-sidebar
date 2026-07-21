@@ -1,3 +1,0 @@
-set(__QT_DEPLOY_TARGET_appqt_rainmeter_FILE D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release/appqt_rainmeter.exe)
-set(__QT_DEPLOY_TARGET_appqt_rainmeter_TYPE EXECUTABLE)
-set(__QT_DEPLOY_TARGET_appqt_rainmeter_RUNTIME_DLLS D:/Qt/6.11.1/msvc2022_64/bin/Qt6Quick.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6Svg.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6OpenGL.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6QmlMeta.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6QmlModels.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6QmlWorkerScript.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6Qml.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6Network.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6Gui.dll;D:/Qt/6.11.1/msvc2022_64/bin/Qt6Core.dll)
