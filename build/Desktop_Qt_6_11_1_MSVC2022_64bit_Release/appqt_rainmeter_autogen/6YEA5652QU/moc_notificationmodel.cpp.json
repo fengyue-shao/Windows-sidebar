@@ -1,0 +1,107 @@
+{
+    "classes": [
+        {
+            "className": "NotificationModel",
+            "lineNumber": 6,
+            "methods": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "notification",
+                            "type": "Notification"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 26,
+                    "name": "addNotification",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "row",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 28,
+                    "name": "removeNotification",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "id",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 29,
+                    "name": "removeById",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "lineNumber": 30,
+                    "name": "clear",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "row",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 31,
+                    "name": "markAsRead",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "row",
+                            "type": "int"
+                        }
+                    ],
+                    "index": 5,
+                    "lineNumber": 32,
+                    "name": "markAsUnread",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 6,
+                    "lineNumber": 33,
+                    "name": "markAllAsRead",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 7,
+                    "isConst": true,
+                    "lineNumber": 34,
+                    "name": "unreadCount",
+                    "returnType": "int"
+                }
+            ],
+            "object": true,
+            "qualifiedClassName": "NotificationModel",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QAbstractListModel"
+                }
+            ]
+        }
+    ],
+    "inputFile": "notificationmodel.h",
+    "outputRevision": 69
+}

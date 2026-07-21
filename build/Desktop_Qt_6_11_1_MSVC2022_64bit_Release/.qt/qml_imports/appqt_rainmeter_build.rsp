@@ -1,0 +1,16 @@
+-rootPath
+D:/project/windowsbar/Windows-sidebar
+-cmake-output
+-output-file
+D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release/.qt/qml_imports/appqt_rainmeter_build.cmake
+-importPath
+D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release
+-importPath
+D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release/qt_rainmeter
+-importPath
+D:/Qt/6.11.1/msvc2022_64/qml
+-qrcFiles
+D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release/.qt/rcc/qmake_qt_rainmeter.qrc
+D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release/.qt/rcc/appqt_rainmeter_raw_qml_0.qrc
+D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release/.qt/rcc/appqt_rainmeter_raw_res_0.qrc
+D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release/.qt/rcc/appqt_rainmeter_raw_qml_0_extra_qmldirs.qrc

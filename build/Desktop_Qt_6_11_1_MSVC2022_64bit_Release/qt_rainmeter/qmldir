@@ -1,0 +1,12 @@
+module qt_rainmeter
+typeinfo appqt_rainmeter.qmltypes
+prefer :/qt/qml/qt_rainmeter/
+Main 1.0 qml/Main.qml
+MediaBar 1.0 qml/MediaBar.qml
+NotificationArea 1.0 qml/NotificationArea.qml
+NotificationItem 1.0 qml/NotificationItem.qml
+Sidebar 1.0 qml/Sidebar.qml
+Timebar 1.0 qml/Timebar.qml
+WidgetCard 1.0 qml/WidgetCard.qml
+depends QtQuick
+

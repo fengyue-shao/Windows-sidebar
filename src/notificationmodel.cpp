@@ -1,7 +1,7 @@
 #include "include/notificationmodel.h"
-
+//#include "include/notificationlistener.h"
 NotificationModel::NotificationModel(QObject *parent):QAbstractListModel(parent) {
-
+  //  connect(&NotificationListener,&NotificationListener::notificationAdded,);
 }
 int NotificationModel::rowCount(const QModelIndex &parent)const{
     if(parent.isValid())
@@ -64,6 +64,14 @@ QHash<int, QByteArray> NotificationModel::roleNames() const
 
 void NotificationModel::addNotification(const Notification &notification)
 {
+    for (int row = 0; row < m_notifications.size(); ++row) {
+        if (!notification.id.isEmpty() && m_notifications.at(row).id == notification.id) {
+            m_notifications[row] = notification;
+            emit dataChanged(index(row), index(row));
+            return;
+        }
+    }
+
     beginInsertRows(QModelIndex(),
                     m_notifications.size(),
                     m_notifications.size());

@@ -1,0 +1,88 @@
+{
+    "classes": [
+        {
+            "className": "MediaWorker",
+            "lineNumber": 7,
+            "object": true,
+            "qualifiedClassName": "MediaWorker",
+            "signals": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "title",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "artist",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "album",
+                            "type": "QString"
+                        },
+                        {
+                            "name": "coverImage",
+                            "type": "QImage"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 15,
+                    "name": "mediaInfoUpdated",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "playing",
+                            "type": "bool"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 16,
+                    "name": "mediaPSUpdated",
+                    "returnType": "void"
+                }
+            ],
+            "slots": [
+                {
+                    "access": "public",
+                    "index": 2,
+                    "lineNumber": 13,
+                    "name": "initialize",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "lineNumber": 19,
+                    "name": "togglePlayPause",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 4,
+                    "lineNumber": 20,
+                    "name": "next",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 5,
+                    "lineNumber": 21,
+                    "name": "previous",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "mediaworker.h",
+    "outputRevision": 69
+}

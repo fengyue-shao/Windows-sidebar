@@ -23,6 +23,7 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES include/coverimageprovider.h include/cpumonitor.h include/mediamonitor.h include/mediaworker.h include/memorymonitor.h include/monitorbase.h include/networkmonitor.h include/Notification.h include/notificationmodel.h src/coverimageprovider.cpp src/cpumonitor.cpp src/mediamonitor.cpp src/mediaworker.cpp src/memorymonitor.cpp src/monitorbase.cpp src/networkmonitor.cpp src/notificationmodel.cpp
         QML_FILES qml/MediaBar.qml qml/NotificationArea.qml qml/NotificationItem.qml qml/Sidebar.qml qml/Timebar.qml qml/WidgetCard.qml
         RESOURCES assets/icons/ic_fluent_next_48_regular.svg assets/icons/ic_fluent_pause_48_regular.svg assets/icons/ic_fluent_play_48_regular.svg assets/icons/ic_fluent_previous_48_regular.svg
+        SOURCES include/notificationlistener.h src/notificationlistener.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -43,6 +44,33 @@ target_link_libraries(appqt_rainmeter
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
 target_link_libraries(appqt_rainmeter PRIVATE iphlpapi)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
+
+if(WIN32)
+    get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+    get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
+
+    add_custom_target(package_msix
+        COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+            -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/build-msix.ps1"
+            -Executable "$<TARGET_FILE:appqt_rainmeter>"
+            -QtBin "${QT_BIN_DIR}"
+            -SourceDir "${CMAKE_CURRENT_SOURCE_DIR}"
+            -OutputDir "${CMAKE_CURRENT_BINARY_DIR}/msix"
+        DEPENDS appqt_rainmeter
+        COMMENT "Deploying Qt and creating a signed MSIX package"
+        VERBATIM
+    )
+
+    add_custom_target(install_msix
+        COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
+            -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/install-msix.ps1"
+            -PackagePath "${CMAKE_CURRENT_BINARY_DIR}/msix/WindowsSidebar.msix"
+            -TrustDevelopmentCertificate
+        DEPENDS package_msix
+        COMMENT "Installing the Windows Sidebar MSIX package"
+        VERBATIM
+    )
+endif()
 
 include(GNUInstallDirs)
 install(TARGETS appqt_rainmeter

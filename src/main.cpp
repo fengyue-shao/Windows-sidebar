@@ -1,91 +1,74 @@
+#include <QDebug>
 #include <QGuiApplication>
+#include <QImage>
+#include <QMetaType>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
-#include <QDebug>
-#include <QMetaType>
-#include <QImage>
 #include <winrt/base.h>
-#include "include/cpumonitor.h"
-#include "include/MemoryMonitor.h"
-#include "include/networkmonitor.h"
-#include "include/mediamonitor.h"
+
 #include "include/coverimageprovider.h"
+#include "include/cpumonitor.h"
+#include "include/mediamonitor.h"
+#include "include/memorymonitor.h"
+#include "include/networkmonitor.h"
+#include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
+
 int main(int argc, char *argv[])
 {
+    winrt::init_apartment(winrt::apartment_type::single_threaded);
     QGuiApplication app(argc, argv);
     qRegisterMetaType<QImage>("QImage");
-    QQmlApplicationEngine engine;
+    qRegisterMetaType<Notification>("Notification");
 
+    QQmlApplicationEngine engine;
     CpuMonitor cpuMonitor;
     MemoryMonitor memoryMonitor;
     NetworkMonitor networkMonitor;
     MediaMonitor mediaMonitor;
     NotificationModel notificationModel;
-    Notification spotify;
-    spotify.appName = "Spotify";
-    spotify.title = "正在播放";
-    spotify.content = "The Weeknd - Blinding Lights";
-    spotify.timestamp = QDateTime::currentDateTime().addSecs(-30);
-    notificationModel.addNotification(spotify);
+    NotificationListener notificationListener;
 
-    Notification qq;
-    qq.appName = "QQ";
-    qq.title = "张三";
-    qq.content = "今晚一起吃饭吗？";
-    qq.timestamp = QDateTime::currentDateTime().addSecs(-300);
-    notificationModel.addNotification(qq);
+    QObject::connect(&notificationListener, &NotificationListener::notificationAdded,
+                     &notificationModel, &NotificationModel::addNotification);
+    QObject::connect(&notificationListener, &NotificationListener::notificationUpdated,
+                     &notificationModel, &NotificationModel::addNotification);
+    QObject::connect(&notificationListener, &NotificationListener::notificationRemoved,
+                     &notificationModel, &NotificationModel::removeById);
+    QObject::connect(&notificationListener, &NotificationListener::accessDenied,
+                     [] {
+                         qWarning() << "Access to Windows notifications was denied";
+                     });
+    QObject::connect(&notificationListener, &NotificationListener::errorOccurred,
+                     [](const QString &message) {
+                         qWarning() << "Windows notification listener:" << message;
+                     });
+    notificationListener.start();
 
-    Notification wechat;
-    wechat.appName = "微信";
-    wechat.title = "李四";
-    wechat.content = "文件已发送";
-    wechat.timestamp = QDateTime::currentDateTime().addSecs(-1800);
-    notificationModel.addNotification(wechat);
-    spotify.appName = "Spotify";
-    spotify.title = "正在播放";
-    spotify.content = "The Weeknd - Blinding Lights";
-    spotify.timestamp = QDateTime::currentDateTime().addSecs(-30);
-    notificationModel.addNotification(spotify);
-
-    qq.appName = "QQ";
-    qq.title = "张三";
-    qq.content = "今晚一起吃饭吗？";
-    qq.timestamp = QDateTime::currentDateTime().addSecs(-300);
-    notificationModel.addNotification(qq);
-
-    wechat.appName = "微信";
-    wechat.title = "李四";
-    wechat.content = "文件已发送";
-    wechat.timestamp = QDateTime::currentDateTime().addSecs(-1800);
-    notificationModel.addNotification(wechat);
-    auto coverProvider=new CoverImageProvider;
+    auto *coverProvider = new CoverImageProvider;
     mediaMonitor.setCoverProvider(coverProvider);
-    engine.rootContext()->setContextProperty("cpuMonitor",&cpuMonitor);
-    engine.rootContext()->setContextProperty("memoryMonitor",&memoryMonitor);
-    engine.rootContext()->setContextProperty("networkMonitor",&networkMonitor);
-    engine.rootContext()->setContextProperty("mediaMonitor",&mediaMonitor);
-    engine.addImageProvider("cover",coverProvider);
-    engine.rootContext()->setContextProperty(
-        "notificationModel",
-        &notificationModel);
+    engine.rootContext()->setContextProperty("cpuMonitor", &cpuMonitor);
+    engine.rootContext()->setContextProperty("memoryMonitor", &memoryMonitor);
+    engine.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
+    engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
+    engine.rootContext()->setContextProperty("notificationModel", &notificationModel);
+    engine.addImageProvider("cover", coverProvider);
+
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::objectCreationFailed,
         &app,
-        []() { QCoreApplication::exit(-1); },
+        [] { QCoreApplication::exit(-1); },
         Qt::QueuedConnection);
     QObject::connect(
         &engine,
         &QQmlApplicationEngine::warnings,
-        [](const QList<QQmlError>& warnings)
-        {
-            for (const auto& w : warnings)
-            {
-                qDebug() << w.toString();
+        [](const QList<QQmlError> &warnings) {
+            for (const auto &warning : warnings) {
+                qDebug() << warning.toString();
             }
         });
-    engine.loadFromModule("qt_rainmeter", "Main");
 
+    engine.loadFromModule("qt_rainmeter", "Main");
     return app.exec();
 }

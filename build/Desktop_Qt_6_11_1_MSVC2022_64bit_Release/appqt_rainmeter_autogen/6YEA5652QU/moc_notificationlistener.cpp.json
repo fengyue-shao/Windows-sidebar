@@ -1,0 +1,79 @@
+{
+    "classes": [
+        {
+            "className": "NotificationListener",
+            "lineNumber": 9,
+            "object": true,
+            "qualifiedClassName": "NotificationListener",
+            "signals": [
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "notification",
+                            "type": "Notification"
+                        }
+                    ],
+                    "index": 0,
+                    "lineNumber": 19,
+                    "name": "notificationAdded",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "id",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 1,
+                    "lineNumber": 20,
+                    "name": "notificationRemoved",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "notification",
+                            "type": "Notification"
+                        }
+                    ],
+                    "index": 2,
+                    "lineNumber": 21,
+                    "name": "notificationUpdated",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "index": 3,
+                    "lineNumber": 22,
+                    "name": "accessDenied",
+                    "returnType": "void"
+                },
+                {
+                    "access": "public",
+                    "arguments": [
+                        {
+                            "name": "message",
+                            "type": "QString"
+                        }
+                    ],
+                    "index": 4,
+                    "lineNumber": 23,
+                    "name": "errorOccurred",
+                    "returnType": "void"
+                }
+            ],
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "notificationlistener.h",
+    "outputRevision": 69
+}

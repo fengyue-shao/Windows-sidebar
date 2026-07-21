@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/qt/qml/qt_rainmeter">
+    <file alias="qmldir">D:/project/windowsbar/Windows-sidebar/build/Desktop_Qt_6_11_1_MSVC2022_64bit_Release/qt_rainmeter/qmldir</file>
+  </qresource>
+</RCC>
+

@@ -27,4 +27,6 @@ struct Notification{
     NotificationType type=NotificationType::System;
 };
 
+Q_DECLARE_METATYPE(Notification)
+
 #endif // NOTIFICATION_H

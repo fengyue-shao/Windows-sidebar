@@ -1,0 +1,9 @@
+<RCC>
+  <qresource prefix="/qt/qml/qt_rainmeter/">
+    <file alias="assets/icons/ic_fluent_next_48_regular.svg">D:/project/windowsbar/Windows-sidebar/assets/icons/ic_fluent_next_48_regular.svg</file>
+    <file alias="assets/icons/ic_fluent_pause_48_regular.svg">D:/project/windowsbar/Windows-sidebar/assets/icons/ic_fluent_pause_48_regular.svg</file>
+    <file alias="assets/icons/ic_fluent_play_48_regular.svg">D:/project/windowsbar/Windows-sidebar/assets/icons/ic_fluent_play_48_regular.svg</file>
+    <file alias="assets/icons/ic_fluent_previous_48_regular.svg">D:/project/windowsbar/Windows-sidebar/assets/icons/ic_fluent_previous_48_regular.svg</file>
+  </qresource>
+</RCC>
+

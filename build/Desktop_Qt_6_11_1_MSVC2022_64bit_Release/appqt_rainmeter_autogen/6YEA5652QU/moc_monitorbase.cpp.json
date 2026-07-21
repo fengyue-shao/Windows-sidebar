@@ -1,0 +1,18 @@
+{
+    "classes": [
+        {
+            "className": "MonitorBase",
+            "lineNumber": 7,
+            "object": true,
+            "qualifiedClassName": "MonitorBase",
+            "superClasses": [
+                {
+                    "access": "public",
+                    "name": "QObject"
+                }
+            ]
+        }
+    ],
+    "inputFile": "monitorbase.h",
+    "outputRevision": 69
+}
