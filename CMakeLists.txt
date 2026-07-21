@@ -21,7 +21,7 @@ qt_add_qml_module(appqt_rainmeter
     QML_FILES
         qml/Main.qml
         SOURCES include/coverimageprovider.h include/cpumonitor.h include/diskmonitor.h include/gpumonitor.h include/mediamonitor.h include/mediaworker.h include/memorymonitor.h include/monitorbase.h include/monitorscheduler.h include/networkmonitor.h include/Notification.h include/notificationmodel.h include/periodicmodule.h src/coverimageprovider.cpp src/cpumonitor.cpp src/diskmonitor.cpp src/gpumonitor.cpp src/mediamonitor.cpp src/mediaworker.cpp src/memorymonitor.cpp src/monitorbase.cpp src/monitorscheduler.cpp src/networkmonitor.cpp src/notificationmodel.cpp
-        QML_FILES qml/DiskPanel.qml qml/MediaBar.qml qml/MediaMarquee.qml qml/NotificationArea.qml qml/NotificationItem.qml qml/Sidebar.qml qml/Timebar.qml qml/WidgetCard.qml
+        QML_FILES qml/DiskPanel.qml qml/MediaBar.qml qml/MediaMarquee.qml qml/NotificationArea.qml qml/NotificationItem.qml qml/Sidebar.qml qml/SystemControlBar.qml qml/SystemMonitorPanel.qml qml/Timebar.qml qml/WidgetCard.qml
         RESOURCES assets/icons/ic_fluent_next_48_regular.svg assets/icons/ic_fluent_pause_48_regular.svg assets/icons/ic_fluent_play_48_regular.svg assets/icons/ic_fluent_previous_48_regular.svg
         SOURCES include/notificationlistener.h src/notificationlistener.cpp
 )

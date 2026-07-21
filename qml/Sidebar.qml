@@ -6,6 +6,7 @@ Item {
     id: root
 
     property bool expanded: false
+    property int currentSection: 0
     signal toggleRequested()
 
     Rectangle {
@@ -34,141 +35,103 @@ Item {
         anchors.fill: parent
         anchors.leftMargin: 28
         anchors.rightMargin: 18
-        anchors.topMargin: 18
-        anchors.bottomMargin: 18
-        spacing: 14
+        anchors.topMargin: 16
+        anchors.bottomMargin: 14
+        spacing: 13
         visible: root.expanded
-        opacity: root.expanded ? 1 : 0
 
         Timebar {
             Layout.fillWidth: true
             Layout.preferredHeight: 58
         }
 
-        Text {
-            text: "系统概览"
-            color: "#A8FFFFFF"
-            font.pixelSize: 12
-            font.weight: Font.DemiBold
-            font.letterSpacing: 1.2
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 58
-            spacing: 10
-
-            WidgetCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                label: "CPU"
-                value: cpuMonitor.usage.toFixed(0) + "%"
-                progress: cpuMonitor.usage / 100
-                accent: "#61A9FF"
-            }
-
-            WidgetCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                label: "内存"
-                value: memoryMonitor.usage.toFixed(0) + "%"
-                progress: memoryMonitor.usage / 100
-                accent: "#9B8CFF"
-            }
-
-            WidgetCard {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                label: "GPU"
-                value: gpuMonitor.usage.toFixed(0) + "%"
-                progress: gpuMonitor.usage / 100
-                accent: "#F19A68"
-            }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 64
-            radius: 14
-            color: "#12FFFFFF"
-            border.width: 1
-            border.color: "#18FFFFFF"
-
-            Item {
-                anchors.fill: parent
-                anchors.leftMargin: 16
-                anchors.rightMargin: 16
-
-                Column {
-                    anchors.left: parent.left
-                    anchors.right: centerDivider.left
-                    anchors.rightMargin: 12
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 3
-                    Text {
-                        width: parent.width
-                        text: "下载"
-                        color: "#80FFFFFF"
-                        font.pixelSize: 11
-                    }
-                    Text {
-                        width: parent.width
-                        text: networkMonitor.downloadSpeedText
-                        color: "#F2FFFFFF"
-                        font.pixelSize: 15
-                        font.weight: Font.DemiBold
-                        elide: Text.ElideRight
-                    }
-                }
-
-                Rectangle {
-                    id: centerDivider
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: 1
-                    height: 30
-                    color: "#20FFFFFF"
-                }
-
-                Column {
-                    anchors.left: centerDivider.right
-                    anchors.leftMargin: 12
-                    anchors.right: parent.right
-                    anchors.verticalCenter: parent.verticalCenter
-                    spacing: 3
-                    Text {
-                        width: parent.width
-                        text: "上传"
-                        color: "#80FFFFFF"
-                        font.pixelSize: 11
-                    }
-                    Text {
-                        width: parent.width
-                        text: networkMonitor.uploadSpeedText
-                        color: "#F2FFFFFF"
-                        font.pixelSize: 15
-                        font.weight: Font.DemiBold
-                        elide: Text.ElideRight
-                    }
-                }
-            }
-        }
-
-        DiskPanel {
-            Layout.fillWidth: true
-            Layout.preferredHeight: implicitHeight
-            model: diskMonitor
-        }
-
-        MediaBar {
-            Layout.fillWidth: true
-            Layout.preferredHeight: visible ? 138 : 0
-        }
-
-        NotificationArea {
+        StackLayout {
+            id: contentStack
             Layout.fillWidth: true
             Layout.fillHeight: true
-            model: notificationModel
+            currentIndex: root.currentSection
+
+            SystemMonitorPanel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+
+            Item {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+
+                ColumnLayout {
+                    anchors.fill: parent
+                    spacing: 12
+
+                    RowLayout {
+                        Layout.fillWidth: true
+
+                        Text {
+                            Layout.fillWidth: true
+                            text: "媒体控制"
+                            color: "#EFFFFFFF"
+                            font.pixelSize: 17
+                            font.weight: Font.DemiBold
+                        }
+
+                        Text {
+                            visible: mediaMonitor.title.length > 0
+                            text: mediaMonitor.playing ? "正在播放" : "已暂停"
+                            color: mediaMonitor.playing ? "#75BFFFA1" : "#65FFFFFF"
+                            font.pixelSize: 10
+                        }
+                    }
+
+                    MediaBar {
+                        Layout.fillWidth: true
+                        Layout.preferredHeight: visible ? 138 : 0
+                    }
+
+                    Item { Layout.fillHeight: true }
+                }
+
+                Column {
+                    anchors.centerIn: parent
+                    visible: mediaMonitor.title.length === 0
+                    spacing: 8
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "♪"
+                        color: "#4261A9FF"
+                        font.pixelSize: 36
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "暂无媒体会话"
+                        color: "#70FFFFFF"
+                        font.pixelSize: 13
+                    }
+
+                    Text {
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        text: "开始播放音乐或视频后会显示在这里"
+                        color: "#45FFFFFF"
+                        font.pixelSize: 10
+                    }
+                }
+            }
+
+            NotificationArea {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                model: notificationModel
+            }
+        }
+
+        SystemControlBar {
+            Layout.fillWidth: true
+            Layout.preferredHeight: 58
+            currentIndex: root.currentSection
+            onSectionRequested: index => root.currentSection = index
+            onExitRequested: Qt.quit()
         }
     }
 
@@ -185,14 +148,12 @@ Item {
             anchors.centerIn: parent
             visible: root.expanded
             text: "›"
-            rotation: root.expanded ? 0 : 180
             color: "#DFFFFFFF"
             font.pixelSize: 22
         }
 
         HoverHandler { id: toggleHover }
         TapHandler { onTapped: root.toggleRequested() }
-
         Behavior on color { ColorAnimation { duration: 120 } }
     }
 }
