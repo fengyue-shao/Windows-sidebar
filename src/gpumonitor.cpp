@@ -5,7 +5,7 @@
 #include <QVector>
 
 GpuMonitor::GpuMonitor(QObject *parent)
-    : MonitorBase(1000, parent)
+    : MonitorBase(parent)
 {
     if (PdhOpenQueryW(nullptr, 0, &m_query) != ERROR_SUCCESS)
         return;
@@ -23,7 +23,6 @@ GpuMonitor::GpuMonitor(QObject *parent)
     }
 
     updateData();
-    start();
 }
 
 GpuMonitor::~GpuMonitor()

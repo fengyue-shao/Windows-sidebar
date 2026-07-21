@@ -7,8 +7,6 @@
 DiskMonitor::DiskMonitor(QObject *parent)
     : QAbstractListModel(parent)
 {
-    connect(&m_timer, &QTimer::timeout, this, &DiskMonitor::updateData);
-    m_timer.start(5000);
     updateData();
 }
 
@@ -68,6 +66,11 @@ QHash<int, QByteArray> DiskMonitor::roleNames() const
 int DiskMonitor::count() const
 {
     return m_partitions.size();
+}
+
+void DiskMonitor::refresh()
+{
+    updateData();
 }
 
 void DiskMonitor::updateData()

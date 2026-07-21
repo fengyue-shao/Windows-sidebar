@@ -12,6 +12,7 @@
 #include "include/gpumonitor.h"
 #include "include/mediamonitor.h"
 #include "include/memorymonitor.h"
+#include "include/monitorscheduler.h"
 #include "include/networkmonitor.h"
 #include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
@@ -32,6 +33,14 @@ int main(int argc, char *argv[])
     MediaMonitor mediaMonitor;
     NotificationModel notificationModel;
     NotificationListener notificationListener;
+    MonitorScheduler monitorScheduler;
+
+    monitorScheduler.addModule(&cpuMonitor, 1000);
+    monitorScheduler.addModule(&memoryMonitor, 1000);
+    monitorScheduler.addModule(&gpuMonitor, 1000);
+    monitorScheduler.addModule(&networkMonitor, 1000);
+    monitorScheduler.addModule(&diskMonitor, 5000);
+    monitorScheduler.start();
 
     QObject::connect(&notificationListener, &NotificationListener::notificationAdded,
                      &notificationModel, &NotificationModel::addNotification);

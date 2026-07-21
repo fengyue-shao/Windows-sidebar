@@ -3,11 +3,10 @@
 #include <windows.h>
 
 MemoryMonitor::MemoryMonitor(QObject *parent)
-    : MonitorBase(1000, parent)
+    : MonitorBase(parent)
 {
     MemoryMonitor::updateData();
 
-    start();
 }
 
 double MemoryMonitor::usage() const

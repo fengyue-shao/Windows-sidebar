@@ -3,7 +3,7 @@
 #include <windows.h>
 
 CpuMonitor::CpuMonitor(QObject *parent)
-    : QObject(parent)
+    : MonitorBase(parent)
 {
     FILETIME idleTime;
     FILETIME kernelTime;
@@ -22,13 +22,6 @@ CpuMonitor::CpuMonitor(QObject *parent)
     m_lastIdle=fileTimeToUInt64(idleTime);
     m_lastKernel=fileTimeToUInt64(kernelTime);
     m_lastUser=fileTimeToUInt64(userTime);
-    connect(&m_timer,
-            &QTimer::timeout,
-            this,
-            &CpuMonitor::updateUsage
-            );
-
-    m_timer.start(1000);
 }
 
 double CpuMonitor::usage() const
@@ -83,4 +76,9 @@ void CpuMonitor::updateUsage(){
     m_lastIdle = idle;
     m_lastKernel = kernel;
     m_lastUser = user;
+}
+
+void CpuMonitor::updateData()
+{
+    updateUsage();
 }

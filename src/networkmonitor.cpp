@@ -6,9 +6,8 @@
 #include <netioapi.h>
 #pragma comment(lib,"Iphlpapi.lib")
 NetworkMonitor::NetworkMonitor(QObject* parent)
-    :MonitorBase(1000,parent) {
+    :MonitorBase(parent) {
     NetworkMonitor::updateData();
-    start();
 }
 QString NetworkMonitor::downloadSpeedText()const{
     return formatSpeed(m_downloadSpeed);

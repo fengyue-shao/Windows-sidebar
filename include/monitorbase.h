@@ -1,23 +1,20 @@
 #pragma once
 #ifndef MONITORBASE_H
 #define MONITORBASE_H
-#include <QTimer>
 #include <QObject>
+#include "periodicmodule.h"
 
-class MonitorBase : public QObject
+class MonitorBase : public QObject, public PeriodicModule
 {
     Q_OBJECT
 
 public:
-    explicit MonitorBase(int interval=1000,QObject *parent = nullptr);
+    explicit MonitorBase(QObject *parent = nullptr);
 
     virtual ~MonitorBase()=default;
-    void start();
-    void stop();
+    void refresh() final;
 protected:
     virtual void updateData()=0;
-private:
-    QTimer m_timer;
 signals:
 };
 

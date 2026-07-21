@@ -2,9 +2,9 @@
 #ifndef CPUMONITOR_H
 #define CPUMONITOR_H
 
-#include <QObject>
-#include <QTimer>
-class CpuMonitor : public QObject
+#include "monitorbase.h"
+
+class CpuMonitor : public MonitorBase
 {
     Q_OBJECT
 
@@ -20,12 +20,12 @@ public:
 signals:
     void usageChanged();
 
-private:
+protected:
     void updateUsage();
+    void updateData() override;
 private:
     double m_usage = 0.0;
 
-    QTimer m_timer;
     quint64 m_lastIdle=0;
     quint64 m_lastKernel=0;
     quint64 m_lastUser=0;

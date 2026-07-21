@@ -3,10 +3,10 @@
 #define DISKMONITOR_H
 
 #include <QAbstractListModel>
-#include <QTimer>
 #include <QVector>
+#include "periodicmodule.h"
 
-class DiskMonitor : public QAbstractListModel
+class DiskMonitor : public QAbstractListModel, public PeriodicModule
 {
     Q_OBJECT
     Q_PROPERTY(int count READ count NOTIFY partitionsChanged)
@@ -31,6 +31,7 @@ public:
     QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
     QHash<int, QByteArray> roleNames() const override;
     int count() const;
+    void refresh() override;
 
 signals:
     void partitionsChanged();
@@ -52,7 +53,6 @@ private:
                                 const QVector<Partition> &right);
 
     QVector<Partition> m_partitions;
-    QTimer m_timer;
 };
 
 #endif // DISKMONITOR_H
