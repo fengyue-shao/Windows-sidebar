@@ -275,7 +275,7 @@ Rectangle {
         property bool selected: false
         signal clicked()
         Layout.fillHeight: true
-        radius: 11
+        radius: 12
         color: selected ? themeManager.accentSoft : buttonHover.hovered ? themeManager.surfaceHover : themeManager.overlayStart
         Row {
             anchors.centerIn: parent; spacing: 6
@@ -285,5 +285,6 @@ Rectangle {
         Rectangle { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 2; width: button.selected ? 20 : 0; height: 2; radius: 1; color: themeManager.accent; Behavior on width { NumberAnimation { duration: 140 } } }
         HoverHandler { id: buttonHover }
         TapHandler { onTapped: button.clicked() }
+        Behavior on color { ColorAnimation { duration: 100 } }
     }
 }

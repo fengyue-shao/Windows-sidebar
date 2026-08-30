@@ -114,7 +114,7 @@ Item {
         property string label
         property int minutes
         implicitHeight: 42
-        radius: 13
+        radius: 12
         color: focusTimer.durationSeconds === minutes * 60 ? themeManager.accentSoft : presetHover.hovered ? themeManager.surfaceHover : themeManager.surface
         border.width: 1
         border.color: focusTimer.durationSeconds === minutes * 60 ? themeManager.accent : themeManager.border
@@ -129,7 +129,7 @@ Item {
         property bool primary: false
         signal clicked()
         implicitHeight: 48
-        radius: 15
+        radius: 14
         color: primary ? (actionTap.pressed ? themeManager.accentHover : themeManager.accent) : (actionHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong)
         border.width: primary ? 0 : 1
         border.color: themeManager.borderStrong

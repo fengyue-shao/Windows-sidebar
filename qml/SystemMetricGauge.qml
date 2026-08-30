@@ -10,7 +10,7 @@ Rectangle {
     property real progress: 0
     property color accent: themeManager.accent
 
-    radius: 18
+    radius: 16
     color: themeManager.surface
     border.width: 1
     border.color: themeManager.border

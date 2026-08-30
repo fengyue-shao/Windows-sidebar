@@ -10,7 +10,7 @@ Rectangle {
     property string selectedWifiProfile: ""
     property bool selectedWifiSecure: false
     readonly property int summaryHeight: systemTrayManager.batteryPresent ? 188 : 164
-    readonly property int detailHeight: currentPanel === 0 ? 390 : (currentPanel === 1 || currentPanel === 4) ? 430 : 286
+    readonly property int detailHeight: (currentPanel === 0 || currentPanel === 1 || currentPanel === 4) ? 430 : 286
 
     function selectPanel(index) {
         if (expanded && currentPanel === index) {
@@ -110,19 +110,31 @@ Rectangle {
 
                     ColumnLayout {
                         spacing: 10
-                        ComboBox {
+                        Text { text: "输出设备"; color: themeManager.textSecondary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                        ListView {
                             Layout.fillWidth: true
+                            Layout.preferredHeight: 42
+                            orientation: ListView.Horizontal
+                            spacing: 6
+                            clip: true
                             model: systemTrayManager.audioOutputs
-                            textRole: "name"
-                            valueRole: "id"
-                            currentIndex: {
-                                for (let index = 0; index < systemTrayManager.audioOutputs.length; ++index)
-                                    if (systemTrayManager.audioOutputs[index].selected) return index
-                                return -1
+                            boundsBehavior: Flickable.StopAtBounds
+                            delegate: Rectangle {
+                                required property var modelData
+                                height: 38
+                                width: Math.min(190, Math.max(104, outputName.implicitWidth + 38))
+                                radius: 11
+                                color: modelData.selected ? themeManager.accentSoft : outputHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
+                                border.width: 1
+                                border.color: modelData.selected ? themeManager.accent : themeManager.border
+                                Row {
+                                    anchors.centerIn: parent; spacing: 6
+                                    Text { text: modelData.selected ? "●" : "○"; color: modelData.selected ? themeManager.accent : themeManager.textFaint; font.pixelSize: 8 }
+                                    Text { id: outputName; text: modelData.name; color: modelData.selected ? themeManager.accent : themeManager.textPrimary; font.pixelSize: 9; elide: Text.ElideRight; width: Math.min(145, implicitWidth) }
+                                }
+                                HoverHandler { id: outputHover }
+                                TapHandler { onTapped: systemTrayManager.selectAudioOutput(modelData.id) }
                             }
-                            onActivated: systemTrayManager.selectAudioOutput(currentValue)
-                            ToolTip.visible: hovered
-                            ToolTip.text: "选择系统默认输出设备"
                         }
                         Text { text: systemTrayManager.muted ? "当前已静音" : "主音量 " + systemTrayManager.volume + "%"; color: systemTrayManager.muted ? themeManager.danger : themeManager.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
                         Slider { Layout.fillWidth: true; from: 0; to: 100; value: systemTrayManager.volume; onMoved: systemTrayManager.setVolume(Math.round(value)) }
@@ -184,7 +196,7 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
                             Text { Layout.fillWidth: true; text: wifiManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
-                            Switch { checked: radioManager.wifiEnabled; text: "Wi-Fi"; onToggled: radioManager.setWifiEnabled(checked) }
+                            RadioToggle { label: "Wi-Fi"; checked: radioManager.wifiEnabled; onToggled: radioManager.setWifiEnabled(checked) }
                             Rectangle {
                                 Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
                                 color: wifiRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
@@ -293,7 +305,7 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
                             Text { Layout.fillWidth: true; text: bluetoothManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
-                            Switch { checked: radioManager.bluetoothEnabled; text: "蓝牙"; onToggled: radioManager.setBluetoothEnabled(checked) }
+                            RadioToggle { label: "蓝牙"; checked: radioManager.bluetoothEnabled; onToggled: radioManager.setBluetoothEnabled(checked) }
                             Rectangle {
                                 Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
                                 color: bluetoothRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
@@ -368,11 +380,33 @@ Rectangle {
         property bool active: false
         signal clicked()
         implicitHeight: 40; radius: 12
-        color: active ? themeManager.accentSoft : controlHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
+        opacity: enabled ? 1 : 0.45
+        color: active ? themeManager.accentSoft : controlTap.pressed ? themeManager.overlayStart : controlHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
         border.width: 1; border.color: active ? themeManager.accent : themeManager.border
         Text { anchors.centerIn: parent; text: control.label; color: control.active ? themeManager.accent : themeManager.textPrimary; font.pixelSize: 9; font.weight: Font.DemiBold }
         HoverHandler { id: controlHover }
-        TapHandler { onTapped: control.clicked() }
+        TapHandler { id: controlTap; enabled: control.enabled; onTapped: control.clicked() }
+    }
+
+    component RadioToggle: Rectangle {
+        id: radioToggle
+        property string label
+        property bool checked: false
+        signal toggled(bool checked)
+        implicitWidth: 78; implicitHeight: 28; radius: 10
+        color: checked ? themeManager.accentSoft : toggleHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
+        border.width: 1; border.color: checked ? themeManager.accent : themeManager.border
+        Row {
+            anchors.centerIn: parent; spacing: 6
+            Rectangle {
+                width: 20; height: 12; radius: 6
+                color: radioToggle.checked ? themeManager.accent : themeManager.track
+                Rectangle { x: radioToggle.checked ? 10 : 2; anchors.verticalCenter: parent.verticalCenter; width: 8; height: 8; radius: 4; color: "#FFFFFF"; Behavior on x { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } } }
+            }
+            Text { text: radioToggle.label; color: radioToggle.checked ? themeManager.accent : themeManager.textMuted; font.pixelSize: 8; font.weight: Font.DemiBold }
+        }
+        HoverHandler { id: toggleHover }
+        TapHandler { onTapped: radioToggle.toggled(!radioToggle.checked) }
     }
 
     component ChoiceButton: ControlButton { property bool selected: false; active: selected }

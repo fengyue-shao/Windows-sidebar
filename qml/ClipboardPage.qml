@@ -39,7 +39,7 @@ Item {
                 required property var modelData
                 width: ListView.view.width
                 height: modelData.type === "image" ? 174 : Math.max(76, previewText.implicitHeight + 42)
-                radius: 15
+                radius: 16
                 color: itemHover.hovered ? themeManager.surfaceHover : themeManager.surface
                 border.width: 1
                 border.color: itemHover.hovered ? themeManager.accent : themeManager.border
@@ -120,12 +120,14 @@ Item {
         property bool danger: false
         signal clicked()
         implicitWidth: 32; implicitHeight: 30; radius: 10
-        color: buttonHover.hovered ? (danger ? themeManager.dangerSoft : themeManager.accentSoft) : themeManager.surface
+        opacity: enabled ? 1 : 0.45
+        color: buttonTap.pressed ? themeManager.overlayStart : buttonHover.hovered ? (danger ? themeManager.dangerSoft : themeManager.accentSoft) : themeManager.surface
         border.width: 1; border.color: danger ? themeManager.dangerSoft : themeManager.border
         Text { anchors.centerIn: parent; text: button.symbol; color: button.danger ? themeManager.danger : themeManager.accent; font.pixelSize: 12 }
         HoverHandler { id: buttonHover }
-        TapHandler { onTapped: button.clicked() }
+        TapHandler { id: buttonTap; enabled: button.enabled; onTapped: button.clicked() }
         ToolTip.visible: buttonHover.hovered
         ToolTip.text: button.tip
+        Behavior on color { ColorAnimation { duration: 100 } }
     }
 }

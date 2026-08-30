@@ -9,7 +9,7 @@ Rectangle {
     property real progress: 0
     property color accent: themeManager.accent
 
-    radius: 12
+    radius: 16
     color: hover.hovered ? themeManager.surfaceHover : themeManager.surface
     border.width: 1
     border.color: themeManager.border
@@ -60,4 +60,5 @@ Rectangle {
     }
 
     Behavior on color { ColorAnimation { duration: 100 } }
+    Behavior on border.color { ColorAnimation { duration: 120 } }
 }

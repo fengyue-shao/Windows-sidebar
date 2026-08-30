@@ -55,9 +55,10 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 120
-        radius: 18
-        color: themeManager.overlayStart
-        border.width: 0
+        radius: 16
+        color: themeManager.surface
+        border.width: 1
+        border.color: themeManager.border
         clip: true
 
         ListView {
