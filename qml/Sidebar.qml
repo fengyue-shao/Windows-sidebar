@@ -107,6 +107,11 @@ Item {
                     }
                 }
             }
+
+            FocusPage {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
         }
 
         SystemControlBar {

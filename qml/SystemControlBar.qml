@@ -27,6 +27,7 @@ Rectangle {
         SectionButton { Layout.fillWidth: true; label: "概览"; symbol: "⌂"; selected: root.currentIndex === 0; onClicked: root.sectionRequested(0) }
         SectionButton { Layout.fillWidth: true; label: "监控"; symbol: "◉"; selected: root.currentIndex === 1; onClicked: root.sectionRequested(1) }
         SectionButton { Layout.fillWidth: true; label: "通知"; symbol: "●"; selected: root.currentIndex === 2; onClicked: root.sectionRequested(2) }
+        SectionButton { Layout.fillWidth: true; label: "专注"; symbol: "◷"; selected: root.currentIndex === 3; onClicked: root.sectionRequested(3) }
         Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 26; color: themeManager.track }
         Rectangle {
             Layout.preferredWidth: 40
@@ -118,7 +119,7 @@ Rectangle {
                 ModuleRow { Layout.fillWidth: true; title: "通知中心"; enabledValue: root.notificationsEnabled; onClicked: root.notificationsEnabledRequested(!root.notificationsEnabled) }
                 Text {
                     Layout.fillWidth: true
-                    text: "快捷键  Ctrl+Space 展开 · Ctrl+1/2/3 切页 · Ctrl+Q 退出"
+                    text: "快捷键  Ctrl+Space 展开 · Ctrl+1/2/3/4 切页 · Ctrl+Q 退出"
                     wrapMode: Text.WordWrap
                     color: themeManager.textFaint
                     font.pixelSize: 9

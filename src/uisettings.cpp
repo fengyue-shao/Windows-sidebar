@@ -20,7 +20,7 @@ UiSettings::UiSettings(QObject *parent)
     QSettings settings;
     m_expanded = settings.value(expandedKey, true).toBool();
     m_currentSection = settings.value(currentSectionKey, 0).toInt();
-    if (m_currentSection < 0 || m_currentSection > 2)
+    if (m_currentSection < 0 || m_currentSection > 3)
         m_currentSection = 0;
     m_mediaEnabled = settings.value(mediaEnabledKey, true).toBool();
     m_monitorEnabled = settings.value(monitorEnabledKey, true).toBool();
@@ -52,7 +52,7 @@ void UiSettings::setExpanded(bool expanded)
 
 void UiSettings::setCurrentSection(int section)
 {
-    if (section < 0 || section > 2 || m_currentSection == section)
+    if (section < 0 || section > 3 || m_currentSection == section)
         return;
     m_currentSection = section;
     QSettings().setValue(currentSectionKey, section);

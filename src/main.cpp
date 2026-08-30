@@ -10,6 +10,7 @@
 #include "include/cpumonitor.h"
 #include "include/diskmonitor.h"
 #include "include/displaymanager.h"
+#include "include/focustimer.h"
 #include "include/gpumonitor.h"
 #include "include/mediamonitor.h"
 #include "include/memorymonitor.h"
@@ -34,6 +35,7 @@ int main(int argc, char *argv[])
     GpuMonitor gpuMonitor;
     DiskMonitor diskMonitor;
     DisplayManager displayManager;
+    FocusTimer focusTimer;
     MemoryMonitor memoryMonitor;
     NetworkMonitor networkMonitor;
     MediaMonitor mediaMonitor;
@@ -76,6 +78,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("gpuMonitor", &gpuMonitor);
     engine.rootContext()->setContextProperty("diskMonitor", &diskMonitor);
     engine.rootContext()->setContextProperty("displayManager", &displayManager);
+    engine.rootContext()->setContextProperty("focusTimer", &focusTimer);
     engine.rootContext()->setContextProperty("memoryMonitor", &memoryMonitor);
     engine.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
