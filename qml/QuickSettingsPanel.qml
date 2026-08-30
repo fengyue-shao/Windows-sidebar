@@ -6,8 +6,11 @@ Rectangle {
     id: root
     property int currentPanel: 0
     property bool expanded: false
+    property string selectedWifiSsid: ""
+    property string selectedWifiProfile: ""
+    property bool selectedWifiSecure: false
     readonly property int summaryHeight: systemTrayManager.batteryPresent ? 188 : 164
-    readonly property int detailHeight: currentPanel === 0 ? 390 : 286
+    readonly property int detailHeight: currentPanel === 0 ? 390 : currentPanel === 1 ? 430 : 286
 
     function selectPanel(index) {
         if (expanded && currentPanel === index) {
@@ -161,14 +164,84 @@ Rectangle {
                     }
 
                     ColumnLayout {
-                        spacing: 9
-                        StatusCard { Layout.fillWidth: true; title: systemTrayManager.online ? "网络已连接" : "网络未连接"; detail: systemTrayManager.online ? "系统当前可以访问网络" : "请检查网络适配器或连接"; healthy: systemTrayManager.online }
+                        spacing: 8
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { Layout.fillWidth: true; text: wifiManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            Rectangle {
+                                Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
+                                color: wifiRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
+                                Text { anchors.centerIn: parent; text: wifiManager.scanning ? "…" : "↻"; color: themeManager.accent; font.pixelSize: 11 }
+                                HoverHandler { id: wifiRefreshHover }
+                                TapHandler { enabled: !wifiManager.scanning; onTapped: wifiManager.scan() }
+                                ToolTip.visible: wifiRefreshHover.hovered
+                                ToolTip.text: "扫描附近 Wi-Fi"
+                            }
+                        }
                         RowLayout {
                             Layout.fillWidth: true; spacing: 8
                             MetricCard { Layout.fillWidth: true; title: "下载"; value: networkMonitor.downloadSpeedText }
                             MetricCard { Layout.fillWidth: true; title: "上传"; value: networkMonitor.uploadSpeedText }
                         }
-                        Item { Layout.fillHeight: true }
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            spacing: 5
+                            model: wifiManager.networks
+                            boundsBehavior: Flickable.StopAtBounds
+                            delegate: Rectangle {
+                                required property var modelData
+                                width: ListView.view.width
+                                height: 48
+                                radius: 11
+                                color: modelData.connected ? themeManager.accentSoft : wifiItemHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
+                                border.width: 1
+                                border.color: modelData.connected ? themeManager.accent : themeManager.border
+                                RowLayout {
+                                    anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 10; spacing: 8
+                                    Text { text: modelData.strength >= 75 ? "▰" : modelData.strength >= 45 ? "▱" : "·"; color: modelData.connected ? themeManager.accent : themeManager.textSecondary; font.pixelSize: 12 }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 1
+                                        Text { Layout.fillWidth: true; text: modelData.ssid; color: themeManager.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                                        Text { text: modelData.connected ? "已连接" : (modelData.secure ? "安全网络 · " : "开放网络 · ") + modelData.strength + "%"; color: modelData.connected ? themeManager.success : themeManager.textFaint; font.pixelSize: 8 }
+                                    }
+                                    Text { text: modelData.secure ? "⌾" : ""; color: themeManager.textMuted; font.pixelSize: 10 }
+                                }
+                                HoverHandler { id: wifiItemHover }
+                                TapHandler {
+                                    enabled: !modelData.connected
+                                    onTapped: {
+                                        root.selectedWifiSsid = modelData.ssid
+                                        root.selectedWifiProfile = modelData.profileName
+                                        root.selectedWifiSecure = modelData.secure
+                                        wifiPassword.text = ""
+                                        if (modelData.profileName !== "" || !modelData.secure)
+                                            wifiManager.connectNetwork(modelData.ssid, modelData.profileName, "", modelData.secure)
+                                    }
+                                }
+                            }
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            visible: root.selectedWifiSecure && root.selectedWifiProfile === ""
+                            TextField {
+                                id: wifiPassword
+                                Layout.fillWidth: true
+                                placeholderText: root.selectedWifiSsid ? "输入 " + root.selectedWifiSsid + " 的密码" : "选择需要密码的网络"
+                                echoMode: TextInput.Password
+                                color: themeManager.textPrimary
+                                enabled: root.selectedWifiSsid !== ""
+                                onAccepted: wifiConnectButton.clicked()
+                            }
+                            ControlButton {
+                                id: wifiConnectButton
+                                Layout.preferredWidth: 64
+                                label: "连接"
+                                enabled: wifiPassword.text.length >= 8
+                                onClicked: wifiManager.connectNetwork(root.selectedWifiSsid, "", wifiPassword.text, true)
+                            }
+                        }
                     }
 
                     ColumnLayout {
