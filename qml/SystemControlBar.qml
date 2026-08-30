@@ -98,7 +98,21 @@ Rectangle {
                 ModuleRow { Layout.fillWidth: true; title: "媒体播放器"; enabledValue: root.mediaEnabled; onClicked: root.mediaEnabledRequested(!root.mediaEnabled) }
                 ModuleRow { Layout.fillWidth: true; title: "系统监控 · " + gpuMonitor.adapters.length + " 个 GPU"; enabledValue: root.monitorEnabled; onClicked: root.monitorEnabledRequested(!root.monitorEnabled) }
                 ModuleRow { Layout.fillWidth: true; title: "通知中心"; enabledValue: root.notificationsEnabled; onClicked: root.notificationsEnabledRequested(!root.notificationsEnabled) }
+                Text {
+                    Layout.fillWidth: true
+                    text: "快捷键  Ctrl+Space 展开 · Ctrl+1/2/3 切页 · Ctrl+Q 退出"
+                    wrapMode: Text.WordWrap
+                    color: themeManager.textFaint
+                    font.pixelSize: 9
+                }
                 Rectangle { Layout.fillWidth: true; Layout.preferredHeight: 1; color: themeManager.border }
+                Rectangle {
+                    Layout.fillWidth: true; Layout.preferredHeight: 36; radius: 12
+                    color: resetHover.hovered ? themeManager.surfaceHover : themeManager.overlayStart
+                    Text { anchors.centerIn: parent; text: "恢复默认布局"; color: themeManager.textSecondary; font.pixelSize: 10 }
+                    HoverHandler { id: resetHover }
+                    TapHandler { onTapped: uiSettings.reset() }
+                }
                 Rectangle {
                     Layout.fillWidth: true; Layout.preferredHeight: 40; radius: 12
                     color: exitHover.hovered ? themeManager.dangerSoft : themeManager.overlayStart

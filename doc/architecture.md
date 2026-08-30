@@ -59,8 +59,11 @@ flowchart LR
 | `mediaMonitor` | `MediaMonitor` | 媒体信息和控制命令 |
 | `notificationModel` | `NotificationModel` | 通知列表和列表操作 |
 | `themeManager` | `ThemeManager` | 主题模式和全部界面颜色 |
+| `uiSettings` | `UiSettings` | 展开状态、当前页面和模块开关的持久化 |
 
 界面直接绑定 `Q_PROPERTY`。后端属性变化时发出对应信号，QML 会自动刷新，不需要界面主动轮询。
+
+`UiSettings` 和 `DisplayManager` 使用 `QSettings` 保存用户偏好。QML 只修改这两个应用级对象，避免在多个页面内分别维护易失状态；恢复默认布局时也由 `UiSettings::reset()` 统一触发属性通知。
 
 媒体封面使用 `CoverImageProvider`，通过 `image://cover/current?<version>` 提供给 QML。查询参数中的版本号用于使图片源发生变化，从而刷新缓存。
 
@@ -118,6 +121,7 @@ Main
 └─ Sidebar
    ├─ Timebar
    ├─ StackLayout
+   │  ├─ DashboardPage
    │  ├─ SystemMonitorPanel
    │  │  ├─ SystemMetricGauge × 3
    │  │  ├─ 网络速率卡片
@@ -129,5 +133,5 @@ Main
    └─ SystemControlBar
 ```
 
-`Main` 创建无边框、置顶、工具窗口，并将窗口固定在主屏幕右侧。展开宽度在 360–460 像素之间，折叠后宽度为 8 像素。
+`Main` 创建无边框、置顶、工具窗口，并根据 `DisplayManager` 将窗口固定在用户选择的显示器左侧或右侧。展开宽度会随显示器宽度在 410–440 像素之间调整，折叠后保留 6 像素触发区域。
 

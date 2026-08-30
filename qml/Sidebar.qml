@@ -6,10 +6,10 @@ Item {
     id: root
 
     property bool expanded: false
-    property int currentSection: 0
-    property bool mediaEnabled: true
-    property bool monitorEnabled: true
-    property bool notificationsEnabled: true
+    property int currentSection: uiSettings.currentSection
+    property bool mediaEnabled: uiSettings.mediaEnabled
+    property bool monitorEnabled: uiSettings.monitorEnabled
+    property bool notificationsEnabled: uiSettings.notificationsEnabled
     signal toggleRequested()
 
     Rectangle {
@@ -105,10 +105,10 @@ Item {
             mediaEnabled: root.mediaEnabled
             monitorEnabled: root.monitorEnabled
             notificationsEnabled: root.notificationsEnabled
-            onSectionRequested: index => root.currentSection = index
-            onMediaEnabledRequested: enabled => root.mediaEnabled = enabled
-            onMonitorEnabledRequested: enabled => root.monitorEnabled = enabled
-            onNotificationsEnabledRequested: enabled => root.notificationsEnabled = enabled
+            onSectionRequested: index => uiSettings.currentSection = index
+            onMediaEnabledRequested: enabled => uiSettings.mediaEnabled = enabled
+            onMonitorEnabledRequested: enabled => uiSettings.monitorEnabled = enabled
+            onNotificationsEnabledRequested: enabled => uiSettings.notificationsEnabled = enabled
             onExitRequested: Qt.quit()
         }
     }

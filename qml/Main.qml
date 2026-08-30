@@ -8,7 +8,7 @@ Window {
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
     color: "transparent"
 
-    property bool expanded: true
+    property bool expanded: uiSettings.expanded
     readonly property int expandedWidth: Math.min(440, Math.max(410, displayManager.selectedWidth * 0.225))
     readonly property int collapsedWidth: 6
 
@@ -26,6 +26,12 @@ Window {
     Sidebar {
         anchors.fill: parent
         expanded: root.expanded
-        onToggleRequested: root.expanded = !root.expanded
+        onToggleRequested: uiSettings.expanded = !uiSettings.expanded
     }
+
+    Shortcut { sequence: "Ctrl+Space"; onActivated: uiSettings.expanded = !uiSettings.expanded }
+    Shortcut { sequence: "Ctrl+1"; onActivated: { uiSettings.currentSection = 0; uiSettings.expanded = true } }
+    Shortcut { sequence: "Ctrl+2"; onActivated: { uiSettings.currentSection = 1; uiSettings.expanded = true } }
+    Shortcut { sequence: "Ctrl+3"; onActivated: { uiSettings.currentSection = 2; uiSettings.expanded = true } }
+    Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
 }

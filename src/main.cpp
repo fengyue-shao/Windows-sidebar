@@ -18,6 +18,7 @@
 #include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
 #include "include/thememanager.h"
+#include "include/uisettings.h"
 
 int main(int argc, char *argv[])
 {
@@ -40,6 +41,7 @@ int main(int argc, char *argv[])
     NotificationListener notificationListener;
     MonitorScheduler monitorScheduler;
     ThemeManager themeManager;
+    UiSettings uiSettings;
 
     monitorScheduler.addModule(&cpuMonitor, 1000);
     monitorScheduler.addModule(&memoryMonitor, 1000);
@@ -79,6 +81,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
     engine.rootContext()->setContextProperty("notificationModel", &notificationModel);
     engine.rootContext()->setContextProperty("themeManager", &themeManager);
+    engine.rootContext()->setContextProperty("uiSettings", &uiSettings);
     engine.addImageProvider("cover", coverProvider);
 
     QObject::connect(
