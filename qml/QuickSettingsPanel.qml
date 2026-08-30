@@ -10,7 +10,7 @@ Rectangle {
     property string selectedWifiProfile: ""
     property bool selectedWifiSecure: false
     readonly property int summaryHeight: systemTrayManager.batteryPresent ? 188 : 164
-    readonly property int detailHeight: currentPanel === 0 ? 390 : currentPanel === 1 ? 430 : 286
+    readonly property int detailHeight: currentPanel === 0 ? 390 : (currentPanel === 1 || currentPanel === 4) ? 430 : 286
 
     function selectPanel(index) {
         if (expanded && currentPanel === index) {
@@ -19,6 +19,8 @@ Rectangle {
         }
         currentPanel = index
         expanded = true
+        if (index === 4 && bluetoothManager.devices.length === 0)
+            bluetoothManager.scan()
     }
 
     implicitHeight: summaryHeight + (expanded ? detailHeight + 20 : 0)
@@ -61,6 +63,7 @@ Rectangle {
             Layout.fillWidth: true; spacing: 6
             QuickTile { Layout.fillWidth: true; symbol: "♪"; label: "声音"; selected: root.expanded && root.currentPanel === 0; onClicked: root.selectPanel(0) }
             QuickTile { Layout.fillWidth: true; symbol: "◎"; label: "网络"; selected: root.expanded && root.currentPanel === 1; onClicked: root.selectPanel(1) }
+            QuickTile { Layout.fillWidth: true; symbol: "ᛒ"; label: "蓝牙"; selected: root.expanded && root.currentPanel === 4; onClicked: root.selectPanel(4) }
             QuickTile { Layout.fillWidth: true; symbol: "◐"; label: "外观"; selected: root.expanded && root.currentPanel === 2; onClicked: root.selectPanel(2) }
             QuickTile { Layout.fillWidth: true; symbol: "▣"; label: "侧栏"; selected: root.expanded && root.currentPanel === 3; onClicked: root.selectPanel(3) }
         }
@@ -91,7 +94,7 @@ Rectangle {
                 spacing: 10
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { Layout.fillWidth: true; text: ["声音控制", "网络状态", "界面外观", "侧栏行为"][root.currentPanel]; color: themeManager.textPrimary; font.pixelSize: 15; font.weight: Font.DemiBold }
+                    Text { Layout.fillWidth: true; text: ["声音控制", "Wi-Fi 网络", "界面外观", "侧栏行为", "蓝牙设备"][root.currentPanel]; color: themeManager.textPrimary; font.pixelSize: 15; font.weight: Font.DemiBold }
                     Rectangle {
                         Layout.preferredWidth: 28; Layout.preferredHeight: 28; radius: 9
                         color: collapseHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
@@ -269,6 +272,57 @@ Rectangle {
                         }
                         ControlButton { Layout.fillWidth: true; label: "自动隐藏"; active: uiSettings.autoHide; onClicked: uiSettings.autoHide = !uiSettings.autoHide }
                         Item { Layout.fillHeight: true }
+                    }
+
+                    ColumnLayout {
+                        spacing: 8
+                        RowLayout {
+                            Layout.fillWidth: true
+                            Text { Layout.fillWidth: true; text: bluetoothManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            Rectangle {
+                                Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
+                                color: bluetoothRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
+                                Text { anchors.centerIn: parent; text: bluetoothManager.scanning ? "…" : "↻"; color: themeManager.accent; font.pixelSize: 11 }
+                                HoverHandler { id: bluetoothRefreshHover }
+                                TapHandler { enabled: !bluetoothManager.scanning; onTapped: bluetoothManager.scan() }
+                                ToolTip.visible: bluetoothRefreshHover.hovered
+                                ToolTip.text: "扫描蓝牙设备"
+                            }
+                        }
+                        ListView {
+                            Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 6
+                            model: bluetoothManager.devices
+                            boundsBehavior: Flickable.StopAtBounds
+                            delegate: Rectangle {
+                                required property var modelData
+                                width: ListView.view.width; height: 58; radius: 12
+                                color: modelData.connected ? themeManager.accentSoft : bluetoothHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
+                                border.width: 1; border.color: modelData.connected ? themeManager.accent : themeManager.border
+                                RowLayout {
+                                    anchors.fill: parent; anchors.leftMargin: 10; anchors.rightMargin: 8; spacing: 8
+                                    Rectangle {
+                                        Layout.preferredWidth: 30; Layout.preferredHeight: 30; radius: 9
+                                        color: modelData.connected ? themeManager.accent : themeManager.accentSoft
+                                        Text { anchors.centerIn: parent; text: "ᛒ"; color: modelData.connected ? "white" : themeManager.accent; font.pixelSize: 12; font.weight: Font.Bold }
+                                    }
+                                    ColumnLayout {
+                                        Layout.fillWidth: true; spacing: 2
+                                        Text { Layout.fillWidth: true; text: modelData.name; color: themeManager.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; elide: Text.ElideRight }
+                                        Text { text: modelData.connected ? "已连接" : modelData.paired ? "已配对" : "可配对"; color: modelData.connected ? themeManager.success : themeManager.textMuted; font.pixelSize: 8 }
+                                    }
+                                    Rectangle {
+                                        Layout.preferredWidth: modelData.paired ? 58 : 48; Layout.preferredHeight: 28; radius: 9
+                                        color: bluetoothActionHover.hovered ? (modelData.paired ? themeManager.dangerSoft : themeManager.accentSoft) : themeManager.overlayStart
+                                        Text { anchors.centerIn: parent; text: modelData.paired ? "取消配对" : "配对"; color: modelData.paired ? themeManager.danger : themeManager.accent; font.pixelSize: 8; font.weight: Font.DemiBold }
+                                        HoverHandler { id: bluetoothActionHover }
+                                        TapHandler { onTapped: modelData.paired ? bluetoothManager.unpairDevice(modelData.id) : bluetoothManager.pairDevice(modelData.id) }
+                                    }
+                                }
+                                HoverHandler { id: bluetoothHover }
+                            }
+                            Text { anchors.centerIn: parent; visible: parent.count === 0 && !bluetoothManager.scanning; text: "暂无蓝牙设备"; color: themeManager.textFaint; font.pixelSize: 9 }
+                        }
+                        Text { Layout.fillWidth: true; text: "已配对设备的音频、输入等服务由 Windows 自动连接"; color: themeManager.textFaint; font.pixelSize: 8; wrapMode: Text.WordWrap }
                     }
                 }
             }
