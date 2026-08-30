@@ -6,8 +6,6 @@
 #include <propkeydef.h>
 #include <functiondiscoverykeys_devpkey.h>
 #include <mmdeviceapi.h>
-#include <QDesktopServices>
-#include <QUrl>
 #include <wininet.h>
 
 SystemTrayManager::SystemTrayManager(QObject *parent)
@@ -56,26 +54,6 @@ void SystemTrayManager::toggleMuted()
         return;
     }
     refreshAudio();
-}
-
-void SystemTrayManager::openSoundSettings()
-{
-    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:sound")));
-}
-
-void SystemTrayManager::openNetworkSettings()
-{
-    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:network-status")));
-}
-
-void SystemTrayManager::openBluetoothSettings()
-{
-    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:bluetooth")));
-}
-
-void SystemTrayManager::openDisplaySettings()
-{
-    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:display")));
 }
 
 void SystemTrayManager::refresh()

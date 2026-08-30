@@ -69,7 +69,7 @@ flowchart LR
 
 `FocusTimer` 使用 250 ms 的内部定时器刷新基于绝对截止时间计算的剩余秒数，因此界面刷新延迟不会导致倒计时逐渐漂移。切换页面或收起窗口不会影响计时，完成次数和所选时长通过 `QSettings` 保存。
 
-`SystemTrayManager` 通过 Windows Core Audio 的 `IAudioEndpointVolume` 读写默认播放设备的主音量和设备名称，通过 `GetSystemPowerStatus` 获取电池与充电状态，并通过 WinINet 读取联网状态。声音、网络、蓝牙和显示入口使用 Windows `ms-settings:` 协议打开对应系统页面；状态每秒同步一次，QML 不调用外部命令。
+`SystemTrayManager` 通过 Windows Core Audio 的 `IAudioEndpointVolume` 读写默认播放设备的主音量和设备名称，通过 `GetSystemPowerStatus` 获取电池与充电状态，并通过 WinINet 读取联网状态。`QuickSettingsPanel` 在侧栏内部提供声音、网络、外观和侧栏四个控制页面，不跳转外部设置；状态每秒同步一次，QML 不调用外部命令。
 
 媒体封面使用 `CoverImageProvider`，通过 `image://cover/current?<version>` 提供给 QML。查询参数中的版本号用于使图片源发生变化，从而刷新缓存。
 

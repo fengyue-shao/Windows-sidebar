@@ -65,6 +65,7 @@ Item {
                 mediaEnabled: root.mediaEnabled
                 monitorEnabled: root.monitorEnabled
                 notificationsEnabled: root.notificationsEnabled
+                onPopupVisibilityChanged: visible => root.transientUiOpen = visible
             }
 
             SystemMonitorPanel {

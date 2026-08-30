@@ -30,10 +30,6 @@ public:
 
     Q_INVOKABLE void setVolume(int volume);
     Q_INVOKABLE void toggleMuted();
-    Q_INVOKABLE void openSoundSettings();
-    Q_INVOKABLE void openNetworkSettings();
-    Q_INVOKABLE void openBluetoothSettings();
-    Q_INVOKABLE void openDisplaySettings();
 
 signals:
     void audioChanged();
