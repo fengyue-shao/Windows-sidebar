@@ -70,7 +70,7 @@ flowchart LR
 
 `FocusTimer` 使用 250 ms 的内部定时器刷新基于绝对截止时间计算的剩余秒数，因此界面刷新延迟不会导致倒计时逐渐漂移。切换页面或收起窗口不会影响计时，完成次数和所选时长通过 `QSettings` 保存。
 
-`ClipboardManager` 使用 `Windows.ApplicationModel.DataTransfer.Clipboard` 异步读取系统剪贴板历史，只在页面可见或用户主动刷新时访问。当前界面最多展示 24 条文本项目；图片和其他格式不会载入。访问被拒绝或系统历史关闭时，状态会直接反馈到 QML。
+`ClipboardManager` 使用 `Windows.ApplicationModel.DataTransfer.Clipboard` 异步读取系统剪贴板历史，只在页面可见或用户主动刷新时访问。当前界面最多展示 24 条文本、图片或文件项目；图片被缩放并编码为 PNG 数据 URL 供 QML 预览，点击条目时则通过 `SetHistoryItemAsContent` 恢复原始内容。微软未公开系统历史固定接口，因此应用内置顶只保存历史项 ID、调整本应用中的排序，不冒充 Windows 原生固定。访问被拒绝或系统历史关闭时，状态会直接反馈到 QML。
 
 `SystemTrayManager` 通过 Windows Core Audio 的 `IAudioEndpointVolume` 读写默认播放设备的主音量和设备名称，并使用 `IAudioSessionManager2` 枚举应用音频会话。每个会话通过 `ISimpleAudioVolume` 独立控制音量和静音；显示名称为空时回退到进程可执行文件名。它还通过 `GetSystemPowerStatus` 获取电池与充电状态，并通过 WinINet 读取联网状态。`QuickSettingsPanel` 采用内联扩张布局提供声音、网络、外观和侧栏四个控制页面：展开时增加自身高度并推动周围内容，不创建独立 Popup 或覆盖层；状态每秒同步一次，QML 不调用外部命令。
 

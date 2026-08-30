@@ -1,47 +1,97 @@
 #include "include/clipboardmanager.h"
 
-#include <QClipboard>
+#include <QBuffer>
 #include <QGuiApplication>
+#include <QImage>
 #include <QMetaObject>
 #include <QPointer>
 #include <QVariantMap>
+#include <QSettings>
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
 #include <winrt/Windows.Foundation.h>
 #include <winrt/Windows.Foundation.Collections.h>
+#include <winrt/Windows.Storage.h>
+#include <winrt/Windows.Storage.Streams.h>
 
 using namespace winrt;
 using namespace Windows::ApplicationModel::DataTransfer;
 
 namespace {
-fire_and_forget loadHistory(QPointer<ClipboardManager> manager)
+fire_and_forget loadHistory(QPointer<ClipboardManager> manager, const QStringList pinnedIds)
 {
     QVariantList items;
     QString statusText;
     try {
         const auto result = co_await Clipboard::GetHistoryItemsAsync();
         switch (result.Status()) {
-        case ClipboardHistoryItemsResultStatus::Success:
+        case ClipboardHistoryItemsResultStatus::Success: {
+            QVariantList regularItems;
+            QVariantList pinnedItems;
             for (const auto &historyItem : result.Items()) {
                 const auto content = historyItem.Content();
-                if (!content.Contains(StandardDataFormats::Text()))
-                    continue;
-                QString text = QString::fromStdWString((co_await content.GetTextAsync()).c_str());
-                text.replace(QLatin1Char('\r'), QLatin1Char(' '));
-                text.replace(QLatin1Char('\n'), QLatin1Char(' '));
-                text = text.simplified();
-                if (text.isEmpty())
-                    continue;
                 QVariantMap entry;
-                entry.insert(QStringLiteral("id"), QString::fromStdWString(historyItem.Id().c_str()));
-                entry.insert(QStringLiteral("text"), text);
-                entry.insert(QStringLiteral("preview"), text.left(240));
-                items.append(entry);
-                if (items.size() >= 24)
+                const QString id = QString::fromStdWString(historyItem.Id().c_str());
+                entry.insert(QStringLiteral("id"), id);
+                entry.insert(QStringLiteral("pinned"), pinnedIds.contains(id));
+
+                if (content.Contains(StandardDataFormats::Text())) {
+                    QString text = QString::fromStdWString((co_await content.GetTextAsync()).c_str());
+                    text.replace(QLatin1Char('\r'), QLatin1Char(' '));
+                    text.replace(QLatin1Char('\n'), QLatin1Char(' '));
+                    text = text.simplified();
+                    if (text.isEmpty())
+                        continue;
+                    entry.insert(QStringLiteral("type"), QStringLiteral("text"));
+                    entry.insert(QStringLiteral("preview"), text.left(240));
+                    entry.insert(QStringLiteral("detail"), QStringLiteral("文本"));
+                } else if (content.Contains(StandardDataFormats::Bitmap())) {
+                    const auto reference = co_await content.GetBitmapAsync();
+                    const auto stream = co_await reference.OpenReadAsync();
+                    if (stream.Size() > 12 * 1024 * 1024)
+                        continue;
+                    Windows::Storage::Streams::DataReader reader(stream);
+                    const auto byteCount = co_await reader.LoadAsync(static_cast<uint32_t>(stream.Size()));
+                    std::vector<uint8_t> bytes(byteCount);
+                    reader.ReadBytes(bytes);
+                    QImage image = QImage::fromData(bytes.data(), static_cast<int>(bytes.size()));
+                    if (image.isNull())
+                        continue;
+                    image = image.scaled(360, 180, Qt::KeepAspectRatio, Qt::SmoothTransformation);
+                    QByteArray png;
+                    QBuffer buffer(&png);
+                    buffer.open(QIODevice::WriteOnly);
+                    image.save(&buffer, "PNG");
+                    entry.insert(QStringLiteral("type"), QStringLiteral("image"));
+                    entry.insert(QStringLiteral("preview"), QStringLiteral("图片 %1 × %2").arg(image.width()).arg(image.height()));
+                    entry.insert(QStringLiteral("detail"), QStringLiteral("图片"));
+                    entry.insert(QStringLiteral("imageSource"), QStringLiteral("data:image/png;base64,") + QString::fromLatin1(png.toBase64()));
+                } else if (content.Contains(StandardDataFormats::StorageItems())) {
+                    const auto storageItems = co_await content.GetStorageItemsAsync();
+                    QStringList names;
+                    for (const auto &storageItem : storageItems)
+                        names.append(QString::fromStdWString(storageItem.Name().c_str()));
+                    if (names.isEmpty())
+                        continue;
+                    entry.insert(QStringLiteral("type"), QStringLiteral("files"));
+                    entry.insert(QStringLiteral("preview"), names.mid(0, 4).join(QStringLiteral(" · ")));
+                    entry.insert(QStringLiteral("detail"), QStringLiteral("%1 个文件或文件夹").arg(names.size()));
+                } else {
+                    continue;
+                }
+
+                if (entry.value(QStringLiteral("pinned")).toBool())
+                    pinnedItems.append(entry);
+                else
+                    regularItems.append(entry);
+                if (pinnedItems.size() + regularItems.size() >= 24)
                     break;
             }
-            statusText = items.isEmpty() ? QStringLiteral("历史中没有可显示的文本")
+            items = pinnedItems;
+            items.append(regularItems);
+            statusText = items.isEmpty() ? QStringLiteral("历史中没有可预览的内容")
                                          : QStringLiteral("来自 Windows 剪贴板历史");
             break;
+        }
         case ClipboardHistoryItemsResultStatus::AccessDenied:
             statusText = QStringLiteral("Windows 拒绝访问剪贴板历史");
             break;
@@ -60,11 +110,38 @@ fire_and_forget loadHistory(QPointer<ClipboardManager> manager)
             manager->applyHistory(items, statusText);
     }, Qt::QueuedConnection);
 }
+
+fire_and_forget activateHistoryItem(QPointer<ClipboardManager> manager, const QString itemId)
+{
+    QString statusText = QStringLiteral("历史项目已恢复到剪贴板");
+    try {
+        const auto result = co_await Clipboard::GetHistoryItemsAsync();
+        bool found = false;
+        if (result.Status() == ClipboardHistoryItemsResultStatus::Success) {
+            for (const auto &historyItem : result.Items()) {
+                if (QString::fromStdWString(historyItem.Id().c_str()) == itemId) {
+                    Clipboard::SetHistoryItemAsContent(historyItem);
+                    found = true;
+                    break;
+                }
+            }
+        }
+        if (!found)
+            statusText = QStringLiteral("该历史项目已不可用");
+    } catch (const hresult_error &error) {
+        statusText = QStringLiteral("恢复失败：") + QString::fromStdWString(error.message().c_str());
+    }
+    QMetaObject::invokeMethod(qGuiApp, [manager, statusText] {
+        if (manager)
+            manager->applyHistory(manager->items(), statusText);
+    }, Qt::QueuedConnection);
+}
 }
 
 ClipboardManager::ClipboardManager(QObject *parent)
     : QObject(parent)
 {
+    m_pinnedIds = QSettings().value(QStringLiteral("clipboard/pinnedIds")).toStringList();
 }
 
 QVariantList ClipboardManager::items() const { return m_items; }
@@ -77,14 +154,25 @@ void ClipboardManager::refresh()
         return;
     m_loading = true;
     emit loadingChanged();
-    loadHistory(this);
+    loadHistory(this, m_pinnedIds);
 }
 
-void ClipboardManager::copyText(const QString &text)
+void ClipboardManager::activateItem(const QString &itemId)
 {
-    qGuiApp->clipboard()->setText(text);
-    m_statusText = QStringLiteral("已复制到剪贴板");
+    activateHistoryItem(this, itemId);
+}
+
+void ClipboardManager::togglePinned(const QString &itemId)
+{
+    if (m_pinnedIds.contains(itemId))
+        m_pinnedIds.removeAll(itemId);
+    else
+        m_pinnedIds.prepend(itemId);
+    QSettings().setValue(QStringLiteral("clipboard/pinnedIds"), m_pinnedIds);
+    m_statusText = m_pinnedIds.contains(itemId) ? QStringLiteral("已在应用内置顶")
+                                                : QStringLiteral("已取消应用内置顶");
     emit statusChanged();
+    refresh();
 }
 
 void ClipboardManager::clearHistory()
@@ -92,7 +180,9 @@ void ClipboardManager::clearHistory()
     try {
         if (Clipboard::ClearHistory()) {
             m_items.clear();
-            m_statusText = QStringLiteral("历史已清空，固定项目会保留");
+            m_pinnedIds.clear();
+            QSettings().remove(QStringLiteral("clipboard/pinnedIds"));
+            m_statusText = QStringLiteral("历史已清空，Windows 系统固定项目会保留");
             emit itemsChanged();
             emit statusChanged();
         }
@@ -100,6 +190,11 @@ void ClipboardManager::clearHistory()
         m_statusText = QStringLiteral("清空失败：") + QString::fromStdWString(error.message().c_str());
         emit statusChanged();
     }
+}
+
+QStringList ClipboardManager::pinnedIds() const
+{
+    return m_pinnedIds;
 }
 
 void ClipboardManager::applyHistory(const QVariantList &items, const QString &statusText)

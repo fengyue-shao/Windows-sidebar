@@ -38,24 +38,47 @@ Item {
             delegate: Rectangle {
                 required property var modelData
                 width: ListView.view.width
-                height: Math.max(66, previewText.implicitHeight + 30)
+                height: modelData.type === "image" ? 174 : Math.max(76, previewText.implicitHeight + 42)
                 radius: 15
                 color: itemHover.hovered ? themeManager.surfaceHover : themeManager.surface
                 border.width: 1
                 border.color: itemHover.hovered ? themeManager.accent : themeManager.border
 
-                RowLayout {
+                ColumnLayout {
                     anchors.fill: parent
                     anchors.margins: 12
-                    spacing: 10
-                    Rectangle {
-                        Layout.preferredWidth: 28; Layout.preferredHeight: 28; radius: 9
-                        color: themeManager.accentSoft
-                        Text { anchors.centerIn: parent; text: "T"; color: themeManager.accent; font.pixelSize: 10; font.weight: Font.Bold }
+                    spacing: 7
+                    RowLayout {
+                        Layout.fillWidth: true
+                        spacing: 8
+                        Rectangle {
+                            Layout.preferredWidth: 26; Layout.preferredHeight: 26; radius: 8
+                            color: themeManager.accentSoft
+                            Text { anchors.centerIn: parent; text: modelData.type === "image" ? "▧" : modelData.type === "files" ? "▤" : "T"; color: themeManager.accent; font.pixelSize: 10; font.weight: Font.Bold }
+                        }
+                        Text { Layout.fillWidth: true; text: modelData.detail; color: themeManager.textMuted; font.pixelSize: 9 }
+                        Rectangle {
+                            Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
+                            color: modelData.pinned ? themeManager.accentSoft : pinHover.hovered ? themeManager.surfaceStrong : themeManager.overlayStart
+                            Text { anchors.centerIn: parent; text: modelData.pinned ? "◆" : "◇"; color: modelData.pinned ? themeManager.accent : themeManager.textMuted; font.pixelSize: 11 }
+                            HoverHandler { id: pinHover }
+                            TapHandler { onTapped: clipboardManager.togglePinned(modelData.id) }
+                            ToolTip.visible: pinHover.hovered
+                            ToolTip.text: modelData.pinned ? "取消应用内置顶" : "应用内置顶"
+                        }
+                    }
+                    Image {
+                        Layout.fillWidth: true
+                        Layout.fillHeight: true
+                        visible: modelData.type === "image"
+                        source: modelData.imageSource || ""
+                        fillMode: Image.PreserveAspectFit
+                        asynchronous: true
                     }
                     Text {
                         id: previewText
                         Layout.fillWidth: true
+                        visible: modelData.type !== "image"
                         text: modelData.preview
                         color: themeManager.textPrimary
                         font.pixelSize: 10
@@ -63,16 +86,15 @@ Item {
                         maximumLineCount: 4
                         elide: Text.ElideRight
                     }
-                    Text { text: "复制"; color: themeManager.accent; font.pixelSize: 9; font.weight: Font.DemiBold }
                 }
                 HoverHandler { id: itemHover }
-                TapHandler { onTapped: clipboardManager.copyText(modelData.text) }
+                TapHandler { onTapped: clipboardManager.activateItem(modelData.id) }
             }
 
             Text {
                 anchors.centerIn: parent
                 visible: parent.count === 0 && !clipboardManager.loading
-                text: "暂无文本历史"
+                text: "暂无可预览的历史"
                 color: themeManager.textFaint
                 font.pixelSize: 11
             }

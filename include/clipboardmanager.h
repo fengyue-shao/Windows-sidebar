@@ -18,10 +18,12 @@ public:
     bool loading() const;
 
     Q_INVOKABLE void refresh();
-    Q_INVOKABLE void copyText(const QString &text);
+    Q_INVOKABLE void activateItem(const QString &itemId);
+    Q_INVOKABLE void togglePinned(const QString &itemId);
     Q_INVOKABLE void clearHistory();
 
     void applyHistory(const QVariantList &items, const QString &statusText);
+    QStringList pinnedIds() const;
 
 signals:
     void itemsChanged();
@@ -32,4 +34,5 @@ private:
     QVariantList m_items;
     QString m_statusText = QStringLiteral("打开页面后读取 Windows 剪贴板历史");
     bool m_loading = false;
+    QStringList m_pinnedIds;
 };
