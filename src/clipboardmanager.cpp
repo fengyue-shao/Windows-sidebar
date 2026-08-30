@@ -34,16 +34,18 @@ fire_and_forget loadHistory(QPointer<ClipboardManager> manager, const QStringLis
                 entry.insert(QStringLiteral("id"), id);
                 entry.insert(QStringLiteral("pinned"), pinnedIds.contains(id));
 
-                if (content.Contains(StandardDataFormats::Text())) {
-                    QString text = QString::fromStdWString((co_await content.GetTextAsync()).c_str());
-                    text.replace(QLatin1Char('\r'), QLatin1Char(' '));
-                    text.replace(QLatin1Char('\n'), QLatin1Char(' '));
-                    text = text.simplified();
-                    if (text.isEmpty())
+                // Explorer file copies can also expose a text representation. Prefer
+                // the richer formats so they are not flattened into a path string.
+                if (content.Contains(StandardDataFormats::StorageItems())) {
+                    const auto storageItems = co_await content.GetStorageItemsAsync();
+                    QStringList names;
+                    for (const auto &storageItem : storageItems)
+                        names.append(QString::fromStdWString(storageItem.Name().c_str()));
+                    if (names.isEmpty())
                         continue;
-                    entry.insert(QStringLiteral("type"), QStringLiteral("text"));
-                    entry.insert(QStringLiteral("preview"), text.left(240));
-                    entry.insert(QStringLiteral("detail"), QStringLiteral("文本"));
+                    entry.insert(QStringLiteral("type"), QStringLiteral("files"));
+                    entry.insert(QStringLiteral("preview"), names.mid(0, 4).join(QStringLiteral(" · ")));
+                    entry.insert(QStringLiteral("detail"), QStringLiteral("%1 个文件或文件夹").arg(names.size()));
                 } else if (content.Contains(StandardDataFormats::Bitmap())) {
                     const auto reference = co_await content.GetBitmapAsync();
                     const auto stream = co_await reference.OpenReadAsync();
@@ -65,16 +67,16 @@ fire_and_forget loadHistory(QPointer<ClipboardManager> manager, const QStringLis
                     entry.insert(QStringLiteral("preview"), QStringLiteral("图片 %1 × %2").arg(image.width()).arg(image.height()));
                     entry.insert(QStringLiteral("detail"), QStringLiteral("图片"));
                     entry.insert(QStringLiteral("imageSource"), QStringLiteral("data:image/png;base64,") + QString::fromLatin1(png.toBase64()));
-                } else if (content.Contains(StandardDataFormats::StorageItems())) {
-                    const auto storageItems = co_await content.GetStorageItemsAsync();
-                    QStringList names;
-                    for (const auto &storageItem : storageItems)
-                        names.append(QString::fromStdWString(storageItem.Name().c_str()));
-                    if (names.isEmpty())
+                } else if (content.Contains(StandardDataFormats::Text())) {
+                    QString text = QString::fromStdWString((co_await content.GetTextAsync()).c_str());
+                    text.replace(QLatin1Char('\r'), QLatin1Char(' '));
+                    text.replace(QLatin1Char('\n'), QLatin1Char(' '));
+                    text = text.simplified();
+                    if (text.isEmpty())
                         continue;
-                    entry.insert(QStringLiteral("type"), QStringLiteral("files"));
-                    entry.insert(QStringLiteral("preview"), names.mid(0, 4).join(QStringLiteral(" · ")));
-                    entry.insert(QStringLiteral("detail"), QStringLiteral("%1 个文件或文件夹").arg(names.size()));
+                    entry.insert(QStringLiteral("type"), QStringLiteral("text"));
+                    entry.insert(QStringLiteral("preview"), text.left(240));
+                    entry.insert(QStringLiteral("detail"), QStringLiteral("文本"));
                 } else {
                     continue;
                 }
@@ -136,6 +138,31 @@ fire_and_forget activateHistoryItem(QPointer<ClipboardManager> manager, const QS
             manager->applyHistory(manager->items(), statusText);
     }, Qt::QueuedConnection);
 }
+
+fire_and_forget deleteHistoryItem(QPointer<ClipboardManager> manager, const QString itemId)
+{
+    bool deleted = false;
+    QString statusText;
+    try {
+        const auto result = co_await Clipboard::GetHistoryItemsAsync();
+        if (result.Status() == ClipboardHistoryItemsResultStatus::Success) {
+            for (const auto &historyItem : result.Items()) {
+                if (QString::fromStdWString(historyItem.Id().c_str()) == itemId) {
+                    deleted = Clipboard::DeleteItemFromHistory(historyItem);
+                    break;
+                }
+            }
+        }
+        statusText = deleted ? QStringLiteral("已删除这条剪贴板历史")
+                             : QStringLiteral("该历史项目已不存在或无法删除");
+    } catch (const hresult_error &error) {
+        statusText = QStringLiteral("删除失败：") + QString::fromStdWString(error.message().c_str());
+    }
+    QMetaObject::invokeMethod(qGuiApp, [manager, itemId, deleted, statusText] {
+        if (manager)
+            manager->applyDeleteResult(itemId, deleted, statusText);
+    }, Qt::QueuedConnection);
+}
 }
 
 ClipboardManager::ClipboardManager(QObject *parent)
@@ -175,6 +202,11 @@ void ClipboardManager::togglePinned(const QString &itemId)
     refresh();
 }
 
+void ClipboardManager::deleteItem(const QString &itemId)
+{
+    deleteHistoryItem(this, itemId);
+}
+
 void ClipboardManager::clearHistory()
 {
     try {
@@ -195,6 +227,23 @@ void ClipboardManager::clearHistory()
 QStringList ClipboardManager::pinnedIds() const
 {
     return m_pinnedIds;
+}
+
+void ClipboardManager::applyDeleteResult(const QString &itemId, bool deleted, const QString &statusText)
+{
+    if (deleted) {
+        m_pinnedIds.removeAll(itemId);
+        QSettings().setValue(QStringLiteral("clipboard/pinnedIds"), m_pinnedIds);
+        for (qsizetype index = m_items.size() - 1; index >= 0; --index) {
+            if (m_items.at(index).toMap().value(QStringLiteral("id")).toString() == itemId)
+                m_items.removeAt(index);
+        }
+        emit itemsChanged();
+    }
+    if (m_statusText != statusText) {
+        m_statusText = statusText;
+        emit statusChanged();
+    }
 }
 
 void ClipboardManager::applyHistory(const QVariantList &items, const QString &statusText)

@@ -20,9 +20,11 @@ public:
     Q_INVOKABLE void refresh();
     Q_INVOKABLE void activateItem(const QString &itemId);
     Q_INVOKABLE void togglePinned(const QString &itemId);
+    Q_INVOKABLE void deleteItem(const QString &itemId);
     Q_INVOKABLE void clearHistory();
 
     void applyHistory(const QVariantList &items, const QString &statusText);
+    void applyDeleteResult(const QString &itemId, bool deleted, const QString &statusText);
     QStringList pinnedIds() const;
 
 signals:

@@ -66,6 +66,18 @@ Item {
                             ToolTip.visible: pinHover.hovered
                             ToolTip.text: modelData.pinned ? "取消应用内置顶" : "应用内置顶"
                         }
+                        Rectangle {
+                            Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
+                            color: deleteHover.hovered ? themeManager.dangerSoft : themeManager.overlayStart
+                            Text { anchors.centerIn: parent; text: "×"; color: themeManager.danger; font.pixelSize: 14 }
+                            HoverHandler { id: deleteHover }
+                            TapHandler {
+                                grabPermissions: PointerHandler.CanTakeOverFromAnything
+                                onTapped: clipboardManager.deleteItem(modelData.id)
+                            }
+                            ToolTip.visible: deleteHover.hovered
+                            ToolTip.text: "删除这一项"
+                        }
                     }
                     Image {
                         Layout.fillWidth: true
