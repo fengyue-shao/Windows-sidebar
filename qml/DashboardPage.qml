@@ -8,7 +8,6 @@ Item {
     property bool mediaEnabled: true
     property bool monitorEnabled: true
     property bool notificationsEnabled: true
-    signal popupVisibilityChanged(bool visible)
 
     ColumnLayout {
         anchors.fill: parent
@@ -22,7 +21,6 @@ Item {
 
         QuickSettingsPanel {
             Layout.fillWidth: true
-            onPopupVisibilityChanged: visible => root.popupVisibilityChanged(visible)
         }
 
         ColumnLayout {
