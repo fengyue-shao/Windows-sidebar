@@ -61,12 +61,15 @@ flowchart LR
 | `themeManager` | `ThemeManager` | 主题模式和全部界面颜色 |
 | `uiSettings` | `UiSettings` | 展开状态、当前页面和模块开关的持久化 |
 | `focusTimer` | `FocusTimer` | 专注倒计时、预设时长与完成次数统计 |
+| `systemTrayManager` | `SystemTrayManager` | Windows 主音量、静音和电池供电状态 |
 
 界面直接绑定 `Q_PROPERTY`。后端属性变化时发出对应信号，QML 会自动刷新，不需要界面主动轮询。
 
 `UiSettings` 和 `DisplayManager` 使用 `QSettings` 保存用户偏好。QML 只修改这两个应用级对象，避免在多个页面内分别维护易失状态；恢复默认布局时也由 `UiSettings::reset()` 统一触发属性通知。
 
 `FocusTimer` 使用 250 ms 的内部定时器刷新基于绝对截止时间计算的剩余秒数，因此界面刷新延迟不会导致倒计时逐渐漂移。切换页面或收起窗口不会影响计时，完成次数和所选时长通过 `QSettings` 保存。
+
+`SystemTrayManager` 通过 Windows Core Audio 的 `IAudioEndpointVolume` 读写默认播放设备的主音量，并通过 `GetSystemPowerStatus` 获取电池和充电状态。它每秒同步一次外部变化，QML 不调用外部命令。
 
 媒体封面使用 `CoverImageProvider`，通过 `image://cover/current?<version>` 提供给 QML。查询参数中的版本号用于使图片源发生变化，从而刷新缓存。
 

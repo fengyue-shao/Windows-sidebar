@@ -19,6 +19,10 @@ Item {
             moduleEnabled: root.mediaEnabled
         }
 
+        QuickSettingsPanel {
+            Layout.fillWidth: true
+        }
+
         ColumnLayout {
             Layout.fillWidth: true
             spacing: 10

@@ -11,13 +11,14 @@ Item {
     property bool monitorEnabled: uiSettings.monitorEnabled
     property bool notificationsEnabled: uiSettings.notificationsEnabled
     property bool compactMode: uiSettings.compactMode
+    property bool transientUiOpen: false
     signal toggleRequested()
 
     HoverHandler { id: sidebarHover }
 
     Timer {
         interval: 900
-        running: uiSettings.autoHide && root.expanded && !sidebarHover.hovered
+        running: uiSettings.autoHide && root.expanded && !sidebarHover.hovered && !root.transientUiOpen
         onTriggered: uiSettings.expanded = false
     }
 
@@ -47,7 +48,11 @@ Item {
         spacing: root.compactMode ? 8 : 14
         visible: root.expanded
 
-        Timebar { Layout.fillWidth: true; Layout.preferredHeight: root.compactMode ? 52 : 64 }
+        Timebar {
+            Layout.fillWidth: true
+            Layout.preferredHeight: root.compactMode ? 52 : 64
+            onPopupVisibilityChanged: visible => root.transientUiOpen = visible
+        }
 
         StackLayout {
             Layout.fillWidth: true
@@ -125,6 +130,7 @@ Item {
             onMediaEnabledRequested: enabled => uiSettings.mediaEnabled = enabled
             onMonitorEnabledRequested: enabled => uiSettings.monitorEnabled = enabled
             onNotificationsEnabledRequested: enabled => uiSettings.notificationsEnabled = enabled
+            onPopupVisibilityChanged: visible => root.transientUiOpen = visible
             onExitRequested: Qt.quit()
         }
     }

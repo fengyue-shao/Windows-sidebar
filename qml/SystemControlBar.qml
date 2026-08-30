@@ -12,6 +12,7 @@ Rectangle {
     signal mediaEnabledRequested(bool enabled)
     signal monitorEnabledRequested(bool enabled)
     signal notificationsEnabledRequested(bool enabled)
+    signal popupVisibilityChanged(bool visible)
     signal exitRequested()
 
     implicitHeight: 54
@@ -44,6 +45,7 @@ Rectangle {
 
     Popup {
         id: settingsPopup
+        onVisibleChanged: root.popupVisibilityChanged(visible)
         x: root.width - width
         y: -height - 8
         width: root.width

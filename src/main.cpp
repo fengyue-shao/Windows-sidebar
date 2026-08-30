@@ -18,6 +18,7 @@
 #include "include/networkmonitor.h"
 #include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
+#include "include/systemtraymanager.h"
 #include "include/thememanager.h"
 #include "include/uisettings.h"
 
@@ -41,6 +42,7 @@ int main(int argc, char *argv[])
     MediaMonitor mediaMonitor;
     NotificationModel notificationModel;
     NotificationListener notificationListener;
+    SystemTrayManager systemTrayManager;
     MonitorScheduler monitorScheduler;
     ThemeManager themeManager;
     UiSettings uiSettings;
@@ -83,6 +85,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
     engine.rootContext()->setContextProperty("notificationModel", &notificationModel);
+    engine.rootContext()->setContextProperty("systemTrayManager", &systemTrayManager);
     engine.rootContext()->setContextProperty("themeManager", &themeManager);
     engine.rootContext()->setContextProperty("uiSettings", &uiSettings);
     engine.addImageProvider("cover", coverProvider);
