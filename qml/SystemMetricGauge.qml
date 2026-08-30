@@ -6,10 +6,11 @@ Rectangle {
 
     property string label
     property string value
+    property string detail: ""
     property real progress: 0
     property color accent: themeManager.accent
 
-    radius: 16
+    radius: 18
     color: themeManager.surface
     border.width: 1
     border.color: themeManager.border
@@ -17,7 +18,7 @@ Rectangle {
     Canvas {
         id: gauge
         anchors.centerIn: parent
-        width: Math.min(parent.width - 18, parent.height - 18)
+        width: Math.min(parent.width - 22, parent.height - 22)
         height: width
 
         onPaint: {
@@ -54,6 +55,7 @@ Rectangle {
 
     Column {
         anchors.centerIn: parent
+        width: parent.width - 14
         spacing: 1
 
         Text {
@@ -64,10 +66,12 @@ Rectangle {
             font.weight: Font.DemiBold
         }
         Text {
-            anchors.horizontalCenter: parent.horizontalCenter
-            text: root.label
+            width: parent.width
+            horizontalAlignment: Text.AlignHCenter
+            text: root.detail.length > 0 ? root.label + " · " + root.detail : root.label
             color: themeManager.textMuted
-            font.pixelSize: 10
+            font.pixelSize: root.detail.length > 0 ? 8 : 10
+            elide: Text.ElideRight
         }
     }
 }

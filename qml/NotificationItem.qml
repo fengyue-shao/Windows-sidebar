@@ -18,7 +18,7 @@ Item {
     signal markUnreadRequested()
     signal clicked()
 
-    implicitHeight: content.length > 0 ? 94 : 76
+    implicitHeight: content.length > 0 ? 96 : 80
 
     HoverHandler { id: hover }
     TapHandler {
@@ -32,7 +32,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        radius: 13
+        radius: 17
         color: hover.hovered ? themeManager.surfaceHover
                              : root.unread ? themeManager.surfaceStrong : themeManager.surface
         border.width: 1
@@ -50,11 +50,11 @@ Item {
 
         RowLayout {
             anchors.fill: parent
-            anchors.leftMargin: 12
-            anchors.rightMargin: 10
-            anchors.topMargin: 10
-            anchors.bottomMargin: 10
-            spacing: 11
+            anchors.leftMargin: 14
+            anchors.rightMargin: 12
+            anchors.topMargin: 12
+            anchors.bottomMargin: 12
+            spacing: 12
 
             Rectangle {
                 Layout.preferredWidth: 38

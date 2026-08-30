@@ -6,6 +6,7 @@
 class NotificationModel : public QAbstractListModel
 {
     Q_OBJECT
+    Q_PROPERTY(int unreadCount READ unreadCount NOTIFY unreadCountChanged)
 public:
     explicit NotificationModel(QObject *parent=nullptr);
     enum NotificationRoles{
@@ -31,12 +32,13 @@ public:
     Q_INVOKABLE void markAsRead(int row);
     Q_INVOKABLE void markAsUnread(int row);
     Q_INVOKABLE void markAllAsRead();
-    Q_INVOKABLE int unreadCount()const;
+    int unreadCount()const;
     bool contains(const QString &id)const;
 
 signals:
     void removalRequested(const QString &id);
     void clearRequested();
+    void unreadCountChanged();
 
 private:
     QVector<Notification>m_notifications;

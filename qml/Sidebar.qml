@@ -7,6 +7,9 @@ Item {
 
     property bool expanded: false
     property int currentSection: 0
+    property bool mediaEnabled: true
+    property bool monitorEnabled: true
+    property bool notificationsEnabled: true
     signal toggleRequested()
 
     Rectangle {
@@ -26,21 +29,33 @@ Item {
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.leftMargin: 28
-        anchors.rightMargin: 18
-        anchors.topMargin: 16
-        anchors.bottomMargin: 14
-        spacing: 13
+        anchors.leftMargin: 24
+        anchors.rightMargin: 24
+        anchors.topMargin: 18
+        anchors.bottomMargin: 16
+        spacing: 14
         visible: root.expanded
 
-        Timebar { Layout.fillWidth: true; Layout.preferredHeight: 58 }
+        Timebar { Layout.fillWidth: true; Layout.preferredHeight: 64 }
 
         StackLayout {
             Layout.fillWidth: true
             Layout.fillHeight: true
             currentIndex: root.currentSection
 
-            SystemMonitorPanel { Layout.fillWidth: true; Layout.fillHeight: true }
+            DashboardPage {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                mediaEnabled: root.mediaEnabled
+                monitorEnabled: root.monitorEnabled
+                notificationsEnabled: root.notificationsEnabled
+            }
+
+            SystemMonitorPanel {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+                visible: root.monitorEnabled
+            }
 
             Item {
                 Layout.fillWidth: true
@@ -69,12 +84,14 @@ Item {
 
                     MediaBar {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: visible ? 138 : 0
+                        Layout.preferredHeight: visible ? 152 : 0
+                        moduleEnabled: root.mediaEnabled
                     }
 
                     NotificationArea {
                         Layout.fillWidth: true
                         Layout.fillHeight: true
+                        visible: root.notificationsEnabled
                         model: notificationModel
                     }
                 }
@@ -83,21 +100,28 @@ Item {
 
         SystemControlBar {
             Layout.fillWidth: true
-            Layout.preferredHeight: 58
+            Layout.preferredHeight: 54
             currentIndex: root.currentSection
+            mediaEnabled: root.mediaEnabled
+            monitorEnabled: root.monitorEnabled
+            notificationsEnabled: root.notificationsEnabled
             onSectionRequested: index => root.currentSection = index
+            onMediaEnabledRequested: enabled => root.mediaEnabled = enabled
+            onMonitorEnabledRequested: enabled => root.monitorEnabled = enabled
+            onNotificationsEnabledRequested: enabled => root.notificationsEnabled = enabled
             onExitRequested: Qt.quit()
         }
     }
 
     Rectangle {
-        anchors.left: parent.left
+        anchors.left: displayManager.dockSide === 1 ? parent.left : undefined
+        anchors.right: displayManager.dockSide === 0 ? parent.right : undefined
         anchors.verticalCenter: parent.verticalCenter
-        width: root.expanded ? 22 : 8
-        height: 72
-        radius: 11
+        width: root.expanded ? 12 : 6
+        height: root.expanded ? 40 : 52
+        radius: width / 2
         color: toggleHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
-        Text { anchors.centerIn: parent; visible: root.expanded; text: "‹"; color: themeManager.textPrimary; font.pixelSize: 22 }
+        Text { anchors.centerIn: parent; visible: root.expanded; text: displayManager.dockSide === 1 ? "‹" : "›"; color: themeManager.textSecondary; font.pixelSize: 14 }
         HoverHandler { id: toggleHover }
         TapHandler { onTapped: root.toggleRequested() }
         Behavior on color { ColorAnimation { duration: 120 } }

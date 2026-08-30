@@ -6,7 +6,8 @@ Item {
     id: root
 
     readonly property bool hasMedia: mediaMonitor.title.length > 0
-    visible: hasMedia
+    property bool moduleEnabled: true
+    visible: moduleEnabled && hasMedia
 
     Rectangle {
         anchors.fill: parent
@@ -25,8 +26,8 @@ Item {
 
         RowLayout {
             anchors.fill: parent
-            anchors.margins: 13
-            spacing: 14
+            anchors.margins: 15
+            spacing: 16
 
             Rectangle {
                 id: coverFrame
@@ -36,11 +37,11 @@ Item {
                                                      ? coverImage.sourceSize.width / coverImage.sourceSize.height
                                                      : 1.0
                 readonly property real fittedWidth: sourceAspect >= 1.0
-                                                    ? Math.min(148, 106 * sourceAspect)
-                                                    : Math.max(70, 106 * sourceAspect)
+                                                    ? Math.min(154, 120 * sourceAspect)
+                                                    : Math.max(78, 120 * sourceAspect)
                 readonly property real fittedHeight: sourceAspect >= 1.0
                                                      ? fittedWidth / sourceAspect
-                                                     : 106
+                                                     : 120
 
                 Layout.preferredWidth: fittedWidth
                 Layout.preferredHeight: fittedHeight
@@ -60,6 +61,7 @@ Item {
                     id: coverImage
                     anchors.fill: parent
                     source: "image://cover/current?" + mediaMonitor.coverVersion
+                    cache: false
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true
                 }
@@ -122,10 +124,10 @@ Item {
 
                 MediaMarquee {
                     Layout.fillWidth: true
-                    Layout.preferredHeight: 21
+                    Layout.preferredHeight: 23
                     text: mediaMonitor.title
                     textColor: themeManager.textPrimary
-                    pixelSize: 15
+                    pixelSize: 16
                     fontWeight: Font.DemiBold
                     scrollPixelsPerSecond: 38
                 }

@@ -66,7 +66,9 @@ void NotificationModel::addNotification(const Notification &notification)
 {
     for (int row = 0; row < m_notifications.size(); ++row) {
         if (!notification.id.isEmpty() && m_notifications.at(row).id == notification.id) {
+            const bool unread = m_notifications.at(row).unread;
             m_notifications[row] = notification;
+            m_notifications[row].unread = unread;
             emit dataChanged(index(row), index(row));
             return;
         }
@@ -79,6 +81,8 @@ void NotificationModel::addNotification(const Notification &notification)
     m_notifications.append(notification);
 
     endInsertRows();
+    if (notification.unread)
+        emit unreadCountChanged();
 }
 
 void NotificationModel::removeNotification(int row)
@@ -87,12 +91,15 @@ void NotificationModel::removeNotification(int row)
         return;
 
     const QString id = m_notifications.at(row).id;
+    const bool wasUnread = m_notifications.at(row).unread;
 
     beginRemoveRows(QModelIndex(), row, row);
 
     m_notifications.removeAt(row);
 
     endRemoveRows();
+    if (wasUnread)
+        emit unreadCountChanged();
 
     if (!id.isEmpty())
         emit removalRequested(id);
@@ -103,9 +110,12 @@ void NotificationModel::removeById(const QString &id)
     {
         if (m_notifications[i].id == id)
         {
+            const bool wasUnread = m_notifications.at(i).unread;
             beginRemoveRows(QModelIndex(), i, i);
             m_notifications.removeAt(i);
             endRemoveRows();
+            if (wasUnread)
+                emit unreadCountChanged();
             return;
         }
     }
@@ -115,11 +125,14 @@ void NotificationModel::clear()
     if (m_notifications.isEmpty())
         return;
 
+    const bool hadUnread = unreadCount() > 0;
     beginResetModel();
 
     m_notifications.clear();
 
     endResetModel();
+    if (hadUnread)
+        emit unreadCountChanged();
     emit clearRequested();
 }
 
@@ -141,6 +154,7 @@ void NotificationModel::markAsRead(int row)
         index(row),
         index(row),
         {UnreadRole});
+    emit unreadCountChanged();
 }
 void NotificationModel::markAsUnread(int row)
 {
@@ -156,20 +170,29 @@ void NotificationModel::markAsUnread(int row)
         index(row),
         index(row),
         {UnreadRole});
+    emit unreadCountChanged();
 }
 void NotificationModel::markAllAsRead()
 {
     if (m_notifications.isEmpty())
         return;
+    bool changed = false;
     for (int i = 0; i < m_notifications.size(); ++i)
     {
-        m_notifications[i].unread = false;
+        if (m_notifications[i].unread) {
+            m_notifications[i].unread = false;
+            changed = true;
+        }
     }
+
+    if (!changed)
+        return;
 
     emit dataChanged(
         index(0),
         index(m_notifications.size() - 1),
         {UnreadRole});
+    emit unreadCountChanged();
 }
 int NotificationModel::unreadCount() const
 {

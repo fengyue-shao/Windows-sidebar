@@ -1,7 +1,7 @@
 [CmdletBinding()]
 param(
     [string]$QtBin,
-    [string]$BuildDir = (Join-Path $PSScriptRoot '..\build\test-machine-release'),
+    [string]$BuildDir,
     [switch]$SkipInstall,
     [switch]$Clean
 )
@@ -103,7 +103,11 @@ function Import-VcEnvironment([string]$VcVarsPath) {
             $value = $line.Substring($separator + 1)
             if ($name -ceq 'PATH') {
                 $vcPath = $value
-            } elseif (-not $name.Equals('Path', [StringComparison]::OrdinalIgnoreCase)) {
+            } elseif ($name.Equals('Path', [StringComparison]::OrdinalIgnoreCase)) {
+                if (-not $vcPath) {
+                    $vcPath = $value
+                }
+            } else {
                 [Environment]::SetEnvironmentVariable($name, $value, 'Process')
             }
         }
@@ -119,6 +123,9 @@ if ($env:OS -ne 'Windows_NT') {
 }
 
 $sourceDir = (Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')).Path
+if (-not $BuildDir) {
+    $BuildDir = Join-Path $sourceDir 'build\test-machine-release'
+}
 $resolvedBuildDir = [IO.Path]::GetFullPath($BuildDir)
 $resolvedQtBin = Find-QtBin $QtBin
 $cmake = Find-CMake

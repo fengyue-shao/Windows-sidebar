@@ -23,19 +23,16 @@ MediaMonitor::MediaMonitor(QObject *parent)
                            || artist != m_artist
                            || album != m_album
                            || provider != m_provider;
-            if (!coverImage.isNull())
-                changed = true;
-            if (!changed)
-                return;
-
             m_title = title;
             m_artist = artist;
             m_album = album;
             m_provider = provider;
-            if (m_coverProvider && !coverImage.isNull()) {
-                m_coverProvider->setImage(coverImage);
+            if (m_coverProvider && m_coverProvider->setImage(coverImage)) {
                 ++m_coverVersion;
+                changed = true;
             }
+            if (!changed)
+                return;
             emit mediaChanged();
         },
         Qt::QueuedConnection);
@@ -74,6 +71,7 @@ int MediaMonitor::coverVersion() const { return m_coverVersion; }
 void MediaMonitor::setCoverProvider(CoverImageProvider *provider)
 {
     m_coverProvider = provider;
+    QMetaObject::invokeMethod(m_worker, &MediaWorker::refresh, Qt::QueuedConnection);
 }
 
 void MediaMonitor::togglePlayPause()

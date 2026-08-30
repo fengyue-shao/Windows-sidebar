@@ -29,7 +29,7 @@ void NotificationListener::start()
     }
 
     m_listener = Listener::Current();
-    requestPermissionAndStart();
+    requestPermissionAndStart(m_listener);
 }
 
 void NotificationListener::removeNotification(const QString &id)
@@ -61,12 +61,12 @@ void NotificationListener::clearNotifications()
     }
 }
 
-winrt::Windows::Foundation::IAsyncAction NotificationListener::requestPermissionAndStart()
+winrt::fire_and_forget NotificationListener::requestPermissionAndStart(Listener listener)
 {
     QPointer<NotificationListener> self(this);
 
     try {
-        const auto access = co_await m_listener.RequestAccessAsync();
+        const auto access = co_await listener.RequestAccessAsync();
         if (!self) {
             co_return;
         }
@@ -77,7 +77,7 @@ winrt::Windows::Foundation::IAsyncAction NotificationListener::requestPermission
             co_return;
         }
 
-        m_notificationChangedToken = m_listener.NotificationChanged(
+        self->m_notificationChangedToken = listener.NotificationChanged(
             [self](const Listener &sender,
                    const UserNotificationChangedEventArgs &args) {
                 if (!self) {
@@ -123,8 +123,8 @@ winrt::Windows::Foundation::IAsyncAction NotificationListener::requestPermission
                 }
             });
 
-        m_started = true;
-        co_await loadNotifications();
+        self->m_started = true;
+        co_await self->loadNotifications(listener);
     } catch (const winrt::hresult_error &error) {
         if (self) {
             reportException(error);
@@ -132,11 +132,11 @@ winrt::Windows::Foundation::IAsyncAction NotificationListener::requestPermission
     }
 }
 
-winrt::Windows::Foundation::IAsyncAction NotificationListener::loadNotifications()
+winrt::Windows::Foundation::IAsyncAction NotificationListener::loadNotifications(Listener listener)
 {
     QPointer<NotificationListener> self(this);
     const auto notifications =
-        co_await m_listener.GetNotificationsAsync(NotificationKinds::Toast);
+        co_await listener.GetNotificationsAsync(NotificationKinds::Toast);
 
     for (const auto &notification : notifications) {
         if (!self) {

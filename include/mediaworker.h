@@ -3,6 +3,7 @@
 #define MEDIAWORKER_H
 #include <winrt/Windows.Media.Control.h>
 #include <QObject>
+#include <QImage>
 //struct Timeline;
 class MediaWorker : public QObject
 {
@@ -20,6 +21,7 @@ public slots:
     void togglePlayPause();
     void next();
     void previous();
+    void refresh();
 private:
     using SessionManager =
         winrt::Windows::Media::Control::
@@ -33,13 +35,18 @@ private:
     void unregisterSession();
     void updateInfo();
     void updatePS();
-    void updateCover(QImage& coverImage);
+    QImage readCover(const winrt::Windows::Media::Control::
+                         GlobalSystemMediaTransportControlsSessionMediaProperties &media,
+                     bool &needsRetry);
+    void scheduleCoverRetry(const QString &mediaKey);
     static QString providerName(const Session &session);
     //void updateTimeline();
 private:
     SessionManager m_manager{ nullptr };
     Session m_session{ nullptr };
     bool m_coverRetryPending = false;
+    int m_coverRetryAttempt = 0;
+    QString m_mediaKey;
     winrt::event_token m_sessionToken{};
     winrt::event_token m_mediaToken{};
     winrt::event_token m_playbackToken{};

@@ -6,7 +6,7 @@ ColumnLayout {
     id: root
 
     property var model
-    spacing: 9
+    spacing: 10
 
     RowLayout {
         Layout.fillWidth: true
@@ -16,12 +16,12 @@ ColumnLayout {
             Layout.fillWidth: true
             text: "通知"
             color: themeManager.textPrimary
-            font.pixelSize: 16
+            font.pixelSize: 17
             font.weight: Font.DemiBold
         }
 
         Rectangle {
-            visible: notificationModel.unreadCount() > 0
+            visible: notificationModel.unreadCount > 0
             implicitWidth: countText.implicitWidth + 14
             implicitHeight: 24
             radius: 12
@@ -30,7 +30,7 @@ ColumnLayout {
             Text {
                 id: countText
                 anchors.centerIn: parent
-                text: notificationModel.unreadCount()
+                text: notificationModel.unreadCount
                 color: themeManager.textPrimary
                 font.pixelSize: 11
                 font.weight: Font.DemiBold
@@ -39,7 +39,7 @@ ColumnLayout {
 
         HeaderButton {
             text: "全部已读"
-            enabled: notificationModel.unreadCount() > 0
+            enabled: notificationModel.unreadCount > 0
             onClicked: notificationModel.markAllAsRead()
         }
 
@@ -55,17 +55,16 @@ ColumnLayout {
         Layout.fillWidth: true
         Layout.fillHeight: true
         Layout.minimumHeight: 120
-        radius: 16
-        color: themeManager.surface
-        border.width: 1
-        border.color: themeManager.border
+        radius: 18
+        color: themeManager.overlayStart
+        border.width: 0
         clip: true
 
         ListView {
             id: listView
             anchors.fill: parent
-            anchors.margins: 8
-            spacing: 7
+            anchors.margins: 0
+            spacing: 9
             clip: true
             model: root.model
             boundsBehavior: Flickable.StopAtBounds

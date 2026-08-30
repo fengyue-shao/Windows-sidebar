@@ -17,24 +17,26 @@ MediaWorker::MediaWorker(QObject *parent)
     : QObject{parent}
 {
 }
-void MediaWorker::updateCover(QImage &coverImage)
+QImage MediaWorker::readCover(
+    const GlobalSystemMediaTransportControlsSessionMediaProperties &media,
+    bool &needsRetry)
 {
+    needsRetry = false;
+    QImage coverImage;
     try
     {
-        auto media = m_session.TryGetMediaPropertiesAsync().get();
         auto thumbnail = media.Thumbnail();
-        bool needRetry = false;
 
         if (!thumbnail)
         {
-            needRetry = true;
+            needsRetry = true;
         }
         else
         {
             auto stream = thumbnail.OpenReadAsync().get();
             if (!stream || stream.Size() == 0)
             {
-                needRetry = true;
+                needsRetry = true;
             }
             else
             {
@@ -50,7 +52,7 @@ void MediaWorker::updateCover(QImage &coverImage)
                         .get();
                 if (readBuffer.Length() == 0)
                 {
-                    needRetry = true;
+                    needsRetry = true;
                 }
                 else
                 {
@@ -67,44 +69,33 @@ void MediaWorker::updateCover(QImage &coverImage)
 
                     if (!coverImage.loadFromData(imageData))
                     {
-                        needRetry = true;
+                        needsRetry = true;
                     }
                 }
             }
         }
 
-        if (needRetry && !m_coverRetryPending)
-        {
-            m_coverRetryPending = true;
-            qDebug()<<"retry to get img";
-            QTimer::singleShot(1500, this, [this]()
-                               {
-                                   m_coverRetryPending = false;
-
-                                   if (!m_session)
-                                       return;
-
-                                   updateInfo();
-                               });
-        }
     }
     catch (...)
     {
-        if (!m_coverRetryPending)
-        {
-            m_coverRetryPending = true;
-
-            QTimer::singleShot(200, this, [this]()
-                               {
-                                   m_coverRetryPending = false;
-
-                                   if (!m_session)
-                                       return;
-
-                                   updateInfo();
-                               });
-        }
+        needsRetry = true;
     }
+    return coverImage;
+}
+
+void MediaWorker::scheduleCoverRetry(const QString &mediaKey)
+{
+    if (m_coverRetryPending || m_coverRetryAttempt >= 4)
+        return;
+
+    m_coverRetryPending = true;
+    ++m_coverRetryAttempt;
+    const int delay = m_coverRetryAttempt == 1 ? 250 : 1000;
+    QTimer::singleShot(delay, this, [this, mediaKey] {
+        m_coverRetryPending = false;
+        if (m_session && m_mediaKey == mediaKey)
+            updateInfo();
+    });
 }
 void MediaWorker::updateInfo(){
     try{
@@ -113,13 +104,24 @@ void MediaWorker::updateInfo(){
             return;
         }
         auto media=session.TryGetMediaPropertiesAsync().get();
-        QString coverPath;
         QString title=QString::fromWCharArray(media.Title().c_str());
         QString artist=QString::fromWCharArray(media.Artist().c_str());
         QString album=QString::fromWCharArray(media.AlbumTitle().c_str());
         const QString provider = providerName(session);
-        QImage coverImage;
-        updateCover(coverImage);
+        const QString mediaKey = provider + QChar(0x1f) + title + QChar(0x1f)
+                                 + artist + QChar(0x1f) + album;
+        if (mediaKey != m_mediaKey) {
+            m_mediaKey = mediaKey;
+            m_coverRetryAttempt = 0;
+            m_coverRetryPending = false;
+        }
+
+        bool needsRetry = false;
+        const QImage coverImage = readCover(media, needsRetry);
+        if (needsRetry)
+            scheduleCoverRetry(mediaKey);
+        else
+            m_coverRetryAttempt = 0;
         emit mediaInfoUpdated(title,artist,album,provider,coverImage);
     }catch(...){
         qDebug()<<"GMSTC error";
@@ -170,6 +172,9 @@ void MediaWorker::registerSession()
 
     if (!m_session)
     {
+        m_mediaKey.clear();
+        m_coverRetryAttempt = 0;
+        m_coverRetryPending = false;
         emit mediaInfoUpdated(
             "",
             "",
@@ -211,6 +216,12 @@ void MediaWorker::registerSession()
             });*/
 
     //update();
+}
+
+void MediaWorker::refresh()
+{
+    updateInfo();
+    updatePS();
 }
 void MediaWorker::unregisterSession()
 {

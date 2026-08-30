@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(qt_rainmeter VERSION 0.7.1 LANGUAGES CXX)
+project(qt_rainmeter VERSION 0.8.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -20,8 +20,8 @@ qt_add_qml_module(appqt_rainmeter
     VERSION 1.0
     QML_FILES
         qml/Main.qml
-        SOURCES include/coverimageprovider.h include/cpumonitor.h include/diskmonitor.h include/gpumonitor.h include/mediamonitor.h include/mediaworker.h include/memorymonitor.h include/monitorbase.h include/monitorscheduler.h include/networkmonitor.h include/Notification.h include/notificationmodel.h include/periodicmodule.h include/thememanager.h src/coverimageprovider.cpp src/cpumonitor.cpp src/diskmonitor.cpp src/gpumonitor.cpp src/mediamonitor.cpp src/mediaworker.cpp src/memorymonitor.cpp src/monitorbase.cpp src/monitorscheduler.cpp src/networkmonitor.cpp src/notificationmodel.cpp src/thememanager.cpp
-        QML_FILES qml/DiskPanel.qml qml/MediaBar.qml qml/MediaMarquee.qml qml/NotificationArea.qml qml/NotificationItem.qml qml/Sidebar.qml qml/SystemControlBar.qml qml/SystemMetricGauge.qml qml/SystemMonitorPanel.qml qml/Timebar.qml qml/WidgetCard.qml
+        SOURCES include/coverimageprovider.h include/cpumonitor.h include/diskmonitor.h include/displaymanager.h include/gpumonitor.h include/mediamonitor.h include/mediaworker.h include/memorymonitor.h include/monitorbase.h include/monitorscheduler.h include/networkmonitor.h include/Notification.h include/notificationmodel.h include/periodicmodule.h include/thememanager.h src/coverimageprovider.cpp src/cpumonitor.cpp src/diskmonitor.cpp src/displaymanager.cpp src/gpumonitor.cpp src/mediamonitor.cpp src/mediaworker.cpp src/memorymonitor.cpp src/monitorbase.cpp src/monitorscheduler.cpp src/networkmonitor.cpp src/notificationmodel.cpp src/thememanager.cpp
+        QML_FILES qml/DashboardPage.qml qml/DiskPanel.qml qml/MediaBar.qml qml/MediaMarquee.qml qml/NotificationArea.qml qml/NotificationItem.qml qml/Sidebar.qml qml/SystemControlBar.qml qml/SystemMetricGauge.qml qml/SystemMonitorPanel.qml qml/Timebar.qml qml/WidgetCard.qml
         RESOURCES assets/icons/ic_fluent_next_48_regular.svg assets/icons/ic_fluent_pause_48_regular.svg assets/icons/ic_fluent_play_48_regular.svg assets/icons/ic_fluent_previous_48_regular.svg
         SOURCES include/notificationlistener.h src/notificationlistener.cpp
 )
@@ -44,6 +44,7 @@ target_link_libraries(appqt_rainmeter
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
 target_link_libraries(appqt_rainmeter PRIVATE iphlpapi)
 target_link_libraries(appqt_rainmeter PRIVATE pdh)
+target_link_libraries(appqt_rainmeter PRIVATE dxgi)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
 
 if(WIN32)

@@ -79,6 +79,7 @@ public:
 
 public slots:
     void setMode(Mode mode);
+    Q_INVOKABLE void setModeValue(int mode);
 
 signals:
     void themeChanged();

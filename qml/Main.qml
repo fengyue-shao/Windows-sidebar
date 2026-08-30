@@ -9,19 +9,19 @@ Window {
     color: "transparent"
 
     property bool expanded: true
-    readonly property int expandedWidth: Math.min(460, Math.max(360, Screen.width * 0.24))
-    readonly property int collapsedWidth: 8
+    readonly property int expandedWidth: Math.min(440, Math.max(410, displayManager.selectedWidth * 0.225))
+    readonly property int collapsedWidth: 6
 
     width: expanded ? expandedWidth : collapsedWidth
-    height: Screen.height
-    x: Screen.width - width
-    y: 0
+    height: displayManager.selectedHeight
+    x: displayManager.dockSide === 0
+       ? displayManager.selectedX
+       : displayManager.selectedX + displayManager.selectedWidth - width
+    y: displayManager.selectedY
 
     Behavior on width {
         NumberAnimation { duration: 260; easing.type: Easing.OutCubic }
     }
-
-    onWidthChanged: x = Screen.width - width
 
     Sidebar {
         anchors.fill: parent

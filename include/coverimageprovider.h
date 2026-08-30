@@ -10,7 +10,7 @@ class CoverImageProvider : public QQuickImageProvider
 public:
     CoverImageProvider();
     QImage requestImage(const QString &id,QSize *size,const QSize &requestedSize) override;
-    void setImage(const QImage& image);
+    bool setImage(const QImage& image);
 private:
     QImage m_image;
     QMutex m_mutex;

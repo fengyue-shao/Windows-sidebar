@@ -13,23 +13,41 @@ if (-not (Test-Path -LiteralPath $certificatePath)) {
 }
 
 $certificate = New-Object System.Security.Cryptography.X509Certificates.X509Certificate2($certificatePath)
-$trusted = Get-ChildItem Cert:\CurrentUser\Root |
+$trusted = Get-ChildItem Cert:\LocalMachine\TrustedPeople |
     Where-Object { $_.Thumbprint -eq $certificate.Thumbprint } |
     Select-Object -First 1
 
 if (-not $trusted -and $TrustDevelopmentCertificate) {
-    Write-Host 'Windows will ask you to confirm trusting the development certificate.'
-    & certutil.exe -user -addstore Root $certificatePath
-    if ($LASTEXITCODE -ne 0) {
-        throw "Certificate import failed with exit code $LASTEXITCODE"
+    $identity = [Security.Principal.WindowsIdentity]::GetCurrent()
+    $principal = New-Object Security.Principal.WindowsPrincipal($identity)
+    $isAdministrator = $principal.IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
+
+    if (-not $isAdministrator) {
+        Write-Host 'Windows will ask for administrator approval to trust the development certificate.'
+        $arguments = @(
+            '-NoProfile',
+            '-ExecutionPolicy', 'Bypass',
+            '-File', $PSCommandPath,
+            '-PackagePath', $resolvedPackage,
+            '-TrustDevelopmentCertificate'
+        )
+        $process = Start-Process -FilePath 'powershell.exe' -Verb RunAs `
+            -ArgumentList $arguments -Wait -PassThru
+        if ($process.ExitCode -ne 0) {
+            throw "Elevated MSIX installation failed with exit code $($process.ExitCode)"
+        }
+        exit 0
     }
-    $trusted = Get-ChildItem Cert:\CurrentUser\Root |
+
+    Import-Certificate -FilePath $certificatePath `
+        -CertStoreLocation 'Cert:\LocalMachine\TrustedPeople' | Out-Null
+    $trusted = Get-ChildItem Cert:\LocalMachine\TrustedPeople |
         Where-Object { $_.Thumbprint -eq $certificate.Thumbprint } |
         Select-Object -First 1
 }
 
 if (-not $trusted) {
-    throw 'The development certificate is not trusted. Re-run with -TrustDevelopmentCertificate and accept the Windows security prompt.'
+    throw 'The development certificate is not trusted by the local machine. Re-run with -TrustDevelopmentCertificate and accept the administrator prompt.'
 }
 
 Add-AppxPackage -Path $resolvedPackage -ForceApplicationShutdown -ForceUpdateFromAnyVersion

@@ -15,8 +15,19 @@ param(
 $ErrorActionPreference = 'Stop'
 
 function Find-WindowsSdkTool([string]$Name) {
-    $sdkBin = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'
-    $tool = Get-ChildItem -Path $sdkBin -Filter $Name -Recurse |
+    $sdkBins = @()
+    if ($env:WindowsSdkDir) {
+        $sdkBins += Join-Path $env:WindowsSdkDir 'bin'
+    }
+    $sdkBins += @(
+        (Join-Path ${env:ProgramFiles(x86)} 'Windows Kits\10\bin'),
+        'C:\Windows Kits\10\bin',
+        'D:\Windows Kits\10\bin'
+    )
+    $tool = $sdkBins |
+        Where-Object { Test-Path -LiteralPath $_ } |
+        Select-Object -Unique |
+        ForEach-Object { Get-ChildItem -LiteralPath $_ -Filter $Name -File -Recurse } |
         Where-Object { $_.FullName -match '\\x64\\' } |
         Sort-Object FullName -Descending |
         Select-Object -First 1
@@ -62,6 +73,11 @@ New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
 & $makeAppx pack /o /d $stageDir /p $packagePath
 if ($LASTEXITCODE -ne 0) {
     throw "MakeAppx failed with exit code $LASTEXITCODE"
+}
+
+Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
+if (-not (Get-PSDrive -Name Cert -ErrorAction SilentlyContinue)) {
+    throw 'The Windows certificate provider is unavailable in this PowerShell process.'
 }
 
 $subject = 'CN=WindowsSidebarDev'

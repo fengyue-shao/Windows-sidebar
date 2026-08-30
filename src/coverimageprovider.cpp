@@ -11,7 +11,10 @@ QImage CoverImageProvider::requestImage(const QString &id,QSize *size,const QSiz
         *size=m_image.size();
     return m_image;
 }
-void CoverImageProvider::setImage(const QImage &image){
+bool CoverImageProvider::setImage(const QImage &image){
     QMutexLocker locker(&m_mutex);
+    if (m_image == image)
+        return false;
     m_image=image;
+    return true;
 }

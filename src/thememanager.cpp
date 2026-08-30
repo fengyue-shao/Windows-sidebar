@@ -4,6 +4,7 @@
 #include <QPalette>
 #include <QSettings>
 #include <QStyleHints>
+#include <QTimer>
 
 ThemeManager::ThemeManager(QObject *parent)
     : QObject(parent)
@@ -67,8 +68,20 @@ void ThemeManager::setMode(Mode mode)
     m_mode = mode;
     QSettings settings;
     settings.setValue("appearance/theme", static_cast<int>(mode));
-    applyColorScheme();
+    settings.sync();
+
+    // Notify QML immediately from the application-owned mode, then notify once
+    // more after Qt has propagated the platform palette change.
     emit themeChanged();
+    applyColorScheme();
+    QTimer::singleShot(0, this, &ThemeManager::themeChanged);
+}
+
+void ThemeManager::setModeValue(int mode)
+{
+    if (mode < FollowSystem || mode > Dark)
+        return;
+    setMode(static_cast<Mode>(mode));
 }
 
 void ThemeManager::applyColorScheme()

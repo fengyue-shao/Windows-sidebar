@@ -29,8 +29,8 @@ signals:
 private:
     using Listener = winrt::Windows::UI::Notifications::Management::UserNotificationListener;
 
-    winrt::Windows::Foundation::IAsyncAction requestPermissionAndStart();
-    winrt::Windows::Foundation::IAsyncAction loadNotifications();
+    winrt::fire_and_forget requestPermissionAndStart(Listener listener);
+    winrt::Windows::Foundation::IAsyncAction loadNotifications(Listener listener);
     Notification toNotification(
         const winrt::Windows::UI::Notifications::UserNotification &notification) const;
     void reportException(const winrt::hresult_error &error);
