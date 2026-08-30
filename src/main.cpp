@@ -18,6 +18,7 @@
 #include "include/memorymonitor.h"
 #include "include/monitorscheduler.h"
 #include "include/networkmonitor.h"
+#include "include/radiomanager.h"
 #include "include/wifimanager.h"
 #include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
@@ -44,6 +45,7 @@ int main(int argc, char *argv[])
     FocusTimer focusTimer;
     MemoryMonitor memoryMonitor;
     NetworkMonitor networkMonitor;
+    RadioManager radioManager;
     WifiManager wifiManager;
     MediaMonitor mediaMonitor;
     NotificationModel notificationModel;
@@ -91,6 +93,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("focusTimer", &focusTimer);
     engine.rootContext()->setContextProperty("memoryMonitor", &memoryMonitor);
     engine.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
+    engine.rootContext()->setContextProperty("radioManager", &radioManager);
     engine.rootContext()->setContextProperty("wifiManager", &wifiManager);
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
     engine.rootContext()->setContextProperty("notificationModel", &notificationModel);

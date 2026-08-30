@@ -13,6 +13,7 @@ class SystemTrayManager : public QObject
     Q_PROPERTY(int volume READ volume WRITE setVolume NOTIFY audioChanged)
     Q_PROPERTY(bool muted READ muted NOTIFY audioChanged)
     Q_PROPERTY(QString audioDeviceName READ audioDeviceName NOTIFY audioChanged)
+    Q_PROPERTY(QVariantList audioOutputs READ audioOutputs NOTIFY audioOutputsChanged)
     Q_PROPERTY(QVariantList audioSessions READ audioSessions NOTIFY audioSessionsChanged)
     Q_PROPERTY(bool online READ online NOTIFY networkChanged)
     Q_PROPERTY(bool batteryPresent READ batteryPresent NOTIFY powerChanged)
@@ -27,6 +28,7 @@ public:
     bool muted() const;
     QString audioDeviceName() const;
     QVariantList audioSessions() const;
+    QVariantList audioOutputs() const;
     bool online() const;
     bool batteryPresent() const;
     int batteryPercent() const;
@@ -36,10 +38,12 @@ public:
     Q_INVOKABLE void toggleMuted();
     Q_INVOKABLE void setSessionVolume(const QString &sessionId, int volume);
     Q_INVOKABLE void toggleSessionMuted(const QString &sessionId);
+    Q_INVOKABLE void selectAudioOutput(const QString &deviceId);
 
 signals:
     void audioChanged();
     void audioSessionsChanged();
+    void audioOutputsChanged();
     void powerChanged();
     void networkChanged();
 
@@ -50,6 +54,7 @@ private:
     bool ensureAudioEndpoint();
     void refreshAudio();
     void refreshAudioSessions();
+    void refreshAudioOutputs();
     void resetAudioEndpoint();
     bool updateSession(const QString &sessionId, int volume, bool toggleMute);
     void refreshPower();
@@ -59,6 +64,7 @@ private:
     IAudioEndpointVolume *m_audioEndpoint = nullptr;
     IMMDevice *m_audioDevice = nullptr;
     QVariantList m_audioSessions;
+    QVariantList m_audioOutputs;
     int m_volume = 0;
     int m_batteryPercent = 0;
     QString m_audioDeviceName;

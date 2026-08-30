@@ -8,6 +8,7 @@
 #include <winrt/Windows.Devices.Bluetooth.h>
 #include <winrt/Windows.Devices.Enumeration.h>
 #include <winrt/Windows.Foundation.Collections.h>
+#include <array>
 
 using namespace winrt;
 using namespace Windows::Devices::Bluetooth;
@@ -50,9 +51,11 @@ fire_and_forget loadBluetoothDevices(QPointer<BluetoothManager> manager)
             BluetoothLEDevice::GetDeviceSelectorFromPairingState(true),
             BluetoothLEDevice::GetDeviceSelectorFromPairingState(false)
         };
-        for (const auto &selector : selectors) {
-            const auto devices = co_await DeviceInformation::FindAllAsync(
-                selector, properties, DeviceInformationKind::AssociationEndpoint);
+        std::array<Windows::Foundation::IAsyncOperation<DeviceInformationCollection>, 4> searches;
+        for (size_t index = 0; index < searches.size(); ++index)
+            searches[index] = DeviceInformation::FindAllAsync(selectors[index], properties, DeviceInformationKind::AssociationEndpoint);
+        for (auto &search : searches) {
+            const auto devices = co_await search;
             for (const auto &device : devices) {
                 const QString id = QString::fromStdWString(device.Id().c_str());
                 bool duplicate = false;

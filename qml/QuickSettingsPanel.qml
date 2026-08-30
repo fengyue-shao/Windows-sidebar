@@ -110,7 +110,20 @@ Rectangle {
 
                     ColumnLayout {
                         spacing: 10
-                        Text { Layout.fillWidth: true; text: systemTrayManager.audioDeviceName || "默认播放设备"; elide: Text.ElideRight; color: themeManager.textSecondary; font.pixelSize: 10 }
+                        ComboBox {
+                            Layout.fillWidth: true
+                            model: systemTrayManager.audioOutputs
+                            textRole: "name"
+                            valueRole: "id"
+                            currentIndex: {
+                                for (let index = 0; index < systemTrayManager.audioOutputs.length; ++index)
+                                    if (systemTrayManager.audioOutputs[index].selected) return index
+                                return -1
+                            }
+                            onActivated: systemTrayManager.selectAudioOutput(currentValue)
+                            ToolTip.visible: hovered
+                            ToolTip.text: "选择系统默认输出设备"
+                        }
                         Text { text: systemTrayManager.muted ? "当前已静音" : "主音量 " + systemTrayManager.volume + "%"; color: systemTrayManager.muted ? themeManager.danger : themeManager.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
                         Slider { Layout.fillWidth: true; from: 0; to: 100; value: systemTrayManager.volume; onMoved: systemTrayManager.setVolume(Math.round(value)) }
                         ControlButton { Layout.fillWidth: true; label: systemTrayManager.muted ? "取消静音" : "静音"; active: systemTrayManager.muted; onClicked: systemTrayManager.toggleMuted() }
@@ -171,6 +184,7 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
                             Text { Layout.fillWidth: true; text: wifiManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            Switch { checked: radioManager.wifiEnabled; text: "Wi-Fi"; onToggled: radioManager.setWifiEnabled(checked) }
                             Rectangle {
                                 Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
                                 color: wifiRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
@@ -279,6 +293,7 @@ Rectangle {
                         RowLayout {
                             Layout.fillWidth: true
                             Text { Layout.fillWidth: true; text: bluetoothManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            Switch { checked: radioManager.bluetoothEnabled; text: "蓝牙"; onToggled: radioManager.setBluetoothEnabled(checked) }
                             Rectangle {
                                 Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
                                 color: bluetoothRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong

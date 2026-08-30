@@ -12,6 +12,23 @@
 #include <QVariantMap>
 #include <iterator>
 
+// Windows Core Audio policy interface used by the system sound flyout.
+struct __declspec(uuid("f8679f50-850a-41cf-9c72-430f290290c8")) IPolicyConfig : IUnknown {
+    virtual HRESULT GetMixFormat(PCWSTR, WAVEFORMATEX **) = 0;
+    virtual HRESULT GetDeviceFormat(PCWSTR, INT, WAVEFORMATEX **) = 0;
+    virtual HRESULT ResetDeviceFormat(PCWSTR) = 0;
+    virtual HRESULT SetDeviceFormat(PCWSTR, WAVEFORMATEX *, WAVEFORMATEX *) = 0;
+    virtual HRESULT GetProcessingPeriod(PCWSTR, INT, PINT64, PINT64) = 0;
+    virtual HRESULT SetProcessingPeriod(PCWSTR, PINT64) = 0;
+    virtual HRESULT GetShareMode(PCWSTR, void *) = 0;
+    virtual HRESULT SetShareMode(PCWSTR, void *) = 0;
+    virtual HRESULT GetPropertyValue(PCWSTR, const PROPERTYKEY &, PROPVARIANT *) = 0;
+    virtual HRESULT SetPropertyValue(PCWSTR, const PROPERTYKEY &, const PROPVARIANT *) = 0;
+    virtual HRESULT SetDefaultEndpoint(PCWSTR, ERole) = 0;
+    virtual HRESULT SetEndpointVisibility(PCWSTR, INT) = 0;
+};
+static const CLSID CLSID_PolicyConfigClient = {0x870af99c,0x171d,0x4f9e,{0xaf,0x0d,0xe6,0x3d,0xf4,0x0c,0x2b,0xc9}};
+
 SystemTrayManager::SystemTrayManager(QObject *parent)
     : QObject(parent)
 {
@@ -30,6 +47,7 @@ int SystemTrayManager::volume() const { return m_volume; }
 bool SystemTrayManager::muted() const { return m_muted; }
 QString SystemTrayManager::audioDeviceName() const { return m_audioDeviceName; }
 QVariantList SystemTrayManager::audioSessions() const { return m_audioSessions; }
+QVariantList SystemTrayManager::audioOutputs() const { return m_audioOutputs; }
 bool SystemTrayManager::online() const { return m_online; }
 bool SystemTrayManager::batteryPresent() const { return m_batteryPresent; }
 int SystemTrayManager::batteryPercent() const { return m_batteryPercent; }
@@ -66,6 +84,20 @@ void SystemTrayManager::setSessionVolume(const QString &sessionId, int volume)
 void SystemTrayManager::toggleSessionMuted(const QString &sessionId)
 {
     updateSession(sessionId, 0, true);
+}
+
+void SystemTrayManager::selectAudioOutput(const QString &deviceId)
+{
+    IPolicyConfig *policy = nullptr;
+    if (FAILED(CoCreateInstance(CLSID_PolicyConfigClient, nullptr, CLSCTX_ALL, __uuidof(IPolicyConfig), reinterpret_cast<void **>(&policy))))
+        return;
+    const std::wstring id = deviceId.toStdWString();
+    policy->SetDefaultEndpoint(id.c_str(), eConsole);
+    policy->SetDefaultEndpoint(id.c_str(), eMultimedia);
+    policy->SetDefaultEndpoint(id.c_str(), eCommunications);
+    policy->Release();
+    resetAudioEndpoint();
+    refreshAudio();
 }
 
 void SystemTrayManager::refresh()
@@ -137,6 +169,37 @@ void SystemTrayManager::refreshAudio()
         emit audioChanged();
     }
     refreshAudioSessions();
+    refreshAudioOutputs();
+}
+
+void SystemTrayManager::refreshAudioOutputs()
+{
+    IMMDeviceEnumerator *enumerator = nullptr;
+    IMMDeviceCollection *collection = nullptr;
+    QVariantList outputs;
+    if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+            __uuidof(IMMDeviceEnumerator), reinterpret_cast<void **>(&enumerator)))
+        && SUCCEEDED(enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &collection))) {
+        UINT count = 0; collection->GetCount(&count);
+        for (UINT index = 0; index < count; ++index) {
+            IMMDevice *device = nullptr; LPWSTR id = nullptr; IPropertyStore *store = nullptr;
+            if (SUCCEEDED(collection->Item(index, &device)) && SUCCEEDED(device->GetId(&id))
+                && SUCCEEDED(device->OpenPropertyStore(STGM_READ, &store))) {
+                PROPVARIANT value; PropVariantInit(&value);
+                if (SUCCEEDED(store->GetValue(PKEY_Device_FriendlyName, &value)) && value.vt == VT_LPWSTR) {
+                    QVariantMap item;
+                    item.insert(QStringLiteral("id"), QString::fromWCharArray(id));
+                    item.insert(QStringLiteral("name"), QString::fromWCharArray(value.pwszVal));
+                    item.insert(QStringLiteral("selected"), QString::fromWCharArray(value.pwszVal) == m_audioDeviceName);
+                    outputs.append(item);
+                }
+                PropVariantClear(&value);
+            }
+            if (store) store->Release(); if (id) CoTaskMemFree(id); if (device) device->Release();
+        }
+    }
+    if (collection) collection->Release(); if (enumerator) enumerator->Release();
+    if (outputs != m_audioOutputs) { m_audioOutputs = outputs; emit audioOutputsChanged(); }
 }
 
 void SystemTrayManager::refreshAudioSessions()
