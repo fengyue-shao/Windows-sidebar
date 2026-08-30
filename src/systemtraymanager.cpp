@@ -2,7 +2,13 @@
 
 #include <Windows.h>
 #include <endpointvolume.h>
+#include <propsys.h>
+#include <propkeydef.h>
+#include <functiondiscoverykeys_devpkey.h>
 #include <mmdeviceapi.h>
+#include <QDesktopServices>
+#include <QUrl>
+#include <wininet.h>
 
 SystemTrayManager::SystemTrayManager(QObject *parent)
     : QObject(parent)
@@ -21,6 +27,8 @@ SystemTrayManager::~SystemTrayManager()
 
 int SystemTrayManager::volume() const { return m_volume; }
 bool SystemTrayManager::muted() const { return m_muted; }
+QString SystemTrayManager::audioDeviceName() const { return m_audioDeviceName; }
+bool SystemTrayManager::online() const { return m_online; }
 bool SystemTrayManager::batteryPresent() const { return m_batteryPresent; }
 int SystemTrayManager::batteryPercent() const { return m_batteryPercent; }
 bool SystemTrayManager::charging() const { return m_charging; }
@@ -50,10 +58,31 @@ void SystemTrayManager::toggleMuted()
     refreshAudio();
 }
 
+void SystemTrayManager::openSoundSettings()
+{
+    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:sound")));
+}
+
+void SystemTrayManager::openNetworkSettings()
+{
+    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:network-status")));
+}
+
+void SystemTrayManager::openBluetoothSettings()
+{
+    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:bluetooth")));
+}
+
+void SystemTrayManager::openDisplaySettings()
+{
+    QDesktopServices::openUrl(QUrl(QStringLiteral("ms-settings:display")));
+}
+
 void SystemTrayManager::refresh()
 {
     refreshAudio();
     refreshPower();
+    refreshNetwork();
 }
 
 bool SystemTrayManager::ensureAudioEndpoint()
@@ -70,11 +99,34 @@ bool SystemTrayManager::ensureAudioEndpoint()
     if (SUCCEEDED(result))
         result = device->Activate(__uuidof(IAudioEndpointVolume), CLSCTX_ALL, nullptr,
                                   reinterpret_cast<void **>(&m_audioEndpoint));
+    if (SUCCEEDED(result)) {
+        IPropertyStore *properties = nullptr;
+        if (SUCCEEDED(device->OpenPropertyStore(STGM_READ, &properties))) {
+            PROPVARIANT value;
+            PropVariantInit(&value);
+            if (SUCCEEDED(properties->GetValue(PKEY_Device_FriendlyName, &value))
+                && value.vt == VT_LPWSTR) {
+                m_audioDeviceName = QString::fromWCharArray(value.pwszVal);
+            }
+            PropVariantClear(&value);
+            properties->Release();
+        }
+    }
     if (device)
         device->Release();
     if (enumerator)
         enumerator->Release();
     return SUCCEEDED(result) && m_audioEndpoint;
+}
+
+void SystemTrayManager::refreshNetwork()
+{
+    DWORD flags = 0;
+    const bool online = InternetGetConnectedState(&flags, 0) != FALSE;
+    if (online == m_online)
+        return;
+    m_online = online;
+    emit networkChanged();
 }
 
 void SystemTrayManager::refreshAudio()

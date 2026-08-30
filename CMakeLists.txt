@@ -46,6 +46,7 @@ target_link_libraries(appqt_rainmeter PRIVATE iphlpapi)
 target_link_libraries(appqt_rainmeter PRIVATE pdh)
 target_link_libraries(appqt_rainmeter PRIVATE dxgi)
 target_link_libraries(appqt_rainmeter PRIVATE ole32)
+target_link_libraries(appqt_rainmeter PRIVATE wininet)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
 
 if(WIN32)
