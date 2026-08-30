@@ -9,11 +9,12 @@ Window {
     color: "transparent"
 
     property bool expanded: uiSettings.expanded
-    readonly property int expandedWidth: Math.min(440, Math.max(410, displayManager.selectedWidth * 0.225))
+    readonly property int expandedWidth: Math.min(uiSettings.panelWidth, displayManager.selectedWidth * 0.5)
     readonly property int collapsedWidth: 6
 
     width: expanded ? expandedWidth : collapsedWidth
     height: displayManager.selectedHeight
+    opacity: uiSettings.panelOpacity
     x: displayManager.dockSide === 0
        ? displayManager.selectedX
        : displayManager.selectedX + displayManager.selectedWidth - width

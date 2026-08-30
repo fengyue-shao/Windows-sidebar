@@ -10,7 +10,16 @@ Item {
     property bool mediaEnabled: uiSettings.mediaEnabled
     property bool monitorEnabled: uiSettings.monitorEnabled
     property bool notificationsEnabled: uiSettings.notificationsEnabled
+    property bool compactMode: uiSettings.compactMode
     signal toggleRequested()
+
+    HoverHandler { id: sidebarHover }
+
+    Timer {
+        interval: 900
+        running: uiSettings.autoHide && root.expanded && !sidebarHover.hovered
+        onTriggered: uiSettings.expanded = false
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -24,19 +33,21 @@ Item {
         anchors.fill: parent
         enabled: !root.expanded
         cursorShape: Qt.PointingHandCursor
+        hoverEnabled: true
+        onEntered: if (uiSettings.autoHide) uiSettings.expanded = true
         onClicked: root.toggleRequested()
     }
 
     ColumnLayout {
         anchors.fill: parent
-        anchors.leftMargin: 24
-        anchors.rightMargin: 24
-        anchors.topMargin: 18
-        anchors.bottomMargin: 16
-        spacing: 14
+        anchors.leftMargin: root.compactMode ? 16 : 24
+        anchors.rightMargin: root.compactMode ? 16 : 24
+        anchors.topMargin: root.compactMode ? 10 : 18
+        anchors.bottomMargin: root.compactMode ? 10 : 16
+        spacing: root.compactMode ? 8 : 14
         visible: root.expanded
 
-        Timebar { Layout.fillWidth: true; Layout.preferredHeight: 64 }
+        Timebar { Layout.fillWidth: true; Layout.preferredHeight: root.compactMode ? 52 : 64 }
 
         StackLayout {
             Layout.fillWidth: true
@@ -100,7 +111,7 @@ Item {
 
         SystemControlBar {
             Layout.fillWidth: true
-            Layout.preferredHeight: 54
+            Layout.preferredHeight: root.compactMode ? 48 : 54
             currentIndex: root.currentSection
             mediaEnabled: root.mediaEnabled
             monitorEnabled: root.monitorEnabled

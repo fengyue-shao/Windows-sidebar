@@ -94,6 +94,24 @@ Rectangle {
                     DockButton { Layout.fillWidth: true; text: "停靠右侧"; selected: displayManager.dockSide === 1; onClicked: displayManager.setDockSide(1) }
                 }
 
+                SectionLabel { text: "面板风格" }
+                ModuleRow { Layout.fillWidth: true; title: "离开后自动隐藏"; enabledValue: uiSettings.autoHide; onClicked: uiSettings.autoHide = !uiSettings.autoHide }
+                ModuleRow { Layout.fillWidth: true; title: "紧凑布局"; enabledValue: uiSettings.compactMode; onClicked: uiSettings.compactMode = !uiSettings.compactMode }
+                ValueSlider {
+                    Layout.fillWidth: true
+                    title: "面板宽度"
+                    valueText: Math.round(uiSettings.panelWidth) + " px"
+                    from: 360; to: 560; stepSize: 10; value: uiSettings.panelWidth
+                    onMoved: uiSettings.panelWidth = Math.round(value)
+                }
+                ValueSlider {
+                    Layout.fillWidth: true
+                    title: "透明度"
+                    valueText: Math.round(uiSettings.panelOpacity * 100) + "%"
+                    from: 0.72; to: 1.0; stepSize: 0.01; value: uiSettings.panelOpacity
+                    onMoved: uiSettings.panelOpacity = value
+                }
+
                 SectionLabel { text: "信息模块" }
                 ModuleRow { Layout.fillWidth: true; title: "媒体播放器"; enabledValue: root.mediaEnabled; onClicked: root.mediaEnabledRequested(!root.mediaEnabled) }
                 ModuleRow { Layout.fillWidth: true; title: "系统监控 · " + gpuMonitor.adapters.length + " 个 GPU"; enabledValue: root.monitorEnabled; onClicked: root.monitorEnabledRequested(!root.monitorEnabled) }
@@ -222,6 +240,28 @@ Rectangle {
             Rectangle { x: moduleRow.enabledValue ? parent.width - width - 3 : 3; anchors.verticalCenter: parent.verticalCenter; width: 16; height: 16; radius: 8; color: "#FFFFFF"; Behavior on x { NumberAnimation { duration: 140 } } }
         }
         TapHandler { onTapped: moduleRow.clicked() }
+    }
+
+    component ValueSlider: ColumnLayout {
+        id: valueSlider
+        property string title
+        property string valueText
+        property alias from: slider.from
+        property alias to: slider.to
+        property alias stepSize: slider.stepSize
+        property alias value: slider.value
+        signal moved()
+        spacing: 3
+        RowLayout {
+            Layout.fillWidth: true
+            Text { Layout.fillWidth: true; text: valueSlider.title; color: themeManager.textPrimary; font.pixelSize: 10 }
+            Text { text: valueSlider.valueText; color: themeManager.textMuted; font.pixelSize: 9 }
+        }
+        Slider {
+            id: slider
+            Layout.fillWidth: true
+            onMoved: valueSlider.moved()
+        }
     }
 
     component SectionButton: Rectangle {

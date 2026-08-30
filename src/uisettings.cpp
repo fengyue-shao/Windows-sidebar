@@ -8,6 +8,10 @@ constexpr auto currentSectionKey = "layout/currentSection";
 constexpr auto mediaEnabledKey = "modules/mediaEnabled";
 constexpr auto monitorEnabledKey = "modules/monitorEnabled";
 constexpr auto notificationsEnabledKey = "modules/notificationsEnabled";
+constexpr auto autoHideKey = "behavior/autoHide";
+constexpr auto compactModeKey = "appearance/compactMode";
+constexpr auto panelWidthKey = "appearance/panelWidth";
+constexpr auto panelOpacityKey = "appearance/panelOpacity";
 }
 
 UiSettings::UiSettings(QObject *parent)
@@ -21,6 +25,10 @@ UiSettings::UiSettings(QObject *parent)
     m_mediaEnabled = settings.value(mediaEnabledKey, true).toBool();
     m_monitorEnabled = settings.value(monitorEnabledKey, true).toBool();
     m_notificationsEnabled = settings.value(notificationsEnabledKey, true).toBool();
+    m_autoHide = settings.value(autoHideKey, false).toBool();
+    m_compactMode = settings.value(compactModeKey, false).toBool();
+    m_panelWidth = qBound(360, settings.value(panelWidthKey, 420).toInt(), 560);
+    m_panelOpacity = qBound(0.72, settings.value(panelOpacityKey, 1.0).toDouble(), 1.0);
 }
 
 bool UiSettings::expanded() const { return m_expanded; }
@@ -28,6 +36,10 @@ int UiSettings::currentSection() const { return m_currentSection; }
 bool UiSettings::mediaEnabled() const { return m_mediaEnabled; }
 bool UiSettings::monitorEnabled() const { return m_monitorEnabled; }
 bool UiSettings::notificationsEnabled() const { return m_notificationsEnabled; }
+bool UiSettings::autoHide() const { return m_autoHide; }
+bool UiSettings::compactMode() const { return m_compactMode; }
+int UiSettings::panelWidth() const { return m_panelWidth; }
+qreal UiSettings::panelOpacity() const { return m_panelOpacity; }
 
 void UiSettings::setExpanded(bool expanded)
 {
@@ -74,6 +86,44 @@ void UiSettings::setNotificationsEnabled(bool enabled)
     emit notificationsEnabledChanged();
 }
 
+void UiSettings::setAutoHide(bool enabled)
+{
+    if (m_autoHide == enabled)
+        return;
+    m_autoHide = enabled;
+    QSettings().setValue(autoHideKey, enabled);
+    emit autoHideChanged();
+}
+
+void UiSettings::setCompactMode(bool enabled)
+{
+    if (m_compactMode == enabled)
+        return;
+    m_compactMode = enabled;
+    QSettings().setValue(compactModeKey, enabled);
+    emit compactModeChanged();
+}
+
+void UiSettings::setPanelWidth(int width)
+{
+    width = qBound(360, width, 560);
+    if (m_panelWidth == width)
+        return;
+    m_panelWidth = width;
+    QSettings().setValue(panelWidthKey, width);
+    emit panelWidthChanged();
+}
+
+void UiSettings::setPanelOpacity(qreal opacity)
+{
+    opacity = qBound(0.72, opacity, 1.0);
+    if (qFuzzyCompare(m_panelOpacity, opacity))
+        return;
+    m_panelOpacity = opacity;
+    QSettings().setValue(panelOpacityKey, opacity);
+    emit panelOpacityChanged();
+}
+
 void UiSettings::reset()
 {
     setExpanded(true);
@@ -81,4 +131,8 @@ void UiSettings::reset()
     setMediaEnabled(true);
     setMonitorEnabled(true);
     setNotificationsEnabled(true);
+    setAutoHide(false);
+    setCompactMode(false);
+    setPanelWidth(420);
+    setPanelOpacity(1.0);
 }
