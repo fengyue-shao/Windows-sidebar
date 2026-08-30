@@ -25,6 +25,7 @@ public:
 
     void applyHistory(const QVariantList &items, const QString &statusText);
     void applyDeleteResult(const QString &itemId, bool deleted, const QString &statusText);
+    void applyClearResult(int deletedCount, const QString &statusText);
     QStringList pinnedIds() const;
 
 signals:

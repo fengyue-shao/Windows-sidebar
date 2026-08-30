@@ -163,6 +163,33 @@ fire_and_forget deleteHistoryItem(QPointer<ClipboardManager> manager, const QStr
             manager->applyDeleteResult(itemId, deleted, statusText);
     }, Qt::QueuedConnection);
 }
+
+fire_and_forget clearUnpinnedHistory(QPointer<ClipboardManager> manager, const QStringList pinnedIds)
+{
+    int deletedCount = 0;
+    QString statusText;
+    try {
+        const auto result = co_await Clipboard::GetHistoryItemsAsync();
+        if (result.Status() == ClipboardHistoryItemsResultStatus::Success) {
+            for (const auto &historyItem : result.Items()) {
+                const QString id = QString::fromStdWString(historyItem.Id().c_str());
+                if (!pinnedIds.contains(id) && Clipboard::DeleteItemFromHistory(historyItem))
+                    ++deletedCount;
+            }
+            statusText = deletedCount > 0
+                ? QStringLiteral("已清除 %1 条未固定历史，固定项目已保留").arg(deletedCount)
+                : QStringLiteral("没有可清除的未固定历史");
+        } else {
+            statusText = QStringLiteral("无法读取剪贴板历史");
+        }
+    } catch (const hresult_error &error) {
+        statusText = QStringLiteral("清空失败：") + QString::fromStdWString(error.message().c_str());
+    }
+    QMetaObject::invokeMethod(qGuiApp, [manager, deletedCount, statusText] {
+        if (manager)
+            manager->applyClearResult(deletedCount, statusText);
+    }, Qt::QueuedConnection);
+}
 }
 
 ClipboardManager::ClipboardManager(QObject *parent)
@@ -209,19 +236,7 @@ void ClipboardManager::deleteItem(const QString &itemId)
 
 void ClipboardManager::clearHistory()
 {
-    try {
-        if (Clipboard::ClearHistory()) {
-            m_items.clear();
-            m_pinnedIds.clear();
-            QSettings().remove(QStringLiteral("clipboard/pinnedIds"));
-            m_statusText = QStringLiteral("历史已清空，Windows 系统固定项目会保留");
-            emit itemsChanged();
-            emit statusChanged();
-        }
-    } catch (const hresult_error &error) {
-        m_statusText = QStringLiteral("清空失败：") + QString::fromStdWString(error.message().c_str());
-        emit statusChanged();
-    }
+    clearUnpinnedHistory(this, m_pinnedIds);
 }
 
 QStringList ClipboardManager::pinnedIds() const
@@ -236,6 +251,21 @@ void ClipboardManager::applyDeleteResult(const QString &itemId, bool deleted, co
         QSettings().setValue(QStringLiteral("clipboard/pinnedIds"), m_pinnedIds);
         for (qsizetype index = m_items.size() - 1; index >= 0; --index) {
             if (m_items.at(index).toMap().value(QStringLiteral("id")).toString() == itemId)
+                m_items.removeAt(index);
+        }
+        emit itemsChanged();
+    }
+    if (m_statusText != statusText) {
+        m_statusText = statusText;
+        emit statusChanged();
+    }
+}
+
+void ClipboardManager::applyClearResult(int deletedCount, const QString &statusText)
+{
+    if (deletedCount > 0) {
+        for (qsizetype index = m_items.size() - 1; index >= 0; --index) {
+            if (!m_items.at(index).toMap().value(QStringLiteral("pinned")).toBool())
                 m_items.removeAt(index);
         }
         emit itemsChanged();
