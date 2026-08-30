@@ -117,6 +117,11 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
             }
+
+            ClipboardPage {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
         }
 
         SystemControlBar {

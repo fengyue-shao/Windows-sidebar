@@ -35,5 +35,6 @@ Window {
     Shortcut { sequence: "Ctrl+2"; onActivated: { uiSettings.currentSection = 1; uiSettings.expanded = true } }
     Shortcut { sequence: "Ctrl+3"; onActivated: { uiSettings.currentSection = 2; uiSettings.expanded = true } }
     Shortcut { sequence: "Ctrl+4"; onActivated: { uiSettings.currentSection = 3; uiSettings.expanded = true } }
+    Shortcut { sequence: "Ctrl+5"; onActivated: { uiSettings.currentSection = 4; uiSettings.expanded = true } }
     Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
 }

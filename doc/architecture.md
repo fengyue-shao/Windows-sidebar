@@ -62,12 +62,15 @@ flowchart LR
 | `uiSettings` | `UiSettings` | 展开状态、当前页面和模块开关的持久化 |
 | `focusTimer` | `FocusTimer` | 专注倒计时、预设时长与完成次数统计 |
 | `systemTrayManager` | `SystemTrayManager` | Windows 主音量、静音和电池供电状态 |
+| `clipboardManager` | `ClipboardManager` | Windows 系统剪贴板历史的异步读取与操作 |
 
 界面直接绑定 `Q_PROPERTY`。后端属性变化时发出对应信号，QML 会自动刷新，不需要界面主动轮询。
 
 `UiSettings` 和 `DisplayManager` 使用 `QSettings` 保存用户偏好。QML 只修改这两个应用级对象，避免在多个页面内分别维护易失状态；恢复默认布局时也由 `UiSettings::reset()` 统一触发属性通知。
 
 `FocusTimer` 使用 250 ms 的内部定时器刷新基于绝对截止时间计算的剩余秒数，因此界面刷新延迟不会导致倒计时逐渐漂移。切换页面或收起窗口不会影响计时，完成次数和所选时长通过 `QSettings` 保存。
+
+`ClipboardManager` 使用 `Windows.ApplicationModel.DataTransfer.Clipboard` 异步读取系统剪贴板历史，只在页面可见或用户主动刷新时访问。当前界面最多展示 24 条文本项目；图片和其他格式不会载入。访问被拒绝或系统历史关闭时，状态会直接反馈到 QML。
 
 `SystemTrayManager` 通过 Windows Core Audio 的 `IAudioEndpointVolume` 读写默认播放设备的主音量和设备名称，并使用 `IAudioSessionManager2` 枚举应用音频会话。每个会话通过 `ISimpleAudioVolume` 独立控制音量和静音；显示名称为空时回退到进程可执行文件名。它还通过 `GetSystemPowerStatus` 获取电池与充电状态，并通过 WinINet 读取联网状态。`QuickSettingsPanel` 采用内联扩张布局提供声音、网络、外观和侧栏四个控制页面：展开时增加自身高度并推动周围内容，不创建独立 Popup 或覆盖层；状态每秒同步一次，QML 不调用外部命令。
 
@@ -137,6 +140,7 @@ Main
    │     └─ NotificationArea
    │        └─ NotificationItem × N
    │  └─ FocusPage
+   │  └─ ClipboardPage
    └─ SystemControlBar
 ```
 

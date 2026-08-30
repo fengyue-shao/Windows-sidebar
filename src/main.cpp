@@ -7,6 +7,7 @@
 #include <winrt/base.h>
 
 #include "include/coverimageprovider.h"
+#include "include/clipboardmanager.h"
 #include "include/cpumonitor.h"
 #include "include/diskmonitor.h"
 #include "include/displaymanager.h"
@@ -32,6 +33,7 @@ int main(int argc, char *argv[])
     qRegisterMetaType<Notification>("Notification");
 
     QQmlApplicationEngine engine;
+    ClipboardManager clipboardManager;
     CpuMonitor cpuMonitor;
     GpuMonitor gpuMonitor;
     DiskMonitor diskMonitor;
@@ -77,6 +79,7 @@ int main(int argc, char *argv[])
     auto *coverProvider = new CoverImageProvider;
     mediaMonitor.setCoverProvider(coverProvider);
     engine.rootContext()->setContextProperty("cpuMonitor", &cpuMonitor);
+    engine.rootContext()->setContextProperty("clipboardManager", &clipboardManager);
     engine.rootContext()->setContextProperty("gpuMonitor", &gpuMonitor);
     engine.rootContext()->setContextProperty("diskMonitor", &diskMonitor);
     engine.rootContext()->setContextProperty("displayManager", &displayManager);
