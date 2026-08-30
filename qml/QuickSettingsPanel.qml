@@ -7,6 +7,7 @@ Rectangle {
     property int currentPanel: 0
     property bool expanded: false
     readonly property int summaryHeight: systemTrayManager.batteryPresent ? 188 : 164
+    readonly property int detailHeight: currentPanel === 0 ? 390 : 286
 
     function selectPanel(index) {
         if (expanded && currentPanel === index) {
@@ -17,7 +18,7 @@ Rectangle {
         expanded = true
     }
 
-    implicitHeight: summaryHeight + (expanded ? 306 : 0)
+    implicitHeight: summaryHeight + (expanded ? detailHeight + 20 : 0)
     radius: 16
     color: themeManager.surface
     border.width: 1
@@ -78,7 +79,7 @@ Rectangle {
 
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: root.expanded ? 286 : 0
+            Layout.preferredHeight: root.expanded ? root.detailHeight : 0
             visible: root.expanded
             clip: true
 
@@ -107,7 +108,56 @@ Rectangle {
                         Text { text: systemTrayManager.muted ? "当前已静音" : "主音量 " + systemTrayManager.volume + "%"; color: systemTrayManager.muted ? themeManager.danger : themeManager.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
                         Slider { Layout.fillWidth: true; from: 0; to: 100; value: systemTrayManager.volume; onMoved: systemTrayManager.setVolume(Math.round(value)) }
                         ControlButton { Layout.fillWidth: true; label: systemTrayManager.muted ? "取消静音" : "静音"; active: systemTrayManager.muted; onClicked: systemTrayManager.toggleMuted() }
-                        Item { Layout.fillHeight: true }
+                        Text { text: "应用音量"; color: themeManager.textSecondary; font.pixelSize: 10; font.weight: Font.DemiBold }
+                        ListView {
+                            Layout.fillWidth: true
+                            Layout.fillHeight: true
+                            clip: true
+                            spacing: 5
+                            model: systemTrayManager.audioSessions
+                            boundsBehavior: Flickable.StopAtBounds
+                            delegate: Rectangle {
+                                required property var modelData
+                                width: ListView.view.width
+                                height: 54
+                                radius: 12
+                                color: themeManager.surfaceStrong
+                                border.width: 1
+                                border.color: modelData.active ? themeManager.accentSoft : themeManager.border
+                                RowLayout {
+                                    anchors.fill: parent
+                                    anchors.leftMargin: 10
+                                    anchors.rightMargin: 10
+                                    spacing: 7
+                                    Rectangle {
+                                        Layout.preferredWidth: 28; Layout.preferredHeight: 28; radius: 9
+                                        color: modelData.muted ? themeManager.dangerSoft : themeManager.accentSoft
+                                        Text { anchors.centerIn: parent; text: modelData.muted ? "×" : "♪"; color: modelData.muted ? themeManager.danger : themeManager.accent; font.pixelSize: 11 }
+                                        TapHandler { onTapped: systemTrayManager.toggleSessionMuted(modelData.id) }
+                                    }
+                                    ColumnLayout {
+                                        Layout.preferredWidth: 82
+                                        spacing: 1
+                                        Text { Layout.fillWidth: true; text: modelData.name; elide: Text.ElideRight; color: themeManager.textPrimary; font.pixelSize: 9; font.weight: Font.DemiBold }
+                                        Text { text: modelData.active ? "正在播放" : "已暂停"; color: modelData.active ? themeManager.success : themeManager.textFaint; font.pixelSize: 8 }
+                                    }
+                                    Slider {
+                                        Layout.fillWidth: true
+                                        from: 0; to: 100; stepSize: 1
+                                        value: modelData.volume
+                                        onMoved: systemTrayManager.setSessionVolume(modelData.id, Math.round(value))
+                                    }
+                                    Text { Layout.preferredWidth: 25; text: modelData.volume; horizontalAlignment: Text.AlignRight; color: themeManager.textMuted; font.pixelSize: 8 }
+                                }
+                            }
+                            Text {
+                                anchors.centerIn: parent
+                                visible: parent.count === 0
+                                text: "暂无应用音频会话"
+                                color: themeManager.textFaint
+                                font.pixelSize: 9
+                            }
+                        }
                     }
 
                     ColumnLayout {
