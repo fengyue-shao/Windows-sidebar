@@ -75,9 +75,21 @@ int main(int argc, char *argv[])
     shell.setWorkingDirectory(arguments.at(cwdIndex + 1));
     QProcessEnvironment environment;
     const auto systemEnvironment = QProcessEnvironment::systemEnvironment();
-    for (const QString &name : {QStringLiteral("SystemRoot"), QStringLiteral("WINDIR"),
-                                QStringLiteral("PATH"), QStringLiteral("TEMP"), QStringLiteral("TMP")})
-        environment.insert(name, systemEnvironment.value(name));
+    const QStringList inheritedEnvironment = {
+        QStringLiteral("SystemRoot"), QStringLiteral("WINDIR"), QStringLiteral("SystemDrive"),
+        QStringLiteral("ComSpec"), QStringLiteral("PATH"), QStringLiteral("PATHEXT"),
+        QStringLiteral("TEMP"), QStringLiteral("TMP"), QStringLiteral("USERPROFILE"),
+        QStringLiteral("HOMEDRIVE"), QStringLiteral("HOMEPATH"), QStringLiteral("USERNAME"),
+        QStringLiteral("USERDOMAIN"), QStringLiteral("APPDATA"), QStringLiteral("LOCALAPPDATA"),
+        QStringLiteral("ProgramData"), QStringLiteral("ProgramFiles"), QStringLiteral("ProgramFiles(x86)"),
+        QStringLiteral("CommonProgramFiles"), QStringLiteral("CommonProgramFiles(x86)"),
+        QStringLiteral("PROCESSOR_ARCHITECTURE"), QStringLiteral("NUMBER_OF_PROCESSORS"),
+        QStringLiteral("PSModulePath")
+    };
+    for (const QString &name : inheritedEnvironment) {
+        const QString value = systemEnvironment.value(name);
+        if (!value.isEmpty()) environment.insert(name, value);
+    }
     environment.insert(QStringLiteral("SIDEBAR_RESTRICTED_TERMINAL"), QStringLiteral("1"));
     environment.insert(QStringLiteral("NO_COLOR"), QStringLiteral("1"));
     environment.insert(QStringLiteral("TERM"), QStringLiteral("xterm-256color"));
