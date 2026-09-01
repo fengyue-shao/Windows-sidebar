@@ -17,6 +17,8 @@ class TerminalManager : public QObject
     Q_PROPERTY(QString logPath READ logPath CONSTANT)
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
     Q_PROPERTY(int sessionEnvironmentCount READ sessionEnvironmentCount NOTIFY statusChanged)
+    Q_PROPERTY(bool conPtyAvailable READ conPtyAvailable CONSTANT)
+    Q_PROPERTY(QString transportName READ transportName CONSTANT)
 public:
     explicit TerminalManager(QObject *parent = nullptr);
     QString output() const { return m_output; }
@@ -27,6 +29,8 @@ public:
     QString logPath() const { return m_logPath; }
     bool running() const { return m_commandRunning; }
     int sessionEnvironmentCount() const { return m_sessionEnvironment.size(); }
+    bool conPtyAvailable() const { return m_conPtyAvailable; }
+    QString transportName() const { return m_transportName; }
     Q_INVOKABLE void run(const QString &command);
     Q_INVOKABLE void stop();
     Q_INVOKABLE void clear();
@@ -55,6 +59,8 @@ private:
     QStringDecoder m_utf8Decoder{QStringConverter::Utf8};
     QElapsedTimer m_runTimer;
     bool m_commandRunning = false;
+    bool m_conPtyAvailable = false;
+    QString m_transportName;
     qsizetype m_outputBytes = 0;
     enum class EscapeState { Normal, Escape, Csi, Osc, OscEscape };
     EscapeState m_escapeState = EscapeState::Normal;

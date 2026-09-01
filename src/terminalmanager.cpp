@@ -16,6 +16,9 @@
 #include <QUrl>
 #include <QSet>
 #include <QTimer>
+#ifdef Q_OS_WIN
+#include <Windows.h>
+#endif
 
 namespace {
 QByteArray removeJsonCommentsAndTrailingCommas(const QByteArray &input)
@@ -83,6 +86,15 @@ QPair<QString, QString> detectDefaultShell()
 
 TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
 {
+#ifdef Q_OS_WIN
+    const HMODULE kernel = GetModuleHandleW(L"kernel32.dll");
+    m_conPtyAvailable = kernel
+        && GetProcAddress(kernel, "CreatePseudoConsole")
+        && GetProcAddress(kernel, "ResizePseudoConsole")
+        && GetProcAddress(kernel, "ClosePseudoConsole");
+#endif
+    m_transportName = m_conPtyAvailable ? QStringLiteral("ConPTY 可用 · 会话管道")
+                                        : QStringLiteral("兼容会话管道");
     m_sandboxPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
         + QStringLiteral("/terminal-sandbox");
     QDir().mkpath(m_sandboxPath);
@@ -115,8 +127,8 @@ TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
     }
     m_availableCommands = commands.values();
     m_availableCommands.sort(Qt::CaseInsensitive);
-    writeLog(QStringLiteral("manager.init"), QStringLiteral("shell=%1 program=%2 sandbox=%3")
-        .arg(m_shellName, m_shellProgram, m_sandboxPath));
+    writeLog(QStringLiteral("manager.init"), QStringLiteral("shell=%1 program=%2 sandbox=%3 conPtyAvailable=%4")
+        .arg(m_shellName, m_shellProgram, m_sandboxPath).arg(m_conPtyAvailable));
     m_process.setProcessChannelMode(QProcess::MergedChannels);
     connect(&m_process, &QProcess::readyRead, this, [this] { appendOutput(m_process.readAll()); });
     connect(&m_process, &QProcess::finished, this, [this](int code, QProcess::ExitStatus status) {
