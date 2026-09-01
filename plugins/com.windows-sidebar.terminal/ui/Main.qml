@@ -7,6 +7,8 @@ Item {
     property var commandHistory: []
     property int historyIndex: commandHistory.length
     property int paletteIndex: 0
+    property int reverseSearchIndex: -1
+    property string reverseSearchQuery: ""
     property string notice: ""
     property var slashCommands: [
         { name: "/help", description: "显示快捷键与内置命令" },
@@ -46,6 +48,28 @@ Item {
         }
     }
 
+    function reverseSearchHistory() {
+        if (commandHistory.length === 0) {
+            notice = "反向搜索：暂无历史命令"
+            return
+        }
+        if (reverseSearchIndex < 0) {
+            reverseSearchQuery = commandInput.text
+            reverseSearchIndex = commandHistory.length
+        }
+        for (let index = reverseSearchIndex - 1; index >= 0; --index) {
+            if (!reverseSearchQuery || commandHistory[index].toLowerCase().indexOf(reverseSearchQuery.toLowerCase()) >= 0) {
+                reverseSearchIndex = index
+                commandInput.text = commandHistory[index]
+                commandInput.cursorPosition = commandInput.text.length
+                notice = "反向搜索（Ctrl+R 继续）：" + (reverseSearchQuery || "全部历史")
+                return
+            }
+        }
+        reverseSearchIndex = commandHistory.length
+        notice = "已到达历史起点；再次按 Ctrl+R 从最新记录继续"
+    }
+
     function submitCommand() {
         const command = commandInput.text.trim()
         if (!command || terminalManager.running) return
@@ -63,6 +87,8 @@ Item {
         historyIndex = commandHistory.length
         terminalManager.run(command)
         notice = ""
+        reverseSearchIndex = -1
+        reverseSearchQuery = ""
         commandInput.clear()
     }
 
@@ -171,23 +197,54 @@ Item {
                 id: promptRow
                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                 anchors.leftMargin: 12; anchors.rightMargin: 12; anchors.bottomMargin: 8
-                height: 30; spacing: 7
+                height: Math.min(76, Math.max(30, commandInput.contentHeight + 8)); spacing: 7
                 Text {
                     text: terminalManager.running ? "●" : "PS sandbox>"
                     color: terminalManager.running ? themeManager.warning : themeManager.success
                     font.family: "Cascadia Mono"; font.pixelSize: 10; font.weight: Font.DemiBold
                 }
-                TextInput {
+                TextArea {
                 id: commandInput
                 Layout.fillWidth: true
+                Layout.fillHeight: true
                 enabled: !terminalManager.running
                 selectByMouse: true
+                wrapMode: TextEdit.WrapAnywhere
                 color: themeManager.dark ? "#E6EDF3" : "#1F2937"
                 selectionColor: themeManager.accent
                 font.family: "Cascadia Mono"
                 font.pixelSize: 10
-                Keys.onReturnPressed: event => { root.submitCommand(); event.accepted = true }
-                Keys.onEnterPressed: event => { root.submitCommand(); event.accepted = true }
+                padding: 0
+                background: null
+                activeFocusOnTab: false
+                KeyNavigation.tab: commandInput
+                KeyNavigation.backtab: commandInput
+                Keys.onTabPressed: event => {
+                    if (commandPalette.visible) {
+                        const matches = root.filteredCommands()
+                        if (matches.length > 0) {
+                            text = matches[root.paletteIndex].name
+                            cursorPosition = text.length
+                        }
+                    }
+                    forceActiveFocus()
+                    event.accepted = true
+                }
+                Keys.onBacktabPressed: event => { forceActiveFocus(); event.accepted = true }
+                Keys.onReturnPressed: event => {
+                    if (event.modifiers & Qt.ShiftModifier) {
+                        event.accepted = false
+                    } else {
+                        root.submitCommand(); event.accepted = true
+                    }
+                }
+                Keys.onEnterPressed: event => {
+                    if (event.modifiers & Qt.ShiftModifier) {
+                        event.accepted = false
+                    } else {
+                        root.submitCommand(); event.accepted = true
+                    }
+                }
                 onTextChanged: root.paletteIndex = 0
                 Keys.onUpPressed: event => {
                     if (commandPalette.visible) {
@@ -219,19 +276,14 @@ Item {
                     event.accepted = true
                 }
                 Keys.onPressed: event => {
-                    if (event.key === Qt.Key_Tab && commandPalette.visible) {
-                        const matches = root.filteredCommands()
-                        if (matches.length > 0) {
-                            text = matches[root.paletteIndex].name
-                            cursorPosition = text.length
-                        }
-                        event.accepted = true
-                    } else if ((event.key === Qt.Key_Escape || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C)) && terminalManager.running) {
+                    if ((event.key === Qt.Key_Escape || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C)) && terminalManager.running) {
                         terminalManager.stop(); event.accepted = true
                     } else if (event.key === Qt.Key_Escape) {
-                        clear(); root.notice = ""; event.accepted = true
+                        clear(); root.notice = ""; root.reverseSearchIndex = -1; event.accepted = true
                     } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_L) {
                         terminalManager.clear(); event.accepted = true
+                    } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_R) {
+                        root.reverseSearchHistory(); event.accepted = true
                     }
                 }
                 Component.onCompleted: forceActiveFocus()
@@ -241,7 +293,7 @@ Item {
 
         Text {
             Layout.fillWidth: true
-            text: "输入 / 打开命令面板 · Tab 补全 · ↑↓ 导航 · Esc/Ctrl+C 停止。限制：Constrained Language · 60 秒超时 · 256 MB/进程 · 最多 6 个进程。"
+            text: "输入 / 打开命令面板 · Tab 补全 · Shift+Enter 换行 · Ctrl+R 搜索历史 · Esc/Ctrl+C 停止。限制：Constrained Language · 60 秒超时。"
             color: themeManager.textFaint; font.pixelSize: 8; wrapMode: Text.WordWrap
         }
     }
