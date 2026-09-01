@@ -1,8 +1,10 @@
 #include <QCoreApplication>
 #include <QProcess>
 #include <QProcessEnvironment>
+#include <QFileInfo>
 #include <QTextStream>
 #include <QTimer>
+#include <QStringConverter>
 #include <Windows.h>
 
 int main(int argc, char *argv[])
@@ -11,9 +13,14 @@ int main(int argc, char *argv[])
     const QStringList arguments = app.arguments();
     const int commandIndex = arguments.indexOf(QStringLiteral("--command"));
     const int cwdIndex = arguments.indexOf(QStringLiteral("--cwd"));
+    const int shellIndex = arguments.indexOf(QStringLiteral("--shell"));
     if (commandIndex < 0 || commandIndex + 1 >= arguments.size()
-        || cwdIndex < 0 || cwdIndex + 1 >= arguments.size())
+        || cwdIndex < 0 || cwdIndex + 1 >= arguments.size()
+        || shellIndex < 0 || shellIndex + 1 >= arguments.size())
         return 2;
+
+    SetConsoleCP(CP_UTF8);
+    SetConsoleOutputCP(CP_UTF8);
 
     HANDLE job = CreateJobObjectW(nullptr, nullptr);
     if (!job)
@@ -26,6 +33,8 @@ int main(int argc, char *argv[])
     SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits));
 
     QProcess shell;
+    const QString shellProgram = arguments.at(shellIndex + 1);
+    const bool commandPrompt = QFileInfo(shellProgram).fileName().compare(QStringLiteral("cmd.exe"), Qt::CaseInsensitive) == 0;
     shell.setWorkingDirectory(arguments.at(cwdIndex + 1));
     QProcessEnvironment environment;
     const auto systemEnvironment = QProcessEnvironment::systemEnvironment();
@@ -36,21 +45,29 @@ int main(int argc, char *argv[])
     shell.setProcessEnvironment(environment);
     shell.setProcessChannelMode(QProcess::MergedChannels);
 
-    QObject::connect(&shell, &QProcess::readyRead, [&shell] {
+    QObject::connect(&shell, &QProcess::readyRead, [&shell, commandPrompt] {
         QTextStream output(stdout, QIODevice::WriteOnly);
-        output << QString::fromLocal8Bit(shell.readAll()) << Qt::flush;
+        output.setEncoding(QStringConverter::Utf8);
+        const QByteArray bytes = shell.readAll();
+        output << (commandPrompt
+            ? QString::fromUtf16(reinterpret_cast<const char16_t *>(bytes.constData()), bytes.size() / 2)
+            : QString::fromUtf8(bytes)) << Qt::flush;
     });
     QObject::connect(&shell, &QProcess::finished, &app, [&app, job](int code) {
         CloseHandle(job);
         app.exit(code);
     });
-    shell.start(QStringLiteral("powershell.exe"), {
-        QStringLiteral("-NoLogo"), QStringLiteral("-NoProfile"), QStringLiteral("-NonInteractive"),
-        QStringLiteral("-ExecutionPolicy"), QStringLiteral("Restricted"),
-        QStringLiteral("-Command"),
-        QStringLiteral("$ExecutionContext.SessionState.LanguageMode = 'ConstrainedLanguage'; ")
-            + arguments.at(commandIndex + 1)
-    });
+    if (commandPrompt) {
+        shell.start(shellProgram, {QStringLiteral("/U"), QStringLiteral("/D"), QStringLiteral("/S"), QStringLiteral("/C"),
+            QStringLiteral("chcp 65001>nul & ") + arguments.at(commandIndex + 1)});
+    } else {
+        shell.start(shellProgram, {
+            QStringLiteral("-NoLogo"), QStringLiteral("-NoProfile"), QStringLiteral("-NonInteractive"),
+            QStringLiteral("-ExecutionPolicy"), QStringLiteral("Restricted"), QStringLiteral("-Command"),
+            QStringLiteral("[Console]::InputEncoding=[Text.UTF8Encoding]::new($false); [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $OutputEncoding=[Text.UTF8Encoding]::new($false); $ExecutionContext.SessionState.LanguageMode='ConstrainedLanguage'; ")
+                + arguments.at(commandIndex + 1)
+        });
+    }
     if (!shell.waitForStarted(5000)) {
         CloseHandle(job);
         return 4;

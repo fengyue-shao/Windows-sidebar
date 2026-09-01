@@ -30,7 +30,7 @@ Item {
                 anchors.fill: parent; anchors.leftMargin: 11; anchors.rightMargin: 11; spacing: 7
                 Text { text: "▣"; color: themeManager.accent; font.pixelSize: 10 }
                 Text { Layout.fillWidth: true; text: terminalManager.sandboxPath; color: themeManager.textMuted; font.pixelSize: 8; elide: Text.ElideMiddle }
-                Text { text: "固定目录"; color: themeManager.textFaint; font.pixelSize: 8 }
+                Text { text: "UTF-8 · " + terminalManager.shellName; color: themeManager.textFaint; font.pixelSize: 8 }
             }
         }
 
@@ -43,7 +43,7 @@ Item {
                 anchors.fill: parent; anchors.margins: 10
                 TextArea {
                     id: terminalOutput
-                    text: terminalManager.output.length > 0 ? terminalManager.output : "Windows Sidebar Restricted Runner\n输入命令后按 Enter 执行。\n"
+                    text: terminalManager.output.length > 0 ? terminalManager.output : "Windows Sidebar Restricted Runner\nShell: " + terminalManager.shellName + "\nEncoding: UTF-8\n输入命令后按 Enter 执行。\n"
                     readOnly: true
                     selectByMouse: true
                     wrapMode: TextEdit.WrapAnywhere

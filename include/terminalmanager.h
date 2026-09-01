@@ -8,12 +8,14 @@ class TerminalManager : public QObject
     Q_PROPERTY(QString output READ output NOTIFY outputChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusChanged)
     Q_PROPERTY(QString sandboxPath READ sandboxPath CONSTANT)
+    Q_PROPERTY(QString shellName READ shellName CONSTANT)
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
 public:
     explicit TerminalManager(QObject *parent = nullptr);
     QString output() const { return m_output; }
     QString statusText() const { return m_statusText; }
     QString sandboxPath() const { return m_sandboxPath; }
+    QString shellName() const { return m_shellName; }
     bool running() const { return m_process.state() != QProcess::NotRunning; }
     Q_INVOKABLE void run(const QString &command);
     Q_INVOKABLE void stop();
@@ -28,4 +30,6 @@ private:
     QString m_output;
     QString m_statusText = QStringLiteral("受限 Runner 已就绪");
     QString m_sandboxPath;
+    QString m_shellProgram;
+    QString m_shellName;
 };

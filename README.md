@@ -22,6 +22,7 @@
 - 插件系统原型可从运行目录的 `plugins` 文件夹校验清单并动态注册侧栏页面；项目附带“工具箱”示例 UI 插件。
 - 主界面以监控页为首页，系统控制中心位于监控信息下方；插件可在设置中启用或禁用，并即时加入或移出导航。
 - 首个后端型插件“受限终端”使用独立 Runner、PowerShell Constrained Language、固定初始目录、Job Object 进程树和资源/时间/输出限制；它是实验性隔离，不等同于 AppContainer 强沙盒。
+- 终端 Runner 默认使用 UTF-8 输入输出，并尝试继承 Windows Terminal 的默认 Profile（支持 PowerShell 7、Windows PowerShell 与 CMD，无法解析时回退到 Windows PowerShell）。
 
 ## Windows 通知权限
 
