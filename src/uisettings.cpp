@@ -12,6 +12,7 @@ constexpr auto autoHideKey = "behavior/autoHide";
 constexpr auto compactModeKey = "appearance/compactMode";
 constexpr auto panelWidthKey = "appearance/panelWidth";
 constexpr auto panelOpacityKey = "appearance/panelOpacity";
+constexpr auto navigationSchemaKey = "layout/navigationSchema";
 }
 
 UiSettings::UiSettings(QObject *parent)
@@ -20,6 +21,11 @@ UiSettings::UiSettings(QObject *parent)
     QSettings settings;
     m_expanded = settings.value(expandedKey, true).toBool();
     m_currentSection = settings.value(currentSectionKey, 0).toInt();
+    if (settings.value(navigationSchemaKey, 1).toInt() < 2) {
+        m_currentSection = m_currentSection > 0 ? m_currentSection - 1 : 0;
+        settings.setValue(currentSectionKey, m_currentSection);
+        settings.setValue(navigationSchemaKey, 2);
+    }
     if (m_currentSection < 0 || m_currentSection > 63)
         m_currentSection = 0;
     m_mediaEnabled = settings.value(mediaEnabledKey, true).toBool();

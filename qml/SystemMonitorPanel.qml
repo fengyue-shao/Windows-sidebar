@@ -102,5 +102,14 @@ Flickable {
         }
 
         DiskPanel { Layout.fillWidth: true; Layout.preferredHeight: implicitHeight; model: diskMonitor }
+
+        RowLayout {
+            Layout.fillWidth: true
+            Layout.topMargin: 4
+            Text { Layout.fillWidth: true; text: "系统控制"; color: themeManager.textPrimary; font.pixelSize: 16; font.weight: Font.DemiBold }
+            Text { text: "展开调节"; color: themeManager.textFaint; font.pixelSize: 9 }
+        }
+
+        QuickSettingsPanel { Layout.fillWidth: true }
     }
 }

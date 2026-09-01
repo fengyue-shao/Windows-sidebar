@@ -15,7 +15,7 @@ Item {
     signal toggleRequested()
 
     function ensureValidSection() {
-        if (root.currentSection >= 5 + pluginRegistry.pageCount)
+        if (root.currentSection >= 4 + pluginRegistry.pageCount)
             uiSettings.currentSection = 0
     }
 
@@ -70,18 +70,9 @@ Item {
             Layout.fillHeight: true
             currentIndex: root.currentSection
 
-            DashboardPage {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                mediaEnabled: root.mediaEnabled
-                monitorEnabled: root.monitorEnabled
-                notificationsEnabled: root.notificationsEnabled
-            }
-
             SystemMonitorPanel {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
-                visible: root.monitorEnabled
             }
 
             Item {

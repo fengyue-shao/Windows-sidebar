@@ -19,6 +19,7 @@ PluginRegistry::PluginRegistry(QObject *parent) : QObject(parent)
 void PluginRegistry::reload()
 {
     QVariantList discovered;
+    QVariantList plugins;
     QStringList errors;
     const QDir root(QCoreApplication::applicationDirPath() + QStringLiteral("/plugins"));
     const auto pluginDirectories = root.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
@@ -40,11 +41,18 @@ void PluginRegistry::reload()
             errors.append(directoryInfo.fileName() + QStringLiteral(": 清单无效"));
             continue;
         }
-        if (!QSettings().value(QStringLiteral("plugins/%1/enabled").arg(pluginId), true).toBool())
-            continue;
-
+        const bool enabled = QSettings().value(QStringLiteral("plugins/%1/enabled").arg(pluginId), true).toBool();
         const QJsonArray pages = manifest.value(QStringLiteral("contributes")).toObject()
                                      .value(QStringLiteral("pages")).toArray();
+        QVariantMap pluginDescriptor;
+        pluginDescriptor.insert(QStringLiteral("id"), pluginId);
+        pluginDescriptor.insert(QStringLiteral("name"), pluginName);
+        pluginDescriptor.insert(QStringLiteral("version"), manifest.value(QStringLiteral("version")).toString());
+        pluginDescriptor.insert(QStringLiteral("enabled"), enabled);
+        pluginDescriptor.insert(QStringLiteral("pageCount"), pages.size());
+        plugins.append(pluginDescriptor);
+        if (!enabled)
+            continue;
         for (const QJsonValue &pageValue : pages) {
             const QJsonObject page = pageValue.toObject();
             const QString pageId = page.value(QStringLiteral("id")).toString();
@@ -75,9 +83,19 @@ void PluginRegistry::reload()
              < right.toMap().value(QStringLiteral("order")).toInt();
     });
     m_pages = discovered;
+    m_plugins = plugins;
     m_statusText = errors.isEmpty()
         ? QStringLiteral("已加载 %1 个插件页面").arg(m_pages.size())
         : QStringLiteral("已加载 %1 个页面，%2 个错误").arg(m_pages.size()).arg(errors.size());
     emit pagesChanged();
+    emit pluginsChanged();
     emit statusChanged();
+}
+
+void PluginRegistry::setPluginEnabled(const QString &pluginId, bool enabled)
+{
+    if (pluginId.isEmpty())
+        return;
+    QSettings().setValue(QStringLiteral("plugins/%1/enabled").arg(pluginId), enabled);
+    reload();
 }

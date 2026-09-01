@@ -210,6 +210,8 @@ Job Object 和命令过滤只能构成“受限执行环境”，不能被宣传
 
 验收：新增页面无需修改 `Sidebar.qml` 和 `SystemControlBar.qml` 的按钮列表。
 
+当前进度：已完成 UI 插件清单扫描、路径校验、动态页面与导航、设置页启停和 QSettings 持久化。当前 Loader 仍运行在宿主 QML 引擎中，因此仅允许随项目提供的受信任 UI 插件。
+
 ### 阶段 B：独立进程与 RPC
 
 - 实现命名管道 JSON-RPC。
