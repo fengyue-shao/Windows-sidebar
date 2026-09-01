@@ -182,6 +182,36 @@ void TerminalManager::run(const QString &command)
 {
     const QString trimmed = command.trimmed();
     if (trimmed.isEmpty() || running()) return;
+    static const QRegularExpression powershellEnvironmentPattern(
+        QStringLiteral("^\\$env:([A-Za-z_][A-Za-z0-9_]*)\\s*=\\s*(.*)$"),
+        QRegularExpression::CaseInsensitiveOption);
+    static const QRegularExpression cmdEnvironmentPattern(
+        QStringLiteral("^set\\s+([A-Za-z_][A-Za-z0-9_]*)=(.*)$"),
+        QRegularExpression::CaseInsensitiveOption);
+    QRegularExpressionMatch environmentMatch = powershellEnvironmentPattern.match(trimmed);
+    if (!environmentMatch.hasMatch()) environmentMatch = cmdEnvironmentPattern.match(trimmed);
+    if (environmentMatch.hasMatch()) {
+        const QString name = environmentMatch.captured(1).toUpper();
+        QString value = environmentMatch.captured(2).trimmed();
+        const bool remove = value.compare(QStringLiteral("$null"), Qt::CaseInsensitive) == 0 || value.isEmpty();
+        if ((value.startsWith(QLatin1Char('\"')) && value.endsWith(QLatin1Char('\"')))
+            || (value.startsWith(QLatin1Char('\'')) && value.endsWith(QLatin1Char('\''))))
+            value = value.mid(1, value.size() - 2);
+        appendOutput(QStringLiteral("\nPS sandbox> %1\n").arg(trimmed).toUtf8());
+        if (remove) {
+            m_sessionEnvironment.remove(name);
+            appendOutput(QStringLiteral("[会话] 已移除环境变量 %1\n").arg(name).toUtf8());
+        } else {
+            m_sessionEnvironment.insert(name, value);
+            appendOutput(QStringLiteral("[会话] 已保存环境变量 %1（值不会写入日志）\n").arg(name).toUtf8());
+        }
+        m_statusText = QStringLiteral("会话环境已更新 · %1 个变量").arg(m_sessionEnvironment.size());
+        writeLog(QStringLiteral("session.environment.updated"), QStringLiteral("name=%1 action=%2 count=%3")
+            .arg(name, remove ? QStringLiteral("remove") : QStringLiteral("set"))
+            .arg(m_sessionEnvironment.size()));
+        emit statusChanged();
+        return;
+    }
     static const QRegularExpression changeDirectoryPattern(
         QStringLiteral("^(?:cd|Set-Location)(?:\\s+(.+))?$"),
         QRegularExpression::CaseInsensitiveOption);
@@ -222,10 +252,16 @@ void TerminalManager::run(const QString &command)
     m_statusText = QStringLiteral("正在独立 Runner 中执行");
     emit statusChanged();
     const QString runner = QCoreApplication::applicationDirPath() + QStringLiteral("/sidebar-terminal-runner.exe");
-    m_process.start(runner, {QStringLiteral("--cwd"), m_currentDirectory,
-                             QStringLiteral("--shell"), m_shellProgram,
-                             QStringLiteral("--log"), m_logPath,
-                             QStringLiteral("--command"), trimmed});
+    QStringList runnerArguments = {QStringLiteral("--cwd"), m_currentDirectory,
+                                   QStringLiteral("--shell"), m_shellProgram,
+                                   QStringLiteral("--log"), m_logPath,
+                                   QStringLiteral("--command"), trimmed};
+    for (auto iterator = m_sessionEnvironment.constBegin(); iterator != m_sessionEnvironment.constEnd(); ++iterator) {
+        runnerArguments += QStringLiteral("--env64");
+        runnerArguments += iterator.key() + QLatin1Char(':')
+            + QString::fromLatin1(iterator.value().toUtf8().toBase64());
+    }
+    m_process.start(runner, runnerArguments);
 }
 
 void TerminalManager::stop()

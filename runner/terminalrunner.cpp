@@ -78,6 +78,15 @@ int main(int argc, char *argv[])
     environment.insert(QStringLiteral("SIDEBAR_RESTRICTED_TERMINAL"), QStringLiteral("1"));
     environment.insert(QStringLiteral("NO_COLOR"), QStringLiteral("1"));
     environment.insert(QStringLiteral("TERM"), QStringLiteral("xterm-256color"));
+    for (int index = 0; index + 1 < arguments.size(); ++index) {
+        if (arguments.at(index) != QStringLiteral("--env64")) continue;
+        const QString encoded = arguments.at(index + 1);
+        const int separator = encoded.indexOf(QLatin1Char(':'));
+        if (separator <= 0) continue;
+        const QString name = encoded.left(separator);
+        const QString value = QString::fromUtf8(QByteArray::fromBase64(encoded.mid(separator + 1).toLatin1()));
+        environment.insert(name, value);
+    }
     shell.setProcessEnvironment(environment);
     shell.setProcessChannelMode(QProcess::MergedChannels);
 

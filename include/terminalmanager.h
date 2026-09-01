@@ -4,6 +4,7 @@
 #include <QElapsedTimer>
 #include <QStringConverter>
 #include <QStringList>
+#include <QHash>
 
 class TerminalManager : public QObject
 {
@@ -15,6 +16,7 @@ class TerminalManager : public QObject
     Q_PROPERTY(QString shellName READ shellName CONSTANT)
     Q_PROPERTY(QString logPath READ logPath CONSTANT)
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+    Q_PROPERTY(int sessionEnvironmentCount READ sessionEnvironmentCount NOTIFY statusChanged)
 public:
     explicit TerminalManager(QObject *parent = nullptr);
     QString output() const { return m_output; }
@@ -24,6 +26,7 @@ public:
     QString shellName() const { return m_shellName; }
     QString logPath() const { return m_logPath; }
     bool running() const { return m_process.state() != QProcess::NotRunning; }
+    int sessionEnvironmentCount() const { return m_sessionEnvironment.size(); }
     Q_INVOKABLE void run(const QString &command);
     Q_INVOKABLE void stop();
     Q_INVOKABLE void clear();
@@ -47,6 +50,7 @@ private:
     QString m_shellName;
     QString m_logPath;
     QStringList m_availableCommands;
+    QHash<QString, QString> m_sessionEnvironment;
     QStringDecoder m_utf8Decoder{QStringConverter::Utf8};
     QElapsedTimer m_runTimer;
     qsizetype m_outputBytes = 0;
