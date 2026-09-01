@@ -25,6 +25,31 @@ Item {
         return slashCommands.filter(item => item.name.indexOf(query) === 0)
     }
 
+    function completeCommand() {
+        if (!commandInput.activeFocus)
+            return
+        const matches = filteredCommands()
+        if (commandPalette.visible && matches.length > 0) {
+            commandInput.text = matches[Math.min(paletteIndex, matches.length - 1)].name
+            commandInput.cursorPosition = commandInput.text.length
+        }
+        commandInput.forceActiveFocus()
+    }
+
+    Shortcut {
+        sequence: "Tab"
+        context: Qt.WindowShortcut
+        enabled: commandInput.activeFocus
+        onActivated: root.completeCommand()
+    }
+
+    Shortcut {
+        sequence: "Shift+Tab"
+        context: Qt.WindowShortcut
+        enabled: commandInput.activeFocus
+        onActivated: commandInput.forceActiveFocus()
+    }
+
     function runSlashCommand(command) {
         notice = ""
         switch (command) {
@@ -197,54 +222,28 @@ Item {
                 id: promptRow
                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
                 anchors.leftMargin: 12; anchors.rightMargin: 12; anchors.bottomMargin: 8
-                height: Math.min(76, Math.max(30, commandInput.contentHeight + 8)); spacing: 7
+                height: 30; spacing: 7
                 Text {
                     text: terminalManager.running ? "●" : "PS sandbox>"
                     color: terminalManager.running ? themeManager.warning : themeManager.success
                     font.family: "Cascadia Mono"; font.pixelSize: 10; font.weight: Font.DemiBold
                 }
-                TextArea {
+                TextInput {
                 id: commandInput
                 Layout.fillWidth: true
-                Layout.fillHeight: true
                 enabled: !terminalManager.running
                 selectByMouse: true
-                wrapMode: TextEdit.WrapAnywhere
                 color: themeManager.dark ? "#E6EDF3" : "#1F2937"
                 selectionColor: themeManager.accent
                 font.family: "Cascadia Mono"
                 font.pixelSize: 10
-                padding: 0
-                background: null
                 activeFocusOnTab: false
                 KeyNavigation.tab: commandInput
                 KeyNavigation.backtab: commandInput
-                Keys.onTabPressed: event => {
-                    if (commandPalette.visible) {
-                        const matches = root.filteredCommands()
-                        if (matches.length > 0) {
-                            text = matches[root.paletteIndex].name
-                            cursorPosition = text.length
-                        }
-                    }
-                    forceActiveFocus()
-                    event.accepted = true
-                }
+                Keys.onTabPressed: event => { root.completeCommand(); event.accepted = true }
                 Keys.onBacktabPressed: event => { forceActiveFocus(); event.accepted = true }
-                Keys.onReturnPressed: event => {
-                    if (event.modifiers & Qt.ShiftModifier) {
-                        event.accepted = false
-                    } else {
-                        root.submitCommand(); event.accepted = true
-                    }
-                }
-                Keys.onEnterPressed: event => {
-                    if (event.modifiers & Qt.ShiftModifier) {
-                        event.accepted = false
-                    } else {
-                        root.submitCommand(); event.accepted = true
-                    }
-                }
+                Keys.onReturnPressed: event => { root.submitCommand(); event.accepted = true }
+                Keys.onEnterPressed: event => { root.submitCommand(); event.accepted = true }
                 onTextChanged: root.paletteIndex = 0
                 Keys.onUpPressed: event => {
                     if (commandPalette.visible) {
@@ -293,7 +292,7 @@ Item {
 
         Text {
             Layout.fillWidth: true
-            text: "输入 / 打开命令面板 · Tab 补全 · Shift+Enter 换行 · Ctrl+R 搜索历史 · Esc/Ctrl+C 停止。限制：Constrained Language · 60 秒超时。"
+            text: "输入 / 打开命令面板 · Tab 补全 · Ctrl+R 搜索历史 · Esc/Ctrl+C 停止。限制：Constrained Language · 60 秒超时。"
             color: themeManager.textFaint; font.pixelSize: 8; wrapMode: Text.WordWrap
         }
     }
