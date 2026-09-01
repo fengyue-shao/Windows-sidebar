@@ -6,15 +6,63 @@ Item {
     id: root
     property var commandHistory: []
     property int historyIndex: commandHistory.length
+    property int paletteIndex: 0
+    property string notice: ""
+    property var slashCommands: [
+        { name: "/help", description: "显示快捷键与内置命令" },
+        { name: "/status", description: "查看当前会话与隔离状态" },
+        { name: "/clear", description: "清空终端显示（Ctrl+L）" },
+        { name: "/history", description: "显示本次会话的命令历史" },
+        { name: "/logs", description: "打开插件调试日志" },
+        { name: "/stop", description: "中止正在运行的命令" },
+        { name: "/reset", description: "清空显示与命令历史" }
+    ]
+
+    function filteredCommands() {
+        const query = commandInput.text.toLowerCase()
+        return slashCommands.filter(item => item.name.indexOf(query) === 0)
+    }
+
+    function runSlashCommand(command) {
+        notice = ""
+        switch (command) {
+        case "/help":
+            notice = "Enter 执行 · Tab 补全 · ↑↓ 历史/选择 · Ctrl+C 或 Esc 中止 · Ctrl+L 清屏"
+            break
+        case "/status":
+            notice = "就绪 · " + terminalManager.shellName + " · UTF-8 · 受限目录：" + terminalManager.sandboxPath
+            break
+        case "/clear": terminalManager.clear(); break
+        case "/history":
+            notice = commandHistory.length > 0 ? commandHistory.join("  ·  ") : "本次会话还没有命令历史"
+            break
+        case "/logs": terminalManager.openLogFile(); notice = "已请求打开终端插件日志"; break
+        case "/stop": terminalManager.stop(); break
+        case "/reset":
+            terminalManager.clear(); commandHistory = []; historyIndex = 0
+            notice = "会话显示与输入历史已重置"
+            break
+        default: notice = "未知内置命令。输入 / 查看可用命令"; break
+        }
+    }
 
     function submitCommand() {
         const command = commandInput.text.trim()
         if (!command || terminalManager.running) return
+        if (command.startsWith("/")) {
+            const matches = filteredCommands()
+            const selected = matches.length > 0 ? matches[Math.min(paletteIndex, matches.length - 1)].name : command
+            runSlashCommand(selected)
+            commandInput.clear()
+            paletteIndex = 0
+            return
+        }
         if (commandHistory.length === 0 || commandHistory[commandHistory.length - 1] !== command)
             commandHistory.push(command)
         if (commandHistory.length > 100) commandHistory.shift()
         historyIndex = commandHistory.length
         terminalManager.run(command)
+        notice = ""
         commandInput.clear()
     }
 
@@ -73,6 +121,52 @@ Item {
                     onTextChanged: cursorPosition = length
                 }
             }
+            Rectangle {
+                id: commandPalette
+                visible: commandInput.text.startsWith("/") && root.filteredCommands().length > 0 && !terminalManager.running
+                anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: promptRow.top
+                anchors.leftMargin: 10; anchors.rightMargin: 10; anchors.bottomMargin: 6
+                height: Math.min(210, paletteColumn.implicitHeight + 12)
+                radius: 12; z: 4
+                color: themeManager.dark ? "#171C24" : "#FFFFFF"
+                border.width: 1; border.color: themeManager.accent
+                clip: true
+                Column {
+                    id: paletteColumn
+                    anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
+                    anchors.margins: 6; spacing: 2
+                    Repeater {
+                        model: root.filteredCommands()
+                        Rectangle {
+                            required property var modelData
+                            required property int index
+                            width: paletteColumn.width; height: 28; radius: 7
+                            color: index === root.paletteIndex ? themeManager.accentSoft : "transparent"
+                            RowLayout {
+                                anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
+                                Text { text: modelData.name; color: themeManager.accent; font.family: "Cascadia Mono"; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                Text { Layout.fillWidth: true; text: modelData.description; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            }
+                            TapHandler { onTapped: { commandInput.text = modelData.name; commandInput.cursorPosition = commandInput.text.length; commandInput.forceActiveFocus() } }
+                        }
+                    }
+                }
+            }
+            Rectangle {
+                visible: root.notice.length > 0 && !commandPalette.visible
+                anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: promptRow.top
+                anchors.leftMargin: 10; anchors.rightMargin: 10; anchors.bottomMargin: 6
+                height: noticeText.implicitHeight + 16; radius: 10; z: 3
+                color: themeManager.dark ? "#171C24" : "#FFFFFF"
+                border.width: 1; border.color: themeManager.border
+                Text {
+                    id: noticeText
+                    anchors.fill: parent; anchors.margins: 8
+                    text: root.notice; color: themeManager.textMuted; font.pixelSize: 9
+                    wrapMode: Text.WrapAnywhere
+                }
+                TapHandler { onTapped: root.notice = "" }
+            }
             RowLayout {
                 id: promptRow
                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: parent.bottom
@@ -94,7 +188,13 @@ Item {
                 font.pixelSize: 10
                 Keys.onReturnPressed: event => { root.submitCommand(); event.accepted = true }
                 Keys.onEnterPressed: event => { root.submitCommand(); event.accepted = true }
+                onTextChanged: root.paletteIndex = 0
                 Keys.onUpPressed: event => {
+                    if (commandPalette.visible) {
+                        root.paletteIndex = Math.max(0, root.paletteIndex - 1)
+                        event.accepted = true
+                        return
+                    }
                     if (root.commandHistory.length > 0) {
                         root.historyIndex = Math.max(0, root.historyIndex - 1)
                         text = root.commandHistory[root.historyIndex]
@@ -103,6 +203,11 @@ Item {
                     event.accepted = true
                 }
                 Keys.onDownPressed: event => {
+                    if (commandPalette.visible) {
+                        root.paletteIndex = Math.min(root.filteredCommands().length - 1, root.paletteIndex + 1)
+                        event.accepted = true
+                        return
+                    }
                     if (root.historyIndex < root.commandHistory.length - 1) {
                         root.historyIndex++
                         text = root.commandHistory[root.historyIndex]
@@ -114,8 +219,17 @@ Item {
                     event.accepted = true
                 }
                 Keys.onPressed: event => {
-                    if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C && terminalManager.running) {
+                    if (event.key === Qt.Key_Tab && commandPalette.visible) {
+                        const matches = root.filteredCommands()
+                        if (matches.length > 0) {
+                            text = matches[root.paletteIndex].name
+                            cursorPosition = text.length
+                        }
+                        event.accepted = true
+                    } else if ((event.key === Qt.Key_Escape || ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_C)) && terminalManager.running) {
                         terminalManager.stop(); event.accepted = true
+                    } else if (event.key === Qt.Key_Escape) {
+                        clear(); root.notice = ""; event.accepted = true
                     } else if ((event.modifiers & Qt.ControlModifier) && event.key === Qt.Key_L) {
                         terminalManager.clear(); event.accepted = true
                     }
@@ -127,7 +241,7 @@ Item {
 
         Text {
             Layout.fillWidth: true
-            text: "直接点击终端输入 · ↑↓ 历史 · Ctrl+C 停止 · Ctrl+L 清屏。限制：Constrained Language · 60 秒超时 · 256 MB/进程 · 最多 6 个进程。"
+            text: "输入 / 打开命令面板 · Tab 补全 · ↑↓ 导航 · Esc/Ctrl+C 停止。限制：Constrained Language · 60 秒超时 · 256 MB/进程 · 最多 6 个进程。"
             color: themeManager.textFaint; font.pixelSize: 8; wrapMode: Text.WordWrap
         }
     }
