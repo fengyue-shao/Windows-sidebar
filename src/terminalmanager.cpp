@@ -227,8 +227,16 @@ void TerminalManager::run(const QString &command)
             appendOutput(QStringLiteral("[会话] 已保存环境变量 %1（值不会写入日志）\n").arg(name).toUtf8());
         }
         if (m_process.state() != QProcess::NotRunning) {
-            m_process.kill();
-            m_process.waitForFinished(3000);
+            QString synchronizationCommand;
+            if (QFileInfo(m_shellProgram).fileName().compare(QStringLiteral("cmd.exe"), Qt::CaseInsensitive) == 0) {
+                synchronizationCommand = remove ? QStringLiteral("set \"%1=\"").arg(name)
+                                                : QStringLiteral("set \"%1=%2\"").arg(name, value);
+            } else {
+                const QString quotedValue = QString(value).replace(QLatin1Char('\''), QStringLiteral("''"));
+                synchronizationCommand = remove ? QStringLiteral("Remove-Item Env:%1 -ErrorAction SilentlyContinue").arg(name)
+                                                : QStringLiteral("$env:%1='%2'").arg(name, quotedValue);
+            }
+            m_process.write("C\t" + synchronizationCommand.toUtf8().toBase64() + '\n');
         }
         m_statusText = QStringLiteral("会话环境已更新 · %1 个变量").arg(m_sessionEnvironment.size());
         writeLog(QStringLiteral("session.environment.updated"), QStringLiteral("name=%1 action=%2 count=%3")
@@ -260,8 +268,14 @@ void TerminalManager::run(const QString &command)
         } else {
             m_currentDirectory = QDir(resolved).absolutePath();
             if (m_process.state() != QProcess::NotRunning) {
-                m_process.kill();
-                m_process.waitForFinished(3000);
+                QString synchronizationCommand;
+                if (QFileInfo(m_shellProgram).fileName().compare(QStringLiteral("cmd.exe"), Qt::CaseInsensitive) == 0) {
+                    synchronizationCommand = QStringLiteral("cd /d \"%1\"").arg(QDir::toNativeSeparators(m_currentDirectory));
+                } else {
+                    const QString quotedPath = QString(m_currentDirectory).replace(QLatin1Char('\''), QStringLiteral("''"));
+                    synchronizationCommand = QStringLiteral("Set-Location -LiteralPath '%1'").arg(quotedPath);
+                }
+                m_process.write("C\t" + synchronizationCommand.toUtf8().toBase64() + '\n');
             }
             appendOutput(QStringLiteral("%1\n").arg(m_currentDirectory).toUtf8());
             m_statusText = QStringLiteral("工作目录已更新");
@@ -283,7 +297,7 @@ void TerminalManager::run(const QString &command)
     emit runningChanged();
     m_statusText = QStringLiteral("正在持续 Shell 会话中执行");
     emit statusChanged();
-    m_process.write(trimmed.toUtf8().toBase64() + '\n');
+    m_process.write("R\t" + trimmed.toUtf8().toBase64() + '\n');
     QTimer::singleShot(60000, this, [this] {
         if (!m_commandRunning) return;
         appendOutput(QStringLiteral("\n[会话] 命令超过 60 秒，已终止 Shell 作业树\n").toUtf8());

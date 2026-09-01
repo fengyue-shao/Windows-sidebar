@@ -150,12 +150,17 @@ int main(int argc, char *argv[])
                 const int character = getchar();
                 if (character == EOF) break;
                 if (character != '\n') { line += static_cast<char>(character); continue; }
-                const QString command = QString::fromUtf8(QByteArray::fromBase64(line.trimmed()));
+                QByteArray request = line.trimmed();
                 line.clear();
-                QMetaObject::invokeMethod(&shell, [command, commandPrompt, &shell] {
-                    const QString wrapped = commandPrompt
-                        ? command + QStringLiteral(" & echo __SIDEBAR_DONE_%errorlevel%\r\n")
-                        : QStringLiteral("%1; $__sidebarCode = if ($?) { 0 } else { 1 }; Write-Output \"__SIDEBAR_DONE_$__sidebarCode\"\n").arg(command);
+                const bool controlMessage = request.startsWith("C\t");
+                if (controlMessage || request.startsWith("R\t")) request.remove(0, 2);
+                const QString command = QString::fromUtf8(QByteArray::fromBase64(request));
+                QMetaObject::invokeMethod(&shell, [command, commandPrompt, controlMessage, &shell] {
+                    const QString wrapped = controlMessage
+                        ? command + (commandPrompt ? QStringLiteral("\r\n") : QStringLiteral("\n"))
+                        : (commandPrompt
+                            ? command + QStringLiteral(" & echo __SIDEBAR_DONE_%errorlevel%\r\n")
+                            : QStringLiteral("%1; $__sidebarCode = if ($?) { 0 } else { 1 }; Write-Output \"__SIDEBAR_DONE_$__sidebarCode\"\n").arg(command));
                     shell.write(commandPrompt ? wrapped.toUtf8() : wrapped.toLocal8Bit());
                 }, Qt::QueuedConnection);
             }
