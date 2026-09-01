@@ -3,6 +3,7 @@
 #include <QProcess>
 #include <QElapsedTimer>
 #include <QStringConverter>
+#include <QStringList>
 
 class TerminalManager : public QObject
 {
@@ -25,6 +26,7 @@ public:
     Q_INVOKABLE void stop();
     Q_INVOKABLE void clear();
     Q_INVOKABLE void openLogFile();
+    Q_INVOKABLE QStringList completionSuggestions(const QString &input) const;
 signals:
     void outputChanged();
     void statusChanged();
@@ -40,6 +42,7 @@ private:
     QString m_shellProgram;
     QString m_shellName;
     QString m_logPath;
+    QStringList m_availableCommands;
     QStringDecoder m_utf8Decoder{QStringConverter::Utf8};
     QElapsedTimer m_runTimer;
     qsizetype m_outputBytes = 0;

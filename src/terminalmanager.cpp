@@ -14,6 +14,7 @@
 #include <QRegularExpression>
 #include <QStandardPaths>
 #include <QUrl>
+#include <QSet>
 
 namespace {
 QByteArray removeJsonCommentsAndTrailingCommas(const QByteArray &input)
@@ -91,6 +92,26 @@ TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
     const auto shell = detectDefaultShell();
     m_shellProgram = shell.first;
     m_shellName = shell.second + QStringLiteral(" · ") + QFileInfo(shell.first).fileName();
+    QSet<QString> commands = {
+        QStringLiteral("cd"), QStringLiteral("clear"), QStringLiteral("cls"), QStringLiteral("copy"),
+        QStringLiteral("date"), QStringLiteral("dir"), QStringLiteral("echo"), QStringLiteral("exit"),
+        QStringLiteral("Get-ChildItem"), QStringLiteral("Get-Command"), QStringLiteral("Get-Content"),
+        QStringLiteral("Get-Date"), QStringLiteral("Get-Help"), QStringLiteral("Get-Location"),
+        QStringLiteral("Get-Process"), QStringLiteral("git"), QStringLiteral("mkdir"),
+        QStringLiteral("Move-Item"), QStringLiteral("pwd"), QStringLiteral("Remove-Item"),
+        QStringLiteral("Set-Location"), QStringLiteral("where"), QStringLiteral("whoami")
+    };
+    const QStringList pathDirectories = QProcessEnvironment::systemEnvironment()
+        .value(QStringLiteral("PATH")).split(QDir::listSeparator(), Qt::SkipEmptyParts);
+    const QStringList executableFilters = {QStringLiteral("*.exe"), QStringLiteral("*.cmd"),
+                                            QStringLiteral("*.bat"), QStringLiteral("*.com")};
+    for (const QString &directory : pathDirectories) {
+        const QFileInfoList entries = QDir(directory).entryInfoList(executableFilters, QDir::Files);
+        for (const QFileInfo &entry : entries)
+            commands.insert(entry.completeBaseName());
+    }
+    m_availableCommands = commands.values();
+    m_availableCommands.sort(Qt::CaseInsensitive);
     writeLog(QStringLiteral("manager.init"), QStringLiteral("shell=%1 program=%2 sandbox=%3")
         .arg(m_shellName, m_shellProgram, m_sandboxPath));
     m_process.setProcessChannelMode(QProcess::MergedChannels);
@@ -111,6 +132,48 @@ TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
             .arg(static_cast<int>(error)).arg(m_process.errorString()));
         emit statusChanged();
     });
+}
+
+QStringList TerminalManager::completionSuggestions(const QString &input) const
+{
+    const QString text = input;
+    if (text.trimmed().isEmpty() || text.trimmed().startsWith(QLatin1Char('/')))
+        return {};
+
+    const int tokenStart = qMax(text.lastIndexOf(QLatin1Char(' ')), text.lastIndexOf(QLatin1Char('\t'))) + 1;
+    const QString token = text.mid(tokenStart);
+    if (token.isEmpty()) return {};
+
+    QStringList results;
+    constexpr qsizetype maximumResults = 8;
+    if (tokenStart == 0) {
+        for (const QString &command : m_availableCommands) {
+            if (!command.startsWith(token, Qt::CaseInsensitive) || command.compare(token, Qt::CaseInsensitive) == 0)
+                continue;
+            results += command + QStringLiteral("\t命令\t来自 Shell 与系统 PATH");
+            if (results.size() >= maximumResults) break;
+        }
+        return results;
+    }
+
+    QString normalizedToken = token;
+    normalizedToken.replace(QLatin1Char('\\'), QLatin1Char('/'));
+    const int separator = normalizedToken.lastIndexOf(QLatin1Char('/'));
+    const QString relativeDirectory = separator >= 0 ? normalizedToken.left(separator + 1) : QString();
+    const QString namePrefix = separator >= 0 ? normalizedToken.mid(separator + 1) : normalizedToken;
+    QDir directory(QDir(m_sandboxPath).filePath(relativeDirectory));
+    const QFileInfoList entries = directory.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot,
+                                                           QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
+    for (const QFileInfo &entry : entries) {
+        if (!entry.fileName().startsWith(namePrefix, Qt::CaseInsensitive)) continue;
+        QString value = relativeDirectory + entry.fileName();
+        if (entry.isDir()) value += QLatin1Char('/');
+        results += value + (entry.isDir()
+            ? QStringLiteral("\t目录\t沙盒中的目录")
+            : QStringLiteral("\t文件\t沙盒中的文件"));
+        if (results.size() >= maximumResults) break;
+    }
+    return results;
 }
 
 void TerminalManager::run(const QString &command)

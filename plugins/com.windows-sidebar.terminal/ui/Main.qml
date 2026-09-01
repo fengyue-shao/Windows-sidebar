@@ -25,13 +25,36 @@ Item {
         return slashCommands.filter(item => item.name.indexOf(query) === 0)
     }
 
+    function completionItems() {
+        if (commandInput.text.startsWith("/"))
+            return filteredCommands()
+        const raw = terminalManager.completionSuggestions(commandInput.text)
+        const items = []
+        for (let index = 0; index < raw.length; ++index) {
+            const parts = raw[index].split("\t")
+            items.push({ name: parts[0], kind: parts[1], description: parts[2] })
+        }
+        return items
+    }
+
+    function acceptCompletion(item) {
+        if (!item) return
+        if (commandInput.text.startsWith("/")) {
+            commandInput.text = item.name
+        } else {
+            const space = Math.max(commandInput.text.lastIndexOf(" "), commandInput.text.lastIndexOf("\t"))
+            commandInput.text = commandInput.text.slice(0, space + 1) + item.name
+        }
+        commandInput.cursorPosition = commandInput.text.length
+        commandInput.forceActiveFocus()
+    }
+
     function completeCommand() {
         if (!commandInput.activeFocus)
             return
-        const matches = filteredCommands()
+        const matches = completionItems()
         if (commandPalette.visible && matches.length > 0) {
-            commandInput.text = matches[Math.min(paletteIndex, matches.length - 1)].name
-            commandInput.cursorPosition = commandInput.text.length
+            acceptCompletion(matches[Math.min(paletteIndex, matches.length - 1)])
         }
         commandInput.forceActiveFocus()
     }
@@ -174,7 +197,7 @@ Item {
             }
             Rectangle {
                 id: commandPalette
-                visible: commandInput.text.startsWith("/") && root.filteredCommands().length > 0 && !terminalManager.running
+                visible: commandInput.text.length > 0 && root.completionItems().length > 0 && !terminalManager.running
                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: promptRow.top
                 anchors.leftMargin: 10; anchors.rightMargin: 10; anchors.bottomMargin: 6
                 height: Math.min(210, paletteColumn.implicitHeight + 12)
@@ -187,7 +210,7 @@ Item {
                     anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top
                     anchors.margins: 6; spacing: 2
                     Repeater {
-                        model: root.filteredCommands()
+                        model: root.completionItems()
                         Rectangle {
                             required property var modelData
                             required property int index
@@ -196,9 +219,15 @@ Item {
                             RowLayout {
                                 anchors.fill: parent; anchors.leftMargin: 8; anchors.rightMargin: 8
                                 Text { text: modelData.name; color: themeManager.accent; font.family: "Cascadia Mono"; font.pixelSize: 10; font.weight: Font.DemiBold }
+                                Rectangle {
+                                    visible: modelData.kind !== undefined
+                                    implicitWidth: kindLabel.implicitWidth + 10; implicitHeight: 18; radius: 6
+                                    color: themeManager.overlayStart
+                                    Text { id: kindLabel; anchors.centerIn: parent; text: modelData.kind || ""; color: themeManager.textFaint; font.pixelSize: 8 }
+                                }
                                 Text { Layout.fillWidth: true; text: modelData.description; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
                             }
-                            TapHandler { onTapped: { commandInput.text = modelData.name; commandInput.cursorPosition = commandInput.text.length; commandInput.forceActiveFocus() } }
+                            TapHandler { onTapped: root.acceptCompletion(modelData) }
                         }
                     }
                 }
@@ -260,7 +289,7 @@ Item {
                 }
                 Keys.onDownPressed: event => {
                     if (commandPalette.visible) {
-                        root.paletteIndex = Math.min(root.filteredCommands().length - 1, root.paletteIndex + 1)
+                        root.paletteIndex = Math.min(root.completionItems().length - 1, root.paletteIndex + 1)
                         event.accepted = true
                         return
                     }
