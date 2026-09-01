@@ -118,6 +118,7 @@ void TerminalManager::run(const QString &command)
     const QString trimmed = command.trimmed();
     if (trimmed.isEmpty() || running()) return;
     m_utf8Decoder = QStringDecoder(QStringConverter::Utf8);
+    m_escapeState = EscapeState::Normal;
     m_outputBytes = 0;
     m_runTimer.start();
     const QString fingerprint = QString::fromLatin1(QCryptographicHash::hash(trimmed.toUtf8(), QCryptographicHash::Sha256).toHex().left(12));
@@ -157,11 +158,44 @@ void TerminalManager::clear()
 void TerminalManager::appendOutput(const QByteArray &data)
 {
     m_outputBytes += data.size();
-    m_output += m_utf8Decoder(data);
+    QString decoded = stripTerminalSequences(m_utf8Decoder(data));
+    decoded.replace(QStringLiteral("\r\r\n"), QStringLiteral("\r\n"));
+    m_output += decoded;
     constexpr qsizetype maximumCharacters = 256 * 1024;
     if (m_output.size() > maximumCharacters)
         m_output = QStringLiteral("[较早输出已截断]\n") + m_output.right(maximumCharacters);
     emit outputChanged();
+}
+
+QString TerminalManager::stripTerminalSequences(const QString &text)
+{
+    QString clean;
+    clean.reserve(text.size());
+    for (const QChar character : text) {
+        const ushort value = character.unicode();
+        switch (m_escapeState) {
+        case EscapeState::Normal:
+            if (value == 0x1b) m_escapeState = EscapeState::Escape;
+            else if (value != 0x00) clean += character;
+            break;
+        case EscapeState::Escape:
+            if (character == QLatin1Char('[')) m_escapeState = EscapeState::Csi;
+            else if (character == QLatin1Char(']')) m_escapeState = EscapeState::Osc;
+            else m_escapeState = EscapeState::Normal;
+            break;
+        case EscapeState::Csi:
+            if (value >= 0x40 && value <= 0x7e) m_escapeState = EscapeState::Normal;
+            break;
+        case EscapeState::Osc:
+            if (value == 0x07) m_escapeState = EscapeState::Normal;
+            else if (value == 0x1b) m_escapeState = EscapeState::OscEscape;
+            break;
+        case EscapeState::OscEscape:
+            m_escapeState = character == QLatin1Char('\\') ? EscapeState::Normal : EscapeState::Osc;
+            break;
+        }
+    }
+    return clean;
 }
 
 void TerminalManager::writeLog(const QString &event, const QString &detail)

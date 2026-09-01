@@ -31,6 +31,7 @@ signals:
     void runningChanged();
 private:
     void appendOutput(const QByteArray &data);
+    QString stripTerminalSequences(const QString &text);
     void writeLog(const QString &event, const QString &detail = {});
     QProcess m_process;
     QString m_output;
@@ -42,4 +43,6 @@ private:
     QStringDecoder m_utf8Decoder{QStringConverter::Utf8};
     QElapsedTimer m_runTimer;
     qsizetype m_outputBytes = 0;
+    enum class EscapeState { Normal, Escape, Csi, Osc, OscEscape };
+    EscapeState m_escapeState = EscapeState::Normal;
 };

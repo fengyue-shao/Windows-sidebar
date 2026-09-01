@@ -9,6 +9,9 @@
 #include <QTimer>
 #include <QStringConverter>
 #include <Windows.h>
+#include <fcntl.h>
+#include <io.h>
+#include <cstdio>
 
 namespace {
 void writeRunnerLog(const QString &path, const QString &event, const QString &detail = {})
@@ -45,6 +48,8 @@ int main(int argc, char *argv[])
 
     SetConsoleCP(CP_UTF8);
     SetConsoleOutputCP(CP_UTF8);
+    _setmode(_fileno(stdout), _O_BINARY);
+    _setmode(_fileno(stderr), _O_BINARY);
 
     HANDLE job = CreateJobObjectW(nullptr, nullptr);
     if (!job) {
@@ -71,15 +76,18 @@ int main(int argc, char *argv[])
                                 QStringLiteral("PATH"), QStringLiteral("TEMP"), QStringLiteral("TMP")})
         environment.insert(name, systemEnvironment.value(name));
     environment.insert(QStringLiteral("SIDEBAR_RESTRICTED_TERMINAL"), QStringLiteral("1"));
+    environment.insert(QStringLiteral("NO_COLOR"), QStringLiteral("1"));
+    environment.insert(QStringLiteral("TERM"), QStringLiteral("xterm-256color"));
     shell.setProcessEnvironment(environment);
     shell.setProcessChannelMode(QProcess::MergedChannels);
 
     QStringDecoder streamDecoder(commandPrompt ? QStringConverter::Utf16LE : QStringConverter::Utf8);
     QObject::connect(&shell, &QProcess::readyRead, [&shell, &streamDecoder] {
-        QTextStream output(stdout, QIODevice::WriteOnly);
-        output.setEncoding(QStringConverter::Utf8);
         const QByteArray bytes = shell.readAll();
-        output << streamDecoder(bytes) << Qt::flush;
+        const QString decoded = streamDecoder(bytes);
+        const QByteArray utf8 = decoded.toUtf8();
+        fwrite(utf8.constData(), 1, static_cast<size_t>(utf8.size()), stdout);
+        fflush(stdout);
     });
     QObject::connect(&shell, &QProcess::finished, &app, [&app, job, logPath](int code, QProcess::ExitStatus status) {
         writeRunnerLog(logPath, QStringLiteral("shell.finished"), QStringLiteral("exitCode=%1 exitStatus=%2").arg(code).arg(static_cast<int>(status)));
@@ -93,7 +101,7 @@ int main(int argc, char *argv[])
         shell.start(shellProgram, {
             QStringLiteral("-NoLogo"), QStringLiteral("-NoProfile"), QStringLiteral("-NonInteractive"),
             QStringLiteral("-ExecutionPolicy"), QStringLiteral("Restricted"), QStringLiteral("-Command"),
-            QStringLiteral("[Console]::InputEncoding=[Text.UTF8Encoding]::new($false); [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $OutputEncoding=[Text.UTF8Encoding]::new($false); $ExecutionContext.SessionState.LanguageMode='ConstrainedLanguage'; ")
+            QStringLiteral("[Console]::InputEncoding=[Text.UTF8Encoding]::new($false); [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $OutputEncoding=[Text.UTF8Encoding]::new($false); if (Get-Variable PSStyle -ErrorAction SilentlyContinue) { $PSStyle.OutputRendering='PlainText' }; $ExecutionContext.SessionState.LanguageMode='ConstrainedLanguage'; ")
                 + arguments.at(commandIndex + 1)
         });
     }
@@ -116,9 +124,9 @@ int main(int argc, char *argv[])
 
     QTimer::singleShot(60000, &app, [&shell, logPath] {
         if (shell.state() != QProcess::NotRunning) {
-            QTextStream errorOutput(stderr);
-            errorOutput.setEncoding(QStringConverter::Utf8);
-            errorOutput << "\n[runner] 命令超过 60 秒，已终止\n" << Qt::flush;
+            const QByteArray message = QStringLiteral("\n[runner] 命令超过 60 秒，已终止\n").toUtf8();
+            fwrite(message.constData(), 1, static_cast<size_t>(message.size()), stderr);
+            fflush(stderr);
             writeRunnerLog(logPath, QStringLiteral("command.timeout"));
             shell.kill();
         }

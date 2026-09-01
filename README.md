@@ -24,6 +24,7 @@
 - 首个后端型插件“受限终端”使用独立 Runner、PowerShell Constrained Language、固定初始目录、Job Object 进程树和资源/时间/输出限制；它是实验性隔离，不等同于 AppContainer 强沙盒。
 - 终端 Runner 默认使用 UTF-8 输入输出，并尝试继承 Windows Terminal 的默认 Profile（支持 PowerShell 7、Windows PowerShell 与 CMD，无法解析时回退到 Windows PowerShell）。
 - 终端插件单独记录宿主与 Runner 生命周期日志到应用本地 `logs/terminal-plugin.log`，日志包含退出码、耗时、输出量和错误信息，达到 2 MB 后轮转且不记录完整命令。
+- PowerShell 输出强制使用 PlainText，并由宿主流式清除 ANSI/OSC 控制序列；Runner 使用二进制 UTF-8 stdout，避免转义码泄漏、字符分块损坏和 CRLF 二次转换。
 
 ## Windows 通知权限
 

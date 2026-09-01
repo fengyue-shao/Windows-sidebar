@@ -45,6 +45,7 @@ Item {
                     id: terminalOutput
                     text: terminalManager.output.length > 0 ? terminalManager.output : "Windows Sidebar Restricted Runner\nShell: " + terminalManager.shellName + "\nEncoding: UTF-8\n输入命令后按 Enter 执行。\n"
                     readOnly: true
+                    textFormat: TextEdit.PlainText
                     selectByMouse: true
                     wrapMode: TextEdit.WrapAnywhere
                     color: themeManager.dark ? "#D7E0EA" : "#253040"
