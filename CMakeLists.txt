@@ -26,6 +26,7 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES include/notificationlistener.h src/notificationlistener.cpp
         SOURCES include/radiomanager.h src/radiomanager.cpp
         SOURCES include/pluginregistry.h src/pluginregistry.cpp
+        SOURCES include/terminalmanager.h src/terminalmanager.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -51,6 +52,13 @@ target_link_libraries(appqt_rainmeter PRIVATE ole32)
 target_link_libraries(appqt_rainmeter PRIVATE wininet)
 target_link_libraries(appqt_rainmeter PRIVATE wlanapi)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
+
+qt_add_executable(sidebar-terminal-runner
+    runner/terminalrunner.cpp
+)
+target_link_libraries(sidebar-terminal-runner PRIVATE Qt6::Core)
+set_target_properties(sidebar-terminal-runner PROPERTIES WIN32_EXECUTABLE FALSE)
+add_dependencies(appqt_rainmeter sidebar-terminal-runner)
 
 add_custom_command(TARGET appqt_rainmeter POST_BUILD
     COMMAND ${CMAKE_COMMAND} -E copy_directory

@@ -20,6 +20,7 @@
 #include "include/networkmonitor.h"
 #include "include/radiomanager.h"
 #include "include/pluginregistry.h"
+#include "include/terminalmanager.h"
 #include "include/wifimanager.h"
 #include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
@@ -48,6 +49,7 @@ int main(int argc, char *argv[])
     NetworkMonitor networkMonitor;
     RadioManager radioManager;
     PluginRegistry pluginRegistry;
+    TerminalManager terminalManager;
     WifiManager wifiManager;
     MediaMonitor mediaMonitor;
     NotificationModel notificationModel;
@@ -97,6 +99,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
     engine.rootContext()->setContextProperty("radioManager", &radioManager);
     engine.rootContext()->setContextProperty("pluginRegistry", &pluginRegistry);
+    engine.rootContext()->setContextProperty("terminalManager", &terminalManager);
     engine.rootContext()->setContextProperty("wifiManager", &wifiManager);
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
     engine.rootContext()->setContextProperty("notificationModel", &notificationModel);
