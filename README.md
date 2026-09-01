@@ -21,11 +21,14 @@
 - Wi-Fi 与蓝牙面板支持直接开关系统无线功能；声音面板可选择系统默认输出设备。
 - 插件系统原型可从运行目录的 `plugins` 文件夹校验清单并动态注册侧栏页面；项目附带“工具箱”示例 UI 插件。
 - 主界面以监控页为首页，系统控制中心位于监控信息下方；插件可在设置中启用或禁用，并即时加入或移出导航。
-- 首个后端型插件“受限终端”使用独立 Runner、PowerShell Constrained Language、固定初始目录、Job Object 进程树和资源/时间/输出限制；它是实验性隔离，不等同于 AppContainer 强沙盒。
+- 首个后端型插件“受限终端”使用独立常驻 Runner、PowerShell Constrained Language、受限工作目录、Job Object 进程树和资源/时间/输出限制；它是实验性隔离，不等同于 AppContainer 强沙盒。
 - 终端 Runner 默认使用 UTF-8 输入输出，并尝试继承 Windows Terminal 的默认 Profile（支持 PowerShell 7、Windows PowerShell 与 CMD，无法解析时回退到 Windows PowerShell）。
 - 终端插件单独记录宿主与 Runner 生命周期日志到应用本地 `logs/terminal-plugin.log`，日志包含退出码、耗时、输出量和错误信息，达到 2 MB 后轮转且不记录完整命令。
 - PowerShell 输出强制使用 PlainText，并由宿主流式清除 ANSI/OSC 控制序列；Runner 使用二进制 UTF-8 stdout，避免转义码泄漏、字符分块损坏和 CRLF 二次转换。
-- 终端插件使用内联终端表面输入，支持命令历史、自动聚焦、Ctrl+C 停止和 Ctrl+L 清屏；完整 ConPTY 长驻会话与 VT 屏幕渲染仍在后续阶段。
+- 终端插件使用内联终端表面输入，支持持续 Shell 状态、目录与环境变量同步、命令历史、Ctrl+R 搜索、Tab 智能补全、斜杠命令、Ctrl+C 停止和 Ctrl+L 清屏。
+- Runner 已支持桌面应用兼容资源档，并继承 Windows 应用启动所需的用户目录环境；ConPTY 能力会在运行时检测，实际伪控制台与 VT 屏幕渲染仍在后续阶段。
+
+终端插件的架构、调试方法、已知限制和后续计划见 [终端插件说明](docs/TERMINAL_PLUGIN.md)。
 
 ## Windows 通知权限
 
