@@ -321,7 +321,7 @@ Item {
 
         Text {
             Layout.fillWidth: true
-            text: "输入 / 打开命令面板 · Tab 补全 · Ctrl+R 搜索历史 · Esc/Ctrl+C 停止。限制：Constrained Language · 60 秒超时。"
+            text: "输入 / 打开命令面板 · Tab 补全 · Ctrl+R 搜索历史 · Esc/Ctrl+C 停止。限制：Constrained Language · 60 秒超时 · 桌面应用兼容档。"
             color: themeManager.textFaint; font.pixelSize: 8; wrapMode: Text.WordWrap
         }
     }

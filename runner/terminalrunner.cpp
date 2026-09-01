@@ -60,11 +60,16 @@ int main(int argc, char *argv[])
     }
     JOBOBJECT_EXTENDED_LIMIT_INFORMATION limits{};
     limits.BasicLimitInformation.LimitFlags = JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
-        | JOB_OBJECT_LIMIT_ACTIVE_PROCESS | JOB_OBJECT_LIMIT_PROCESS_MEMORY;
-    limits.BasicLimitInformation.ActiveProcessLimit = 6;
-    limits.ProcessMemoryLimit = 256ULL * 1024ULL * 1024ULL;
+        | JOB_OBJECT_LIMIT_ACTIVE_PROCESS | JOB_OBJECT_LIMIT_PROCESS_MEMORY
+        | JOB_OBJECT_LIMIT_JOB_MEMORY;
+    limits.BasicLimitInformation.ActiveProcessLimit = 32;
+    limits.ProcessMemoryLimit = 1024ULL * 1024ULL * 1024ULL;
+    limits.JobMemoryLimit = 4ULL * 1024ULL * 1024ULL * 1024ULL;
     if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)))
         writeRunnerLog(logPath, QStringLiteral("job.limit.failed"), QStringLiteral("winError=%1").arg(GetLastError()));
+    else
+        writeRunnerLog(logPath, QStringLiteral("job.limit.applied"),
+            QStringLiteral("activeProcesses=32 processMemoryMiB=1024 jobMemoryMiB=4096"));
 
     QProcess shell;
     const QString shellProgram = arguments.at(shellIndex + 1);
