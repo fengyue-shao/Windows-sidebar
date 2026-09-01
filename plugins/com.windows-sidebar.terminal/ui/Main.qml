@@ -80,7 +80,7 @@ Item {
             notice = "Enter 执行 · Tab 补全 · ↑↓ 历史/选择 · Ctrl+C 或 Esc 中止 · Ctrl+L 清屏"
             break
         case "/status":
-            notice = "就绪 · " + terminalManager.shellName + " · UTF-8 · 受限目录：" + terminalManager.sandboxPath
+            notice = "就绪 · " + terminalManager.shellName + " · UTF-8 · 当前目录：" + terminalManager.currentDirectory
             break
         case "/clear": terminalManager.clear(); break
         case "/history":
@@ -167,7 +167,7 @@ Item {
             RowLayout {
                 anchors.fill: parent; anchors.leftMargin: 11; anchors.rightMargin: 11; spacing: 7
                 Text { text: "▣"; color: themeManager.accent; font.pixelSize: 10 }
-                Text { Layout.fillWidth: true; text: terminalManager.sandboxPath; color: themeManager.textMuted; font.pixelSize: 8; elide: Text.ElideMiddle }
+                Text { Layout.fillWidth: true; text: terminalManager.currentDirectory; color: themeManager.textMuted; font.pixelSize: 8; elide: Text.ElideMiddle }
                 Text { text: "UTF-8 · " + terminalManager.shellName; color: themeManager.textFaint; font.pixelSize: 8 }
             }
         }

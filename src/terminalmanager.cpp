@@ -85,6 +85,8 @@ TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
     m_sandboxPath = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
         + QStringLiteral("/terminal-sandbox");
     QDir().mkpath(m_sandboxPath);
+    m_sandboxPath = QDir(m_sandboxPath).absolutePath();
+    m_currentDirectory = m_sandboxPath;
     const QString logDirectory = QStandardPaths::writableLocation(QStandardPaths::AppLocalDataLocation)
         + QStringLiteral("/logs");
     QDir().mkpath(logDirectory);
@@ -161,7 +163,7 @@ QStringList TerminalManager::completionSuggestions(const QString &input) const
     const int separator = normalizedToken.lastIndexOf(QLatin1Char('/'));
     const QString relativeDirectory = separator >= 0 ? normalizedToken.left(separator + 1) : QString();
     const QString namePrefix = separator >= 0 ? normalizedToken.mid(separator + 1) : normalizedToken;
-    QDir directory(QDir(m_sandboxPath).filePath(relativeDirectory));
+    QDir directory(QDir(m_currentDirectory).filePath(relativeDirectory));
     const QFileInfoList entries = directory.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot,
                                                            QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
     for (const QFileInfo &entry : entries) {
@@ -180,6 +182,35 @@ void TerminalManager::run(const QString &command)
 {
     const QString trimmed = command.trimmed();
     if (trimmed.isEmpty() || running()) return;
+    static const QRegularExpression changeDirectoryPattern(
+        QStringLiteral("^(?:cd|Set-Location)(?:\\s+(.+))?$"),
+        QRegularExpression::CaseInsensitiveOption);
+    const QRegularExpressionMatch directoryMatch = changeDirectoryPattern.match(trimmed);
+    if (directoryMatch.hasMatch()) {
+        QString requested = directoryMatch.captured(1).trimmed();
+        if ((requested.startsWith(QLatin1Char('\"')) && requested.endsWith(QLatin1Char('\"')))
+            || (requested.startsWith(QLatin1Char('\'')) && requested.endsWith(QLatin1Char('\''))))
+            requested = requested.mid(1, requested.size() - 2);
+        const QString candidate = requested.isEmpty()
+            ? m_sandboxPath : QDir(m_currentDirectory).absoluteFilePath(requested);
+        const QString resolved = QDir::fromNativeSeparators(QFileInfo(candidate).canonicalFilePath());
+        const QString root = QDir::fromNativeSeparators(QDir(m_sandboxPath).canonicalPath());
+        const bool insideSandbox = !resolved.isEmpty()
+            && (resolved.compare(root, Qt::CaseInsensitive) == 0
+                || resolved.startsWith(root + QLatin1Char('/'), Qt::CaseInsensitive));
+        appendOutput(QStringLiteral("\nPS sandbox> %1\n").arg(trimmed).toUtf8());
+        if (!insideSandbox || !QFileInfo(resolved).isDir()) {
+            appendOutput(QStringLiteral("[会话] 目录不存在或超出沙盒范围\n").toUtf8());
+            m_statusText = QStringLiteral("目录切换被拒绝");
+        } else {
+            m_currentDirectory = QDir(resolved).absolutePath();
+            appendOutput(QStringLiteral("%1\n").arg(m_currentDirectory).toUtf8());
+            m_statusText = QStringLiteral("工作目录已更新");
+            emit currentDirectoryChanged();
+        }
+        emit statusChanged();
+        return;
+    }
     m_utf8Decoder = QStringDecoder(QStringConverter::Utf8);
     m_escapeState = EscapeState::Normal;
     m_outputBytes = 0;
@@ -191,7 +222,7 @@ void TerminalManager::run(const QString &command)
     m_statusText = QStringLiteral("正在独立 Runner 中执行");
     emit statusChanged();
     const QString runner = QCoreApplication::applicationDirPath() + QStringLiteral("/sidebar-terminal-runner.exe");
-    m_process.start(runner, {QStringLiteral("--cwd"), m_sandboxPath,
+    m_process.start(runner, {QStringLiteral("--cwd"), m_currentDirectory,
                              QStringLiteral("--shell"), m_shellProgram,
                              QStringLiteral("--log"), m_logPath,
                              QStringLiteral("--command"), trimmed});
