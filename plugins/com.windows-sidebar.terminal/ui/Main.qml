@@ -79,6 +79,7 @@ Item {
                 }
             }
             ActionButton { label: "清屏"; onClicked: terminalManager.clear() }
+            ActionButton { label: "日志"; onClicked: terminalManager.openLogFile() }
         }
 
         Text {
