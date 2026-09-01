@@ -8,6 +8,7 @@ Rectangle {
     property bool mediaEnabled: true
     property bool monitorEnabled: true
     property bool notificationsEnabled: true
+    property var pluginPages: []
     signal sectionRequested(int index)
     signal mediaEnabledRequested(bool enabled)
     signal monitorEnabledRequested(bool enabled)
@@ -30,6 +31,18 @@ Rectangle {
         SectionButton { Layout.fillWidth: true; label: "通知"; symbol: "●"; selected: root.currentIndex === 2; onClicked: root.sectionRequested(2) }
         SectionButton { Layout.fillWidth: true; label: "专注"; symbol: "◷"; selected: root.currentIndex === 3; onClicked: root.sectionRequested(3) }
         SectionButton { Layout.fillWidth: true; label: "剪贴"; symbol: "▤"; selected: root.currentIndex === 4; onClicked: root.sectionRequested(4) }
+        Repeater {
+            model: root.pluginPages
+            SectionButton {
+                required property var modelData
+                required property int index
+                Layout.fillWidth: true
+                label: modelData.title
+                symbol: modelData.symbol
+                selected: root.currentIndex === 5 + index
+                onClicked: root.sectionRequested(5 + index)
+            }
+        }
         Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 26; color: themeManager.track }
         Rectangle {
             Layout.preferredWidth: 40
@@ -120,6 +133,28 @@ Rectangle {
                 ModuleRow { Layout.fillWidth: true; title: "媒体播放器"; enabledValue: root.mediaEnabled; onClicked: root.mediaEnabledRequested(!root.mediaEnabled) }
                 ModuleRow { Layout.fillWidth: true; title: "系统监控 · " + gpuMonitor.adapters.length + " 个 GPU"; enabledValue: root.monitorEnabled; onClicked: root.monitorEnabledRequested(!root.monitorEnabled) }
                 ModuleRow { Layout.fillWidth: true; title: "通知中心"; enabledValue: root.notificationsEnabled; onClicked: root.notificationsEnabledRequested(!root.notificationsEnabled) }
+
+                SectionLabel { text: "插件系统" }
+                SettingsRow {
+                    Layout.fillWidth: true
+                    title: pluginRegistry.statusText
+                    detail: "扫描运行目录中的 plugins 文件夹"
+                    trailing: "↻"
+                    onClicked: pluginRegistry.reload()
+                }
+                Repeater {
+                    model: pluginRegistry.pages
+                    SettingsRow {
+                        required property var modelData
+                        required property int index
+                        Layout.fillWidth: true
+                        title: modelData.pluginName
+                        detail: "页面 · " + modelData.title
+                        badge: "已启用"
+                        selected: true
+                        onClicked: root.sectionRequested(5 + index)
+                    }
+                }
                 Text {
                     Layout.fillWidth: true
                     text: "快捷键  Ctrl+Space 展开 · Ctrl+1–5 切页 · Ctrl+Q 退出"

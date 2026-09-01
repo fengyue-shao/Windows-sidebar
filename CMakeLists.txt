@@ -25,6 +25,7 @@ qt_add_qml_module(appqt_rainmeter
         RESOURCES assets/icons/ic_fluent_next_48_regular.svg assets/icons/ic_fluent_pause_48_regular.svg assets/icons/ic_fluent_play_48_regular.svg assets/icons/ic_fluent_previous_48_regular.svg
         SOURCES include/notificationlistener.h src/notificationlistener.cpp
         SOURCES include/radiomanager.h src/radiomanager.cpp
+        SOURCES include/pluginregistry.h src/pluginregistry.cpp
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -50,6 +51,13 @@ target_link_libraries(appqt_rainmeter PRIVATE ole32)
 target_link_libraries(appqt_rainmeter PRIVATE wininet)
 target_link_libraries(appqt_rainmeter PRIVATE wlanapi)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
+
+add_custom_command(TARGET appqt_rainmeter POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/plugins"
+        "$<TARGET_FILE_DIR:appqt_rainmeter>/plugins"
+    COMMENT "Copying trusted prototype plugins"
+)
 
 if(WIN32)
     get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)

@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "id": "com.windows-sidebar.toolbox",
+  "name": "工具箱",
+  "version": "0.1.0",
+  "minimumHostVersion": "0.8.0",
+  "contributes": {
+    "pages": [
+      {
+        "id": "toolbox",
+        "title": "工具箱",
+        "symbol": "✦",
+        "entry": "ui/Main.qml",
+        "order": 500
+      }
+    ]
+  },
+  "permissions": []
+}

@@ -14,6 +14,17 @@ Item {
     property bool transientUiOpen: false
     signal toggleRequested()
 
+    function ensureValidSection() {
+        if (root.currentSection >= 5 + pluginRegistry.pageCount)
+            uiSettings.currentSection = 0
+    }
+
+    Component.onCompleted: ensureValidSection()
+    Connections {
+        target: pluginRegistry
+        function onPagesChanged() { root.ensureValidSection() }
+    }
+
     HoverHandler { id: sidebarHover }
 
     Timer {
@@ -122,6 +133,30 @@ Item {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
             }
+
+            Repeater {
+                model: pluginRegistry.pages
+                Loader {
+                    required property var modelData
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    source: modelData.source
+
+                    Rectangle {
+                        anchors.fill: parent
+                        visible: parent.status === Loader.Error
+                        radius: 16
+                        color: themeManager.surface
+                        border.width: 1
+                        border.color: themeManager.danger
+                        Column {
+                            anchors.centerIn: parent; spacing: 6
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "插件页面加载失败"; color: themeManager.danger; font.pixelSize: 12; font.weight: Font.DemiBold }
+                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.pluginName; color: themeManager.textMuted; font.pixelSize: 9 }
+                        }
+                    }
+                }
+            }
         }
 
         SystemControlBar {
@@ -131,6 +166,7 @@ Item {
             mediaEnabled: root.mediaEnabled
             monitorEnabled: root.monitorEnabled
             notificationsEnabled: root.notificationsEnabled
+            pluginPages: pluginRegistry.pages
             onSectionRequested: index => uiSettings.currentSection = index
             onMediaEnabledRequested: enabled => uiSettings.mediaEnabled = enabled
             onMonitorEnabledRequested: enabled => uiSettings.monitorEnabled = enabled
