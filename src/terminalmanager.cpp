@@ -15,6 +15,7 @@
 #include <QStandardPaths>
 #include <QUrl>
 #include <QSet>
+#include <QTimer>
 
 namespace {
 QByteArray removeJsonCommentsAndTrailingCommas(const QByteArray &input)
@@ -118,13 +119,13 @@ TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
         .arg(m_shellName, m_shellProgram, m_sandboxPath));
     m_process.setProcessChannelMode(QProcess::MergedChannels);
     connect(&m_process, &QProcess::readyRead, this, [this] { appendOutput(m_process.readAll()); });
-    connect(&m_process, &QProcess::stateChanged, this, &TerminalManager::runningChanged);
     connect(&m_process, &QProcess::finished, this, [this](int code, QProcess::ExitStatus status) {
-        appendOutput(QStringLiteral("\n[完成] 退出码 %1 · %2\n")
-            .arg(code).arg(status == QProcess::NormalExit ? QStringLiteral("正常退出") : QStringLiteral("进程中止")).toUtf8());
-        m_statusText = code == 0 ? QStringLiteral("命令已完成") : QStringLiteral("命令执行结束，退出码 %1").arg(code);
-        writeLog(QStringLiteral("command.finished"), QStringLiteral("exitCode=%1 exitStatus=%2 elapsedMs=%3 outputBytes=%4")
-            .arg(code).arg(static_cast<int>(status)).arg(m_runTimer.isValid() ? m_runTimer.elapsed() : -1).arg(m_outputBytes));
+        if (m_commandRunning)
+            appendOutput(QStringLiteral("\n[会话已终止] Runner 退出码 %1\n").arg(code).toUtf8());
+        m_commandRunning = false;
+        m_statusText = status == QProcess::NormalExit ? QStringLiteral("Shell 会话已关闭") : QStringLiteral("Shell 会话异常终止");
+        writeLog(QStringLiteral("session.finished"), QStringLiteral("exitCode=%1 exitStatus=%2").arg(code).arg(static_cast<int>(status)));
+        emit runningChanged();
         emit statusChanged();
     });
     connect(&m_process, &QProcess::errorOccurred, this, [this](QProcess::ProcessError error) {
@@ -134,6 +135,26 @@ TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
             .arg(static_cast<int>(error)).arg(m_process.errorString()));
         emit statusChanged();
     });
+}
+
+bool TerminalManager::ensureSession()
+{
+    if (m_process.state() != QProcess::NotRunning) return true;
+    const QString runner = QCoreApplication::applicationDirPath() + QStringLiteral("/sidebar-terminal-runner.exe");
+    QStringList arguments = {QStringLiteral("--session"), QStringLiteral("--cwd"), m_currentDirectory,
+                             QStringLiteral("--shell"), m_shellProgram, QStringLiteral("--log"), m_logPath};
+    for (auto iterator = m_sessionEnvironment.constBegin(); iterator != m_sessionEnvironment.constEnd(); ++iterator) {
+        arguments += QStringLiteral("--env64");
+        arguments += iterator.key() + QLatin1Char(':') + QString::fromLatin1(iterator.value().toUtf8().toBase64());
+    }
+    m_process.start(runner, arguments);
+    if (!m_process.waitForStarted(5000)) {
+        m_statusText = QStringLiteral("无法启动持续 Runner：") + m_process.errorString();
+        emit statusChanged();
+        return false;
+    }
+    writeLog(QStringLiteral("session.started"), QStringLiteral("shell=%1 cwd=%2").arg(m_shellProgram, m_currentDirectory));
+    return true;
 }
 
 QStringList TerminalManager::completionSuggestions(const QString &input) const
@@ -205,6 +226,10 @@ void TerminalManager::run(const QString &command)
             m_sessionEnvironment.insert(name, value);
             appendOutput(QStringLiteral("[会话] 已保存环境变量 %1（值不会写入日志）\n").arg(name).toUtf8());
         }
+        if (m_process.state() != QProcess::NotRunning) {
+            m_process.kill();
+            m_process.waitForFinished(3000);
+        }
         m_statusText = QStringLiteral("会话环境已更新 · %1 个变量").arg(m_sessionEnvironment.size());
         writeLog(QStringLiteral("session.environment.updated"), QStringLiteral("name=%1 action=%2 count=%3")
             .arg(name, remove ? QStringLiteral("remove") : QStringLiteral("set"))
@@ -234,6 +259,10 @@ void TerminalManager::run(const QString &command)
             m_statusText = QStringLiteral("目录切换被拒绝");
         } else {
             m_currentDirectory = QDir(resolved).absolutePath();
+            if (m_process.state() != QProcess::NotRunning) {
+                m_process.kill();
+                m_process.waitForFinished(3000);
+            }
             appendOutput(QStringLiteral("%1\n").arg(m_currentDirectory).toUtf8());
             m_statusText = QStringLiteral("工作目录已更新");
             emit currentDirectoryChanged();
@@ -249,19 +278,18 @@ void TerminalManager::run(const QString &command)
     writeLog(QStringLiteral("command.start"), QStringLiteral("length=%1 sha256=%2 shell=%3")
         .arg(trimmed.size()).arg(fingerprint, m_shellProgram));
     appendOutput(QStringLiteral("\nPS sandbox> %1\n").arg(trimmed).toUtf8());
-    m_statusText = QStringLiteral("正在独立 Runner 中执行");
+    if (!ensureSession()) return;
+    m_commandRunning = true;
+    emit runningChanged();
+    m_statusText = QStringLiteral("正在持续 Shell 会话中执行");
     emit statusChanged();
-    const QString runner = QCoreApplication::applicationDirPath() + QStringLiteral("/sidebar-terminal-runner.exe");
-    QStringList runnerArguments = {QStringLiteral("--cwd"), m_currentDirectory,
-                                   QStringLiteral("--shell"), m_shellProgram,
-                                   QStringLiteral("--log"), m_logPath,
-                                   QStringLiteral("--command"), trimmed};
-    for (auto iterator = m_sessionEnvironment.constBegin(); iterator != m_sessionEnvironment.constEnd(); ++iterator) {
-        runnerArguments += QStringLiteral("--env64");
-        runnerArguments += iterator.key() + QLatin1Char(':')
-            + QString::fromLatin1(iterator.value().toUtf8().toBase64());
-    }
-    m_process.start(runner, runnerArguments);
+    m_process.write(trimmed.toUtf8().toBase64() + '\n');
+    QTimer::singleShot(60000, this, [this] {
+        if (!m_commandRunning) return;
+        appendOutput(QStringLiteral("\n[会话] 命令超过 60 秒，已终止 Shell 作业树\n").toUtf8());
+        writeLog(QStringLiteral("command.timeout"));
+        m_process.kill();
+    });
 }
 
 void TerminalManager::stop()
@@ -291,6 +319,20 @@ void TerminalManager::appendOutput(const QByteArray &data)
     QString decoded = stripTerminalSequences(m_utf8Decoder(data));
     decoded.replace(QStringLiteral("\r\r\n"), QStringLiteral("\r\n"));
     m_output += decoded;
+    static const QRegularExpression completionMarker(QStringLiteral("(?:\\r?\\n)?__SIDEBAR_DONE_(-?\\d+)(?:\\r?\\n)?"));
+    QRegularExpressionMatch marker;
+    while ((marker = completionMarker.match(m_output)).hasMatch()) {
+        const int code = marker.captured(1).toInt();
+        m_output.remove(marker.capturedStart(), marker.capturedLength());
+        m_output += QStringLiteral("\n[完成] 退出码 %1 · %2 ms\n").arg(code).arg(m_runTimer.elapsed());
+        m_commandRunning = false;
+        m_statusText = code == 0 ? QStringLiteral("命令已完成 · Shell 会话保持")
+                                 : QStringLiteral("命令执行结束，退出码 %1").arg(code);
+        writeLog(QStringLiteral("command.finished"), QStringLiteral("exitCode=%1 elapsedMs=%2 outputBytes=%3")
+            .arg(code).arg(m_runTimer.elapsed()).arg(m_outputBytes));
+        emit runningChanged();
+        emit statusChanged();
+    }
     constexpr qsizetype maximumCharacters = 256 * 1024;
     if (m_output.size() > maximumCharacters)
         m_output = QStringLiteral("[较早输出已截断]\n") + m_output.right(maximumCharacters);

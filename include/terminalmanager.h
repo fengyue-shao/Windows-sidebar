@@ -25,7 +25,7 @@ public:
     QString currentDirectory() const { return m_currentDirectory; }
     QString shellName() const { return m_shellName; }
     QString logPath() const { return m_logPath; }
-    bool running() const { return m_process.state() != QProcess::NotRunning; }
+    bool running() const { return m_commandRunning; }
     int sessionEnvironmentCount() const { return m_sessionEnvironment.size(); }
     Q_INVOKABLE void run(const QString &command);
     Q_INVOKABLE void stop();
@@ -39,6 +39,7 @@ signals:
     void currentDirectoryChanged();
 private:
     void appendOutput(const QByteArray &data);
+    bool ensureSession();
     QString stripTerminalSequences(const QString &text);
     void writeLog(const QString &event, const QString &detail = {});
     QProcess m_process;
@@ -53,6 +54,7 @@ private:
     QHash<QString, QString> m_sessionEnvironment;
     QStringDecoder m_utf8Decoder{QStringConverter::Utf8};
     QElapsedTimer m_runTimer;
+    bool m_commandRunning = false;
     qsizetype m_outputBytes = 0;
     enum class EscapeState { Normal, Escape, Csi, Osc, OscEscape };
     EscapeState m_escapeState = EscapeState::Normal;

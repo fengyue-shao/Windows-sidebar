@@ -12,6 +12,7 @@
 #include <fcntl.h>
 #include <io.h>
 #include <cstdio>
+#include <thread>
 
 namespace {
 void writeRunnerLog(const QString &path, const QString &event, const QString &detail = {})
@@ -40,7 +41,8 @@ int main(int argc, char *argv[])
     const int cwdIndex = arguments.indexOf(QStringLiteral("--cwd"));
     const int shellIndex = arguments.indexOf(QStringLiteral("--shell"));
     const int logIndex = arguments.indexOf(QStringLiteral("--log"));
-    if (commandIndex < 0 || commandIndex + 1 >= arguments.size()
+    const bool sessionMode = arguments.contains(QStringLiteral("--session"));
+    if ((!sessionMode && (commandIndex < 0 || commandIndex + 1 >= arguments.size()))
         || cwdIndex < 0 || cwdIndex + 1 >= arguments.size()
         || shellIndex < 0 || shellIndex + 1 >= arguments.size())
         return 2;
@@ -67,8 +69,9 @@ int main(int argc, char *argv[])
     QProcess shell;
     const QString shellProgram = arguments.at(shellIndex + 1);
     const bool commandPrompt = QFileInfo(shellProgram).fileName().compare(QStringLiteral("cmd.exe"), Qt::CaseInsensitive) == 0;
-    writeRunnerLog(logPath, QStringLiteral("runner.start"), QStringLiteral("shell=%1 mode=%2 cwd=%3")
-        .arg(shellProgram, commandPrompt ? QStringLiteral("cmd-utf16") : QStringLiteral("powershell-utf8"), arguments.at(cwdIndex + 1)));
+    writeRunnerLog(logPath, QStringLiteral("runner.start"), QStringLiteral("shell=%1 mode=%2 cwd=%3 session=%4")
+        .arg(shellProgram, commandPrompt ? QStringLiteral("cmd-utf16") : QStringLiteral("powershell-utf8"), arguments.at(cwdIndex + 1))
+        .arg(sessionMode));
     shell.setWorkingDirectory(arguments.at(cwdIndex + 1));
     QProcessEnvironment environment;
     const auto systemEnvironment = QProcessEnvironment::systemEnvironment();
@@ -103,7 +106,12 @@ int main(int argc, char *argv[])
         CloseHandle(job);
         app.exit(code);
     });
-    if (commandPrompt) {
+    if (sessionMode && commandPrompt) {
+        shell.start(shellProgram, {QStringLiteral("/U"), QStringLiteral("/D"), QStringLiteral("/Q"), QStringLiteral("/K")});
+    } else if (sessionMode) {
+        shell.start(shellProgram, {QStringLiteral("-NoLogo"), QStringLiteral("-NoProfile"), QStringLiteral("-NonInteractive"),
+            QStringLiteral("-ExecutionPolicy"), QStringLiteral("Restricted"), QStringLiteral("-NoExit"), QStringLiteral("-Command"), QStringLiteral("-")});
+    } else if (commandPrompt) {
         shell.start(shellProgram, {QStringLiteral("/U"), QStringLiteral("/D"), QStringLiteral("/S"), QStringLiteral("/C"),
             QStringLiteral("chcp 65001>nul & ") + arguments.at(commandIndex + 1)});
     } else {
@@ -130,6 +138,31 @@ int main(int argc, char *argv[])
         return 5;
     }
     CloseHandle(process);
+
+    if (sessionMode) {
+        if (commandPrompt)
+            shell.write("chcp 65001>nul\r\n");
+        else
+            shell.write("[Console]::InputEncoding=[Text.UTF8Encoding]::new($false); [Console]::OutputEncoding=[Text.UTF8Encoding]::new($false); $OutputEncoding=[Text.UTF8Encoding]::new($false); if (Get-Variable PSStyle -ErrorAction SilentlyContinue) { $PSStyle.OutputRendering='PlainText' }; $ExecutionContext.SessionState.LanguageMode='ConstrainedLanguage'\n");
+        std::thread([&shell, commandPrompt] {
+            QByteArray line;
+            while (true) {
+                const int character = getchar();
+                if (character == EOF) break;
+                if (character != '\n') { line += static_cast<char>(character); continue; }
+                const QString command = QString::fromUtf8(QByteArray::fromBase64(line.trimmed()));
+                line.clear();
+                QMetaObject::invokeMethod(&shell, [command, commandPrompt, &shell] {
+                    const QString wrapped = commandPrompt
+                        ? command + QStringLiteral(" & echo __SIDEBAR_DONE_%errorlevel%\r\n")
+                        : QStringLiteral("%1; $__sidebarCode = if ($?) { 0 } else { 1 }; Write-Output \"__SIDEBAR_DONE_$__sidebarCode\"\n").arg(command);
+                    shell.write(commandPrompt ? wrapped.toUtf8() : wrapped.toLocal8Bit());
+                }, Qt::QueuedConnection);
+            }
+            QMetaObject::invokeMethod(&shell, [&shell] { shell.closeWriteChannel(); }, Qt::QueuedConnection);
+        }).detach();
+        return app.exec();
+    }
 
     QTimer::singleShot(60000, &app, [&shell, logPath] {
         if (shell.state() != QProcess::NotRunning) {
