@@ -65,8 +65,11 @@ int main(int argc, char *argv[])
     limits.BasicLimitInformation.ActiveProcessLimit = 32;
     limits.ProcessMemoryLimit = 1024ULL * 1024ULL * 1024ULL;
     limits.JobMemoryLimit = 4ULL * 1024ULL * 1024ULL * 1024ULL;
-    if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits)))
+    if (!SetInformationJobObject(job, JobObjectExtendedLimitInformation, &limits, sizeof(limits))) {
         writeRunnerLog(logPath, QStringLiteral("job.limit.failed"), QStringLiteral("winError=%1").arg(GetLastError()));
+        CloseHandle(job);
+        return 3;
+    }
     else
         writeRunnerLog(logPath, QStringLiteral("job.limit.applied"),
             QStringLiteral("activeProcesses=32 processMemoryMiB=1024 jobMemoryMiB=4096"));
@@ -176,7 +179,7 @@ int main(int argc, char *argv[])
                     const QString wrapped = controlMessage
                         ? command + (commandPrompt ? QStringLiteral("\r\n") : QStringLiteral("\n"))
                         : (commandPrompt
-                            ? command + QStringLiteral(" & echo __SIDEBAR_DONE_%errorlevel%\r\n")
+                            ? command + QStringLiteral("\r\necho __SIDEBAR_DONE_%errorlevel%\r\n")
                             : QStringLiteral("%1; $__sidebarCode = if ($?) { 0 } else { 1 }; Write-Output \"__SIDEBAR_DONE_$__sidebarCode\"\n").arg(command));
                     shell.write(commandPrompt ? wrapped.toUtf8() : wrapped.toLocal8Bit());
                 }, Qt::QueuedConnection);

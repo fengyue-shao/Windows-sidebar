@@ -86,6 +86,13 @@ QPair<QString, QString> detectDefaultShell()
 
 TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
 {
+    m_commandTimeout.setSingleShot(true);
+    m_commandTimeout.setInterval(60000);
+    connect(&m_commandTimeout, &QTimer::timeout, this, [this] {
+        if (!m_commandRunning) return;
+        writeLog(QStringLiteral("command.timeout"));
+        stop();
+    });
 #ifdef Q_OS_WIN
     const HMODULE kernel = GetModuleHandleW(L"kernel32.dll");
     m_conPtyAvailable = kernel
@@ -132,6 +139,7 @@ TerminalManager::TerminalManager(QObject *parent) : QObject(parent)
     m_process.setProcessChannelMode(QProcess::MergedChannels);
     connect(&m_process, &QProcess::readyRead, this, [this] { appendOutput(m_process.readAll()); });
     connect(&m_process, &QProcess::finished, this, [this](int code, QProcess::ExitStatus status) {
+        m_commandTimeout.stop();
         if (m_commandRunning)
             appendOutput(QStringLiteral("\n[会话已终止] Runner 退出码 %1\n").arg(code).toUtf8());
         m_commandRunning = false;
@@ -169,6 +177,32 @@ bool TerminalManager::ensureSession()
     return true;
 }
 
+TerminalManager::~TerminalManager()
+{
+    m_commandTimeout.stop();
+    m_process.kill();
+    m_process.waitForFinished(3000);
+}
+
+void TerminalManager::resetSession()
+{
+    m_commandTimeout.stop();
+    if (m_process.state() != QProcess::NotRunning) {
+        m_process.kill();
+        m_process.waitForFinished(3000);
+    }
+    m_commandRunning = false;
+    m_sessionEnvironment.clear();
+    m_currentDirectory = m_sandboxPath;
+    m_utf8Decoder = QStringDecoder(QStringConverter::Utf8);
+    m_escapeState = EscapeState::Normal;
+    clear();
+    m_statusText = QStringLiteral("会话已重置，下次执行时启动 Shell");
+    emit currentDirectoryChanged();
+    emit runningChanged();
+    emit statusChanged();
+}
+
 QStringList TerminalManager::completionSuggestions(const QString &input) const
 {
     const QString text = input;
@@ -197,6 +231,10 @@ QStringList TerminalManager::completionSuggestions(const QString &input) const
     const QString relativeDirectory = separator >= 0 ? normalizedToken.left(separator + 1) : QString();
     const QString namePrefix = separator >= 0 ? normalizedToken.mid(separator + 1) : normalizedToken;
     QDir directory(QDir(m_currentDirectory).filePath(relativeDirectory));
+    const QString canonical = directory.canonicalPath();
+    const QString rootPath = QDir(m_sandboxPath).canonicalPath();
+    if (canonical.isEmpty() || (canonical.compare(rootPath, Qt::CaseInsensitive) != 0
+        && !canonical.startsWith(rootPath + QLatin1Char('/'), Qt::CaseInsensitive))) return {};
     const QFileInfoList entries = directory.entryInfoList(QDir::AllEntries | QDir::NoDotAndDotDot,
                                                            QDir::DirsFirst | QDir::Name | QDir::IgnoreCase);
     for (const QFileInfo &entry : entries) {
@@ -310,12 +348,7 @@ void TerminalManager::run(const QString &command)
     m_statusText = QStringLiteral("正在持续 Shell 会话中执行");
     emit statusChanged();
     m_process.write("R\t" + trimmed.toUtf8().toBase64() + '\n');
-    QTimer::singleShot(60000, this, [this] {
-        if (!m_commandRunning) return;
-        appendOutput(QStringLiteral("\n[会话] 命令超过 60 秒，已终止 Shell 作业树\n").toUtf8());
-        writeLog(QStringLiteral("command.timeout"));
-        m_process.kill();
-    });
+    m_commandTimeout.start();
 }
 
 void TerminalManager::stop()
@@ -352,6 +385,7 @@ void TerminalManager::appendOutput(const QByteArray &data)
         m_output.remove(marker.capturedStart(), marker.capturedLength());
         m_output += QStringLiteral("\n[完成] 退出码 %1 · %2 ms\n").arg(code).arg(m_runTimer.elapsed());
         m_commandRunning = false;
+        m_commandTimeout.stop();
         m_statusText = code == 0 ? QStringLiteral("命令已完成 · Shell 会话保持")
                                  : QStringLiteral("命令执行结束，退出码 %1").arg(code);
         writeLog(QStringLiteral("command.finished"), QStringLiteral("exitCode=%1 elapsedMs=%2 outputBytes=%3")

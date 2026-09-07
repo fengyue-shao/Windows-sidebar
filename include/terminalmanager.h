@@ -5,6 +5,7 @@
 #include <QStringConverter>
 #include <QStringList>
 #include <QHash>
+#include <QTimer>
 
 class TerminalManager : public QObject
 {
@@ -21,6 +22,7 @@ class TerminalManager : public QObject
     Q_PROPERTY(QString transportName READ transportName CONSTANT)
 public:
     explicit TerminalManager(QObject *parent = nullptr);
+    ~TerminalManager() override;
     QString output() const { return m_output; }
     QString statusText() const { return m_statusText; }
     QString sandboxPath() const { return m_sandboxPath; }
@@ -34,6 +36,7 @@ public:
     Q_INVOKABLE void run(const QString &command);
     Q_INVOKABLE void stop();
     Q_INVOKABLE void clear();
+    Q_INVOKABLE void resetSession();
     Q_INVOKABLE void openLogFile();
     Q_INVOKABLE QStringList completionSuggestions(const QString &input) const;
 signals:
@@ -58,6 +61,7 @@ private:
     QHash<QString, QString> m_sessionEnvironment;
     QStringDecoder m_utf8Decoder{QStringConverter::Utf8};
     QElapsedTimer m_runTimer;
+    QTimer m_commandTimeout;
     bool m_commandRunning = false;
     bool m_conPtyAvailable = false;
     QString m_transportName;

@@ -89,8 +89,8 @@ Item {
         case "/logs": terminalManager.openLogFile(); notice = "已请求打开终端插件日志"; break
         case "/stop": terminalManager.stop(); break
         case "/reset":
-            terminalManager.clear(); commandHistory = []; historyIndex = 0
-            notice = "会话显示与输入历史已重置"
+            terminalManager.resetSession(); commandHistory = []; historyIndex = 0
+            notice = "Shell、环境变量、工作目录与历史已重置"
             break
         default: notice = "未知内置命令。输入 / 查看可用命令"; break
         }
@@ -200,7 +200,7 @@ Item {
                 visible: commandInput.text.length > 0 && root.completionItems().length > 0 && !terminalManager.running
                 anchors.left: parent.left; anchors.right: parent.right; anchors.bottom: promptRow.top
                 anchors.leftMargin: 10; anchors.rightMargin: 10; anchors.bottomMargin: 6
-                height: Math.min(210, paletteColumn.implicitHeight + 12)
+                height: paletteColumn.implicitHeight + 12
                 radius: 12; z: 4
                 color: themeManager.dark ? "#171C24" : "#FFFFFF"
                 border.width: 1; border.color: themeManager.accent
@@ -260,7 +260,7 @@ Item {
                 TextInput {
                 id: commandInput
                 Layout.fillWidth: true
-                enabled: !terminalManager.running
+                readOnly: terminalManager.running
                 selectByMouse: true
                 color: themeManager.dark ? "#E6EDF3" : "#1F2937"
                 selectionColor: themeManager.accent

@@ -52,7 +52,7 @@ Runner 在首次执行命令时启动并保持同一个 PowerShell 或 CMD 进�
 - `/history`：显示本次会话命令历史。
 - `/logs`：打开插件日志。
 - `/stop`：终止当前命令。
-- `/reset`：清空显示和输入历史。
+- `/reset`：终止 Shell，清空会话环境变量，恢复初始工作目录，并清空显示和输入历史。
 
 ## Shell 与编码
 
@@ -115,6 +115,7 @@ Runner 不复制整个宿主环境，而是继承 Windows 命令和桌面应用�
 - `vim`、`ssh`、交互式 Python、Codex CLI 和 Claude Code 等程序尚不能获得原生 TTY 体验。
 - GUI 应用仍属于 Runner 作业树；退出侧栏或重建 Runner 时，相关子进程可能一起退出。
 - PowerShell Constrained Language 并不能替代操作系统级文件系统隔离。
+- 单独 `cd` 和补全的路径检查不限制其他 Shell 命令或子进程的文件访问；运行程序仍拥有当前用户权限。
 
 ## ConPTY 路线
 
