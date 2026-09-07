@@ -136,7 +136,7 @@ Rectangle {
                 SettingsRow {
                     Layout.fillWidth: true
                     title: pluginRegistry.statusText
-                    detail: "扫描运行目录中的 plugins 文件夹"
+                    detail: pluginRegistry.errorDetails || "扫描运行目录中的 plugins 文件夹"
                     trailing: "↻"
                     onClicked: pluginRegistry.reload()
                 }

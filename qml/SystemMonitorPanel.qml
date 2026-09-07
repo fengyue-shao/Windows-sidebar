@@ -8,7 +8,8 @@ Flickable {
     contentHeight: contentColumn.implicitHeight
     clip: true
     boundsBehavior: Flickable.StopAtBounds
-    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
+    ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOff }
+    ScrollBar.horizontal: ScrollBar { policy: ScrollBar.AlwaysOff }
 
     ColumnLayout {
         id: contentColumn

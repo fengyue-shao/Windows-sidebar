@@ -55,6 +55,10 @@ New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $stageDir 'Assets') -Force | Out-Null
 
 Copy-Item -LiteralPath $resolvedExecutable -Destination $stageDir
+$runnerPath = Join-Path (Split-Path $resolvedExecutable) 'sidebar-terminal-runner.exe'
+if (!(Test-Path -LiteralPath $runnerPath)) { throw "Terminal Runner missing: $runnerPath" }
+Copy-Item -LiteralPath $runnerPath -Destination $stageDir
+Copy-Item -LiteralPath (Join-Path $resolvedSourceDir 'plugins') -Destination $stageDir -Recurse
 Copy-Item -LiteralPath (Join-Path $resolvedSourceDir 'packaging\AppxManifest.xml') -Destination $stageDir
 Copy-Item -Path (Join-Path $resolvedSourceDir 'packaging\Assets\*.png') -Destination (Join-Path $stageDir 'Assets')
 
@@ -75,7 +79,7 @@ if ($LASTEXITCODE -ne 0) {
     throw "MakeAppx failed with exit code $LASTEXITCODE"
 }
 
-Import-Module Microsoft.PowerShell.Security -ErrorAction Stop
+Import-Module (Join-Path $PSHOME 'Modules\Microsoft.PowerShell.Security\Microsoft.PowerShell.Security.psd1') -ErrorAction Stop
 if (-not (Get-PSDrive -Name Cert -ErrorAction SilentlyContinue)) {
     throw 'The Windows certificate provider is unavailable in this PowerShell process.'
 }

@@ -22,6 +22,7 @@ void PluginRegistry::reload()
     QVariantList plugins;
     QStringList errors;
     const QDir root(QCoreApplication::applicationDirPath() + QStringLiteral("/plugins"));
+    if (!root.exists()) errors.append(QStringLiteral("插件目录不存在：") + root.absolutePath());
     const auto pluginDirectories = root.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
 
     for (const QFileInfo &directoryInfo : pluginDirectories) {
@@ -83,6 +84,7 @@ void PluginRegistry::reload()
              < right.toMap().value(QStringLiteral("order")).toInt();
     });
     m_pages = discovered;
+    m_errorDetails = errors.join(QLatin1Char('\n'));
     m_plugins = plugins;
     m_statusText = errors.isEmpty()
         ? QStringLiteral("已加载 %1 个插件页面").arg(m_pages.size())

@@ -12,6 +12,7 @@ Item {
     property bool notificationsEnabled: uiSettings.notificationsEnabled
     property bool compactMode: uiSettings.compactMode
     property bool transientUiOpen: false
+    property bool suppressHoverOpen: false
     signal toggleRequested()
 
     function ensureValidSection() {
@@ -25,7 +26,13 @@ Item {
         function onPagesChanged() { root.ensureValidSection() }
     }
 
-    HoverHandler { id: sidebarHover }
+    onExpandedChanged: {
+        if (!expanded) suppressHoverOpen = true
+    }
+    HoverHandler {
+        id: sidebarHover
+        onHoveredChanged: if (!hovered) root.suppressHoverOpen = false
+    }
 
     Timer {
         interval: 900
@@ -46,7 +53,8 @@ Item {
         enabled: !root.expanded
         cursorShape: Qt.PointingHandCursor
         hoverEnabled: true
-        onEntered: if (uiSettings.autoHide) uiSettings.expanded = true
+        onEntered: if (uiSettings.autoHide && !root.suppressHoverOpen) uiSettings.expanded = true
+        onExited: root.suppressHoverOpen = false
         onClicked: root.toggleRequested()
     }
 
@@ -128,10 +136,17 @@ Item {
             Repeater {
                 model: pluginRegistry.pages
                 Loader {
+                    id: pluginLoader
+                    required property int index
                     required property var modelData
+                    property bool visited: false
+                    property bool selected: root.currentSection === 4 + index
+                    onSelectedChanged: if (selected) visited = true
+                    Component.onCompleted: if (selected) visited = true
                     Layout.fillWidth: true
                     Layout.fillHeight: true
                     source: modelData.source
+                    active: visited
 
                     Rectangle {
                         anchors.fill: parent
@@ -144,6 +159,11 @@ Item {
                             anchors.centerIn: parent; spacing: 6
                             Text { anchors.horizontalCenter: parent.horizontalCenter; text: "插件页面加载失败"; color: themeManager.danger; font.pixelSize: 12; font.weight: Font.DemiBold }
                             Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.pluginName; color: themeManager.textMuted; font.pixelSize: 9 }
+                            Button {
+                                anchors.horizontalCenter: parent.horizontalCenter
+                                text: "重新加载"
+                                onClicked: { pluginLoader.visited = false; pluginLoader.visited = true }
+                            }
                         }
                     }
                 }

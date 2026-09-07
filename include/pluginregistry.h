@@ -10,6 +10,7 @@ class PluginRegistry : public QObject
     Q_PROPERTY(QVariantList plugins READ plugins NOTIFY pluginsChanged)
     Q_PROPERTY(int pageCount READ pageCount NOTIFY pagesChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusChanged)
+    Q_PROPERTY(QString errorDetails READ errorDetails NOTIFY statusChanged)
 
 public:
     explicit PluginRegistry(QObject *parent = nullptr);
@@ -18,6 +19,7 @@ public:
     QVariantList plugins() const { return m_plugins; }
     int pageCount() const { return m_pages.size(); }
     QString statusText() const { return m_statusText; }
+    QString errorDetails() const { return m_errorDetails; }
 
     Q_INVOKABLE void reload();
     Q_INVOKABLE void setPluginEnabled(const QString &pluginId, bool enabled);
@@ -31,4 +33,5 @@ private:
     QVariantList m_pages;
     QVariantList m_plugins;
     QString m_statusText;
+    QString m_errorDetails;
 };
