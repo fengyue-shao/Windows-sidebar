@@ -10,7 +10,7 @@
   <Identity
     Name="WindowsSidebar"
     Publisher="CN=WindowsSidebarDev"
-    Version="0.8.0.2"
+    Version="0.8.0.3"
     ProcessorArchitecture="x64" />
 
   <Properties>

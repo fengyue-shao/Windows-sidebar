@@ -1,6 +1,6 @@
 # Windows Sidebar
 
-当前版本：**0.8.0.2**。详见 [版本说明](docs/RELEASE_0.8.0.2.md)。
+当前版本：**0.8.0.3**。详见 [修复说明](docs/PLUGIN_FIXES.md)。
 
 使用 Qt/QML 和 C++20 编写的 Windows 侧边栏。
 

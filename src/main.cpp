@@ -32,7 +32,7 @@ int main(int argc, char *argv[])
 {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     QGuiApplication app(argc, argv);
-    QCoreApplication::setApplicationVersion("0.8.0.2");
+    QCoreApplication::setApplicationVersion("0.8.0.3");
     QCoreApplication::setOrganizationName("WindowsSidebar");
     QCoreApplication::setApplicationName("WindowsSidebar");
     qRegisterMetaType<QImage>("QImage");
