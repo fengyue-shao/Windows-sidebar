@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(qt_rainmeter VERSION 0.8.0.3 LANGUAGES CXX)
+project(qt_rainmeter VERSION 0.8.1.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -27,6 +27,8 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES include/radiomanager.h src/radiomanager.cpp
         SOURCES include/pluginregistry.h src/pluginregistry.cpp
         SOURCES include/terminalmanager.h src/terminalmanager.cpp
+        SOURCES include/dropdowncontroller.h src/dropdowncontroller.cpp
+        QML_FILES qml/DropdownMonitor.qml
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
@@ -52,6 +54,7 @@ target_link_libraries(appqt_rainmeter PRIVATE ole32)
 target_link_libraries(appqt_rainmeter PRIVATE wininet)
 target_link_libraries(appqt_rainmeter PRIVATE wlanapi)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
+target_link_libraries(appqt_rainmeter PRIVATE user32)
 
 qt_add_executable(sidebar-terminal-runner
     runner/terminalrunner.cpp

@@ -15,6 +15,7 @@ class DisplayManager : public QObject
     Q_PROPERTY(int selectedY READ selectedY NOTIFY selectedGeometryChanged)
     Q_PROPERTY(int selectedWidth READ selectedWidth NOTIFY selectedGeometryChanged)
     Q_PROPERTY(int selectedHeight READ selectedHeight NOTIFY selectedGeometryChanged)
+    Q_PROPERTY(QRect availableGeometry READ availableGeometry NOTIFY selectedGeometryChanged)
     Q_PROPERTY(int dockSide READ dockSide WRITE setDockSide NOTIFY dockSideChanged)
 
 public:
@@ -26,6 +27,7 @@ public:
     QVariantList displays() const;
     int currentIndex() const;
     QRect selectedGeometry() const;
+    QRect availableGeometry() const;
     int selectedX() const;
     int selectedY() const;
     int selectedWidth() const;
@@ -50,6 +52,7 @@ private:
     QString m_selectedName;
     int m_currentIndex = 0;
     QRect m_selectedGeometry;
+    QRect m_availableGeometry;
     DockSide m_dockSide = Right;
 };
 

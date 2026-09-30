@@ -15,10 +15,11 @@ Rectangle {
     signal notificationsEnabledRequested(bool enabled)
     signal popupVisibilityChanged(bool visible)
     signal exitRequested()
+    function closeSettings() { settingsPopup.close() }
 
     implicitHeight: 54
     radius: 16
-    color: themeManager.surfaceStrong
+    color: themeManager.cardSurface
     border.width: 1
     border.color: themeManager.borderStrong
 
@@ -61,13 +62,15 @@ Rectangle {
         id: settingsPopup
         onVisibleChanged: root.popupVisibilityChanged(visible)
         x: root.width - width
-        y: -height - 8
+        y: root.height + 8
         width: root.width
-        height: Math.min(680, root.Window.window ? root.Window.window.height - 120 : 680)
+        height: Math.max(100, Math.min(620, root.Window.window ? root.Window.window.height - 150 : 620))
+        modal: true
+        dim: false
         padding: 12
         focus: true
         closePolicy: Popup.CloseOnEscape | Popup.CloseOnPressOutside
-        background: Rectangle { radius: 22; color: themeManager.background; border.width: 1; border.color: themeManager.borderStrong }
+        background: Rectangle { radius: 22; color: themeManager.cardSurface; border.width: 1; border.color: themeManager.borderStrong }
         contentItem: Flickable {
             contentWidth: width
             contentHeight: settingsColumn.implicitHeight
@@ -105,19 +108,15 @@ Rectangle {
                     trailing: "⌄"
                     onClicked: if (displayManager.displays.length > 1) displayManager.setCurrentIndex((displayManager.currentIndex + 1) % displayManager.displays.length)
                 }
-                RowLayout {
-                    Layout.fillWidth: true; spacing: 8
-                    DockButton { Layout.fillWidth: true; text: "停靠左侧"; selected: displayManager.dockSide === 0; onClicked: displayManager.setDockSide(0) }
-                    DockButton { Layout.fillWidth: true; text: "停靠右侧"; selected: displayManager.dockSide === 1; onClicked: displayManager.setDockSide(1) }
-                }
+                Text { text: "顶部居中 · 在屏幕顶部停留可唤出精简栏"; color: themeManager.textMuted; font.pixelSize: 11 }
 
                 SectionLabel { text: "面板风格" }
                 ModuleRow { Layout.fillWidth: true; title: "离开后自动隐藏"; enabledValue: uiSettings.autoHide; onClicked: uiSettings.autoHide = !uiSettings.autoHide }
                 ModuleRow { Layout.fillWidth: true; title: "紧凑布局"; enabledValue: uiSettings.compactMode; onClicked: uiSettings.compactMode = !uiSettings.compactMode }
                 ValueSlider {
                     Layout.fillWidth: true
-                    title: "面板宽度"
-                    valueText: Math.round(uiSettings.panelWidth) + " px"
+                    title: "卡片栏宽度"
+                    valueText: Math.round(uiSettings.panelWidth * 1.8) + " px"
                     from: 360; to: 560; stepSize: 10; value: uiSettings.panelWidth
                     onMoved: uiSettings.panelWidth = Math.round(value)
                 }
@@ -125,7 +124,7 @@ Rectangle {
                     Layout.fillWidth: true
                     title: "透明度"
                     valueText: Math.round(uiSettings.panelOpacity * 100) + "%"
-                    from: 0.72; to: 1.0; stepSize: 0.01; value: uiSettings.panelOpacity
+                    from: 0.94; to: 1.0; stepSize: 0.01; value: uiSettings.panelOpacity
                     onMoved: uiSettings.panelOpacity = value
                 }
 
@@ -135,7 +134,9 @@ Rectangle {
 
                 Text {
                     Layout.fillWidth: true
-                    text: "快捷键  Ctrl+Space 展开 · Ctrl+1–4 切页 · Ctrl+Q 退出"
+                    text: dropdownController.hotkeyAvailable
+                        ? "全局 Ctrl+Alt+Space 唤出/隐藏 · Ctrl+1–5 切页 · Esc 收起 · Ctrl+Q 退出"
+                        : "全局快捷键被占用，请使用顶部边缘唤出 · 应用内 Ctrl+Space 唤出/隐藏"
                     wrapMode: Text.WordWrap
                     color: themeManager.textFaint
                     font.pixelSize: 9

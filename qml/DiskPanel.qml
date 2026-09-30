@@ -9,7 +9,7 @@ Rectangle {
 
     implicitHeight: 42 + Math.min(5, diskMonitor.count) * 42
     radius: 14
-    color: themeManager.surface
+    color: themeManager.cardSurface
     border.width: 1
     border.color: themeManager.border
     clip: true

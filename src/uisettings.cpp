@@ -41,7 +41,8 @@ UiSettings::UiSettings(QObject *parent)
     m_autoHide = settings.value(autoHideKey, false).toBool();
     m_compactMode = settings.value(compactModeKey, false).toBool();
     m_panelWidth = qBound(360, settings.value(panelWidthKey, 420).toInt(), 560);
-    m_panelOpacity = qBound(0.72, settings.value(panelOpacityKey, 1.0).toDouble(), 1.0);
+    // Standalone cards no longer have the old sidebar background underneath.
+    m_panelOpacity = qBound(0.94, settings.value(panelOpacityKey, 1.0).toDouble(), 1.0);
 }
 
 bool UiSettings::expanded() const { return m_expanded; }
@@ -129,7 +130,7 @@ void UiSettings::setPanelWidth(int width)
 
 void UiSettings::setPanelOpacity(qreal opacity)
 {
-    opacity = qBound(0.72, opacity, 1.0);
+    opacity = qBound(0.94, opacity, 1.0);
     if (qFuzzyCompare(m_panelOpacity, opacity))
         return;
     m_panelOpacity = opacity;

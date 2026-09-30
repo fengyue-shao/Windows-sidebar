@@ -13,6 +13,7 @@ class ThemeManager : public QObject
     Q_PROPERTY(QColor background READ background NOTIFY themeChanged)
     Q_PROPERTY(QColor surface READ surface NOTIFY themeChanged)
     Q_PROPERTY(QColor surfaceStrong READ surfaceStrong NOTIFY themeChanged)
+    Q_PROPERTY(QColor cardSurface READ cardSurface NOTIFY themeChanged)
     Q_PROPERTY(QColor surfaceHover READ surfaceHover NOTIFY themeChanged)
     Q_PROPERTY(QColor border READ border NOTIFY themeChanged)
     Q_PROPERTY(QColor borderStrong READ borderStrong NOTIFY themeChanged)
@@ -53,6 +54,7 @@ public:
     QColor background() const;
     QColor surface() const;
     QColor surfaceStrong() const;
+    QColor cardSurface() const;
     QColor surfaceHover() const;
     QColor border() const;
     QColor borderStrong() const;

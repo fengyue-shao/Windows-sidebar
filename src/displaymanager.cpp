@@ -31,6 +31,8 @@ int DisplayManager::currentIndex() const
     return m_currentIndex;
 }
 
+QRect DisplayManager::availableGeometry() const { return m_availableGeometry; }
+
 QRect DisplayManager::selectedGeometry() const
 {
     return m_selectedGeometry;
@@ -64,10 +66,11 @@ void DisplayManager::setCurrentIndex(int index)
 
     QScreen *screen = screens.at(index);
     const bool indexChanged = index != m_currentIndex;
-    const bool geometryChanged = screen->geometry() != m_selectedGeometry;
+    const bool geometryChanged = screen->geometry() != m_selectedGeometry || screen->availableGeometry() != m_availableGeometry;
     m_currentIndex = index;
     m_selectedName = screen->name();
     m_selectedGeometry = screen->geometry();
+    m_availableGeometry = screen->availableGeometry();
 
     QSettings settings;
     settings.setValue(QStringLiteral("appearance/display"), m_selectedName);
@@ -85,6 +88,8 @@ void DisplayManager::rebuildScreens()
         return;
 
     for (QScreen *screen : screens) {
+        connect(screen, &QScreen::availableGeometryChanged,
+                this, &DisplayManager::refreshSelectedGeometry, Qt::UniqueConnection);
         connect(screen, &QScreen::geometryChanged,
                 this, &DisplayManager::refreshSelectedGeometry,
                 Qt::UniqueConnection);
@@ -121,12 +126,13 @@ void DisplayManager::rebuildScreens()
     const bool displaysChanged = newDisplays != m_displays;
     const bool indexChanged = selectedIndex != m_currentIndex;
     const QRect geometry = screens.at(selectedIndex)->geometry();
-    const bool geometryChanged = geometry != m_selectedGeometry;
+    const bool geometryChanged = geometry != m_selectedGeometry || screens.at(selectedIndex)->availableGeometry() != m_availableGeometry;
 
     m_displays = newDisplays;
     m_currentIndex = selectedIndex;
     m_selectedName = screens.at(selectedIndex)->name();
     m_selectedGeometry = geometry;
+    m_availableGeometry = screens.at(selectedIndex)->availableGeometry();
 
     if (displaysChanged)
         emit this->displaysChanged();
@@ -145,9 +151,10 @@ void DisplayManager::refreshSelectedGeometry()
     }
 
     const QRect geometry = screens.at(m_currentIndex)->geometry();
-    if (geometry == m_selectedGeometry)
+    if (geometry == m_selectedGeometry && screens.at(m_currentIndex)->availableGeometry() == m_availableGeometry)
         return;
 
     m_selectedGeometry = geometry;
+    m_availableGeometry = screens.at(m_currentIndex)->availableGeometry();
     emit selectedGeometryChanged();
 }

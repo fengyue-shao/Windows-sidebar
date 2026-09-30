@@ -12,6 +12,7 @@
 #include "include/cpumonitor.h"
 #include "include/diskmonitor.h"
 #include "include/displaymanager.h"
+#include "include/dropdowncontroller.h"
 #include "include/focustimer.h"
 #include "include/gpumonitor.h"
 #include "include/mediamonitor.h"
@@ -32,13 +33,12 @@ int main(int argc, char *argv[])
 {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     QGuiApplication app(argc, argv);
-    QCoreApplication::setApplicationVersion("0.8.0.3");
+    QCoreApplication::setApplicationVersion("0.8.1.0-preview");
     QCoreApplication::setOrganizationName("WindowsSidebar");
     QCoreApplication::setApplicationName("WindowsSidebar");
     qRegisterMetaType<QImage>("QImage");
     qRegisterMetaType<Notification>("Notification");
 
-    QQmlApplicationEngine engine;
     ClipboardManager clipboardManager;
     BluetoothManager bluetoothManager;
     CpuMonitor cpuMonitor;
@@ -59,6 +59,10 @@ int main(int argc, char *argv[])
     MonitorScheduler monitorScheduler;
     ThemeManager themeManager;
     UiSettings uiSettings;
+    DropdownController dropdownController;
+    // Destroy the QML engine before its context services, avoiding null context
+    // bindings and active callbacks during application teardown.
+    QQmlApplicationEngine engine;
 
     monitorScheduler.addModule(&cpuMonitor, 1000);
     monitorScheduler.addModule(&memoryMonitor, 1000);
@@ -107,6 +111,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("systemTrayManager", &systemTrayManager);
     engine.rootContext()->setContextProperty("themeManager", &themeManager);
     engine.rootContext()->setContextProperty("uiSettings", &uiSettings);
+    engine.rootContext()->setContextProperty("dropdownController", &dropdownController);
+    engine.rootContext()->setContextProperty("previewCards", app.arguments().contains("--preview-cards"));
+    engine.rootContext()->setContextProperty("uiSelfTest", app.arguments().contains("--ui-self-test"));
     engine.addImageProvider("cover", coverProvider);
 
     QObject::connect(

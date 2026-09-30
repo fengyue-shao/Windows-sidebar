@@ -60,7 +60,7 @@ Item {
                 Image {
                     id: coverImage
                     anchors.fill: parent
-                    source: "image://cover/current?" + mediaMonitor.coverVersion
+                    source: root.hasMedia && mediaMonitor.coverVersion > 0 ? "image://cover/current?" + mediaMonitor.coverVersion : ""
                     cache: false
                     fillMode: Image.PreserveAspectFit
                     asynchronous: true

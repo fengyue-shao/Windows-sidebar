@@ -1,208 +1,126 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 
 Item {
     id: root
-
     property bool expanded: false
     property int currentSection: uiSettings.currentSection
-    property bool mediaEnabled: uiSettings.mediaEnabled
-    property bool monitorEnabled: uiSettings.monitorEnabled
-    property bool notificationsEnabled: uiSettings.notificationsEnabled
-    property bool compactMode: uiSettings.compactMode
-    property bool transientUiOpen: false
-    property bool suppressHoverOpen: false
-    signal toggleRequested()
-
+    property bool calendarOpen: false
+    property bool settingsOpen: false
+    readonly property bool transientUiOpen: calendarOpen || settingsOpen
+    readonly property bool interacting: pointerGuard.pressed
+    signal expandRequested()
+    signal collapseRequested()
+    signal hideRequested()
+    function closeTransientUi() { timebar.closeCalendar(); navigation.closeSettings() }
     function ensureValidSection() {
-        if (root.currentSection >= 5 + pluginRegistry.pageCount)
-            uiSettings.currentSection = 4
+        if (currentSection < 0 || currentSection >= 5 + pluginRegistry.pageCount) uiSettings.currentSection = 4
     }
-
+    function rectFor(item, radius) {
+        const p = item.mapToItem(root, 0, 0)
+        return { x: p.x, y: p.y, width: item.width, height: item.height, radius: radius }
+    }
+    function inputRegions() {
+        // Popups temporarily need outside-press handling; normal gaps stay click-through.
+        if (transientUiOpen) return [{x: 0, y: 0, width: width, height: height}]
+        let regions = [rectFor(topbar, 18)]
+        if (!expanded) return regions
+        regions.push(rectFor(navigation, 16))
+        if (currentSection === 0) regions = regions.concat(monitor.inputRegions(root))
+        else regions.push(rectFor(pageSurface, 18))
+        return regions
+    }
     Component.onCompleted: ensureValidSection()
-    Connections {
-        target: pluginRegistry
-        function onPagesChanged() { root.ensureValidSection() }
-    }
-
-    onExpandedChanged: {
-        if (!expanded) suppressHoverOpen = true
-    }
-    HoverHandler {
-        id: sidebarHover
-        onHoveredChanged: if (!hovered) root.suppressHoverOpen = false
-    }
-
-    Timer {
-        interval: 900
-        running: uiSettings.autoHide && root.expanded && !sidebarHover.hovered && !root.transientUiOpen
-        onTriggered: uiSettings.expanded = false
-    }
-
+    Connections { target: pluginRegistry; function onPagesChanged() { root.ensureValidSection() } }
+    TapHandler { id: pointerGuard; gesturePolicy: TapHandler.DragThreshold; acceptedButtons: Qt.AllButtons }
     Rectangle {
-        anchors.fill: parent
-        color: themeManager.background
-        border.width: root.expanded ? 1 : 0
-        border.color: themeManager.borderStrong
-        Rectangle { anchors.left: parent.left; anchors.top: parent.top; anchors.bottom: parent.bottom; width: 1; color: themeManager.borderStrong }
-    }
-
-    MouseArea {
-        anchors.fill: parent
-        enabled: !root.expanded
-        cursorShape: Qt.PointingHandCursor
-        hoverEnabled: true
-        onEntered: if (uiSettings.autoHide && !root.suppressHoverOpen) uiSettings.expanded = true
-        onExited: root.suppressHoverOpen = false
-        onClicked: root.toggleRequested()
-    }
-
-    ColumnLayout {
-        anchors.fill: parent
-        anchors.leftMargin: root.compactMode ? 16 : 24
-        anchors.rightMargin: root.compactMode ? 16 : 24
-        anchors.topMargin: root.compactMode ? 10 : 18
-        anchors.bottomMargin: root.compactMode ? 10 : 16
-        spacing: root.compactMode ? 8 : 14
-        visible: root.expanded
-
-        Timebar {
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.compactMode ? 52 : 64
-            onPopupVisibilityChanged: visible => root.transientUiOpen = visible
-        }
-
-        StackLayout {
-            Layout.fillWidth: true
-            Layout.fillHeight: true
-            currentIndex: root.currentSection
-
-            SystemMonitorPanel {
-                Layout.fillWidth: true
+        id: topbar
+        width: parent.width; height: 64; radius: 18
+        color: themeManager.cardSurface; border.width: 1; border.color: themeManager.borderStrong
+        RowLayout {
+            anchors.fill: parent; anchors.margins: 10; spacing: 12
+            Text { visible: root.width > 600; text: "Windows Sidebar"; color: themeManager.textPrimary; font.pixelSize: 14; font.weight: Font.DemiBold }
+            Timebar {
+                id: timebar
+                Layout.preferredWidth: root.width > 600 ? 174 : 145
                 Layout.fillHeight: true
+                onPopupVisibilityChanged: visible => {
+                    root.calendarOpen = visible
+                    if (visible && root.Window.window) root.Window.window.requestActivate()
+                }
             }
-
-            Item {
+            Text {
                 Layout.fillWidth: true
-                Layout.fillHeight: true
-
+                text: (systemTrayManager.online ? "联网" : "离线") + " · "
+                    + (systemTrayManager.muted ? "静音" : "音量 " + systemTrayManager.volume + "%")
+                    + (systemTrayManager.batteryPresent ? " · 电量 " + systemTrayManager.batteryPercent + "%" : "")
+                elide: Text.ElideRight; color: themeManager.textSecondary; font.pixelSize: 11
+            }
+            BarAction { label: root.expanded ? "收起 ⌃" : "展开 ⌄"; onClicked: root.expanded ? root.collapseRequested() : root.expandRequested() }
+            BarAction { label: "隐藏"; onClicked: root.hideRequested() }
+        }
+    }
+    SystemControlBar {
+        id: navigation
+        x: 0; y: 76; width: parent.width; height: 54; visible: root.expanded
+        currentIndex: root.currentSection
+        mediaEnabled: uiSettings.mediaEnabled; monitorEnabled: uiSettings.monitorEnabled; notificationsEnabled: uiSettings.notificationsEnabled
+        pluginPages: pluginRegistry.pages
+        onSectionRequested: index => uiSettings.currentSection = index
+        onMediaEnabledRequested: enabled => uiSettings.mediaEnabled = enabled
+        onMonitorEnabledRequested: enabled => uiSettings.monitorEnabled = enabled
+        onNotificationsEnabledRequested: enabled => uiSettings.notificationsEnabled = enabled
+        onPopupVisibilityChanged: visible => root.settingsOpen = visible
+        onExitRequested: Qt.quit()
+    }
+    Item {
+        id: body
+        x: 0; y: 142; width: parent.width; height: Math.max(0, parent.height - y - 8)
+        visible: root.expanded; clip: true
+        DropdownMonitor { id: monitor; anchors.fill: parent; visible: root.currentSection === 0 }
+        Rectangle {
+            id: pageSurface
+            anchors.fill: parent; visible: root.currentSection !== 0; radius: 18
+            color: themeManager.cardSurface; border.width: 1; border.color: themeManager.border
+            StackLayout {
+                anchors.fill: parent; anchors.margins: 18; currentIndex: root.currentSection - 1
                 ColumnLayout {
-                    anchors.fill: parent
-                    spacing: 10
-
-                    RowLayout {
-                        Layout.fillWidth: true
-                        Text {
-                            Layout.fillWidth: true
-                            text: "通知与媒体"
-                            color: themeManager.textPrimary
-                            font.pixelSize: 17
-                            font.weight: Font.DemiBold
-                        }
-                        Text {
-                            visible: mediaMonitor.title.length > 0
-                            text: mediaMonitor.playing ? "正在播放" : "已暂停"
-                            color: mediaMonitor.playing ? themeManager.success : themeManager.textMuted
-                            font.pixelSize: 10
-                        }
-                    }
-
-                    MediaBar {
-                        Layout.fillWidth: true
-                        Layout.preferredHeight: visible ? 152 : 0
-                        moduleEnabled: root.mediaEnabled
-                    }
-
-                    NotificationArea {
-                        Layout.fillWidth: true
-                        Layout.fillHeight: true
-                        visible: root.notificationsEnabled
-                        model: notificationModel
-                    }
+                    spacing: 12
+                    Text { text: "通知与媒体"; color: themeManager.textPrimary; font.pixelSize: 18; font.weight: Font.DemiBold }
+                    MediaBar { Layout.fillWidth: true; Layout.preferredHeight: visible ? 152 : 0; moduleEnabled: uiSettings.mediaEnabled }
+                    NotificationArea { Layout.fillWidth: true; Layout.fillHeight: true; visible: uiSettings.notificationsEnabled; model: notificationModel }
                 }
-            }
-
-            FocusPage {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-
-            ClipboardPage {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-
-            ToolboxPage {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-            }
-
-            Repeater {
-                model: pluginRegistry.pages
-                Loader {
-                    id: pluginLoader
-                    required property int index
-                    required property var modelData
-                    property bool visited: false
-                    property bool selected: root.currentSection === 5 + index
-                    onSelectedChanged: if (selected) visited = true
-                    Component.onCompleted: if (selected) visited = true
-                    Layout.fillWidth: true
-                    Layout.fillHeight: true
-                    source: modelData.source
-                    active: visited
-
-                    Rectangle {
-                        anchors.fill: parent
-                        visible: parent.status === Loader.Error
-                        radius: 16
-                        color: themeManager.surface
-                        border.width: 1
-                        border.color: themeManager.danger
+                FocusPage { Layout.fillWidth: true; Layout.fillHeight: true }
+                ClipboardPage { Layout.fillWidth: true; Layout.fillHeight: true }
+                ToolboxPage { Layout.fillWidth: true; Layout.fillHeight: true }
+                Repeater {
+                    model: pluginRegistry.pages
+                    Loader {
+                        id: pluginLoader
+                        required property int index
+                        required property var modelData
+                        property bool visited: false
+                        readonly property bool selected: root.currentSection === 5 + index
+                        onSelectedChanged: if (selected) visited = true
+                        Component.onCompleted: if (selected) visited = true
+                        Layout.fillWidth: true; Layout.fillHeight: true
+                        source: modelData.source; active: visited
                         Column {
-                            anchors.centerIn: parent; spacing: 6
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "插件页面加载失败"; color: themeManager.danger; font.pixelSize: 12; font.weight: Font.DemiBold }
-                            Text { anchors.horizontalCenter: parent.horizontalCenter; text: modelData.pluginName; color: themeManager.textMuted; font.pixelSize: 9 }
-                            Button {
-                                anchors.horizontalCenter: parent.horizontalCenter
-                                text: "重新加载"
-                                onClicked: { pluginLoader.visited = false; pluginLoader.visited = true }
-                            }
+                            anchors.centerIn: parent; spacing: 8; visible: pluginLoader.status === Loader.Error
+                            Text { text: "插件加载失败：" + modelData.pluginName; color: themeManager.danger }
+                            Button { text: "重新加载"; onClicked: { pluginLoader.visited = false; pluginLoader.visited = true } }
                         }
                     }
                 }
             }
-        }
-
-        SystemControlBar {
-            Layout.fillWidth: true
-            Layout.preferredHeight: root.compactMode ? 48 : 54
-            currentIndex: root.currentSection
-            mediaEnabled: root.mediaEnabled
-            monitorEnabled: root.monitorEnabled
-            notificationsEnabled: root.notificationsEnabled
-            pluginPages: pluginRegistry.pages
-            onSectionRequested: index => uiSettings.currentSection = index
-            onMediaEnabledRequested: enabled => uiSettings.mediaEnabled = enabled
-            onMonitorEnabledRequested: enabled => uiSettings.monitorEnabled = enabled
-            onNotificationsEnabledRequested: enabled => uiSettings.notificationsEnabled = enabled
-            onPopupVisibilityChanged: visible => root.transientUiOpen = visible
-            onExitRequested: Qt.quit()
         }
     }
-
-    Rectangle {
-        anchors.left: displayManager.dockSide === 1 ? parent.left : undefined
-        anchors.right: displayManager.dockSide === 0 ? parent.right : undefined
-        anchors.verticalCenter: parent.verticalCenter
-        width: root.expanded ? 12 : 6
-        height: root.expanded ? 40 : 52
-        radius: width / 2
-        color: toggleHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
-        Text { anchors.centerIn: parent; visible: root.expanded; text: displayManager.dockSide === 1 ? "‹" : "›"; color: themeManager.textSecondary; font.pixelSize: 14 }
-        HoverHandler { id: toggleHover }
-        TapHandler { onTapped: root.toggleRequested() }
-        Behavior on color { ColorAnimation { duration: 120 } }
+    component BarAction: Basic.Button {
+        property string label
+        text: label; implicitWidth: 64; implicitHeight: 38
+        contentItem: Text { text: parent.text; color: themeManager.accent; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12 }
+        background: Rectangle { radius: 12; color: parent.hovered || parent.down ? themeManager.accentSoft : "transparent" }
     }
 }

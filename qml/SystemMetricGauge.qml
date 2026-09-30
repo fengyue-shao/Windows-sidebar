@@ -18,10 +18,11 @@ Rectangle {
     Canvas {
         id: gauge
         anchors.centerIn: parent
-        width: Math.min(parent.width - 22, parent.height - 22)
+        width: Math.max(0, Math.min(parent.width - 22, parent.height - 22))
         height: width
 
         onPaint: {
+            if (width < 16 || height < 16) return
             const ctx = getContext("2d")
             const center = width / 2
             const lineWidth = Math.max(5, width * 0.075)

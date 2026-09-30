@@ -25,7 +25,7 @@ Rectangle {
 
     implicitHeight: summaryHeight + (expanded ? detailHeight + 20 : 0)
     radius: 16
-    color: themeManager.surface
+    color: themeManager.cardSurface
     border.width: 1
     border.color: expanded ? themeManager.borderStrong : themeManager.border
     clip: true
@@ -65,7 +65,7 @@ Rectangle {
             QuickTile { Layout.fillWidth: true; symbol: "◎"; label: "网络"; selected: root.expanded && root.currentPanel === 1; onClicked: root.selectPanel(1) }
             QuickTile { Layout.fillWidth: true; symbol: "ᛒ"; label: "蓝牙"; selected: root.expanded && root.currentPanel === 4; onClicked: root.selectPanel(4) }
             QuickTile { Layout.fillWidth: true; symbol: "◐"; label: "外观"; selected: root.expanded && root.currentPanel === 2; onClicked: root.selectPanel(2) }
-            QuickTile { Layout.fillWidth: true; symbol: "▣"; label: "侧栏"; selected: root.expanded && root.currentPanel === 3; onClicked: root.selectPanel(3) }
+            QuickTile { Layout.fillWidth: true; symbol: "▣"; label: "布局"; selected: root.expanded && root.currentPanel === 3; onClicked: root.selectPanel(3) }
         }
 
         RowLayout {
@@ -94,7 +94,7 @@ Rectangle {
                 spacing: 10
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { Layout.fillWidth: true; text: ["声音控制", "Wi-Fi 网络", "界面外观", "侧栏行为", "蓝牙设备"][root.currentPanel]; color: themeManager.textPrimary; font.pixelSize: 15; font.weight: Font.DemiBold }
+                    Text { Layout.fillWidth: true; text: ["声音控制", "Wi-Fi 网络", "界面外观", "下拉栏行为", "蓝牙设备"][root.currentPanel]; color: themeManager.textPrimary; font.pixelSize: 15; font.weight: Font.DemiBold }
                     Rectangle {
                         Layout.preferredWidth: 28; Layout.preferredHeight: 28; radius: 9
                         color: collapseHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
@@ -282,20 +282,16 @@ Rectangle {
                             ChoiceButton { Layout.fillWidth: true; label: "深色"; selected: themeManager.mode === 2; onClicked: themeManager.setModeValue(2) }
                         }
                         Text { text: "面板透明度  " + Math.round(uiSettings.panelOpacity * 100) + "%"; color: themeManager.textSecondary; font.pixelSize: 10 }
-                        Slider { Layout.fillWidth: true; from: 0.72; to: 1.0; stepSize: 0.01; value: uiSettings.panelOpacity; onMoved: uiSettings.panelOpacity = value }
+                        Slider { Layout.fillWidth: true; from: 0.94; to: 1.0; stepSize: 0.01; value: uiSettings.panelOpacity; onMoved: uiSettings.panelOpacity = value }
                         ControlButton { Layout.fillWidth: true; label: "紧凑布局"; active: uiSettings.compactMode; onClicked: uiSettings.compactMode = !uiSettings.compactMode }
                         Item { Layout.fillHeight: true }
                     }
 
                     ColumnLayout {
                         spacing: 10
-                        Text { text: "面板宽度  " + uiSettings.panelWidth + " px"; color: themeManager.textSecondary; font.pixelSize: 10 }
+                        Text { text: "卡片栏宽度  " + Math.round(uiSettings.panelWidth * 1.8) + " px"; color: themeManager.textSecondary; font.pixelSize: 10 }
                         Slider { Layout.fillWidth: true; from: 360; to: 560; stepSize: 10; value: uiSettings.panelWidth; onMoved: uiSettings.panelWidth = Math.round(value) }
-                        RowLayout {
-                            Layout.fillWidth: true; spacing: 8
-                            ChoiceButton { Layout.fillWidth: true; label: "停靠左侧"; selected: displayManager.dockSide === 0; onClicked: displayManager.setDockSide(0) }
-                            ChoiceButton { Layout.fillWidth: true; label: "停靠右侧"; selected: displayManager.dockSide === 1; onClicked: displayManager.setDockSide(1) }
-                        }
+                        Text { Layout.fillWidth: true; text: "顶部居中 · 边缘唤出精简栏\n点击展开后才显示卡片"; color: themeManager.textMuted; font.pixelSize: 11 }
                         ControlButton { Layout.fillWidth: true; label: "自动隐藏"; active: uiSettings.autoHide; onClicked: uiSettings.autoHide = !uiSettings.autoHide }
                         Item { Layout.fillHeight: true }
                     }

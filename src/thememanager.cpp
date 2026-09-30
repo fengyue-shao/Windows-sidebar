@@ -36,6 +36,7 @@ bool ThemeManager::dark() const
 QColor ThemeManager::background() const { return choose("#F2F4F8", "#F21A1B20"); }
 QColor ThemeManager::surface() const { return choose("#E9FFFFFF", "#12FFFFFF"); }
 QColor ThemeManager::surfaceStrong() const { return choose("#F7FFFFFF", "#E923252C"); }
+QColor ThemeManager::cardSurface() const { return choose("#FFFFFF", "#23252C"); }
 QColor ThemeManager::surfaceHover() const { return choose("#FFFFFFFF", "#20FFFFFF"); }
 QColor ThemeManager::border() const { return choose("#1F253044", "#18FFFFFF"); }
 QColor ThemeManager::borderStrong() const { return choose("#33253044", "#30FFFFFF"); }

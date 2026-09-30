@@ -8,6 +8,7 @@ Item {
     property date now: new Date()
     property date displayedMonth: new Date(now.getFullYear(), now.getMonth(), 1)
     signal popupVisibilityChanged(bool visible)
+    function closeCalendar() { calendarPopup.close() }
 
     function sameDay(left, right) {
         return left.getFullYear() === right.getFullYear()
@@ -91,7 +92,7 @@ Item {
         id: calendarPopup
         x: 0
         y: root.height + 8
-        width: root.width
+        width: Math.min(340, root.Window.window ? root.Window.window.width - 20 : 340)
         height: 360
         padding: 14
         focus: true
@@ -100,7 +101,7 @@ Item {
         onOpened: root.displayedMonth = new Date(root.now.getFullYear(), root.now.getMonth(), 1)
         background: Rectangle {
             radius: 22
-            color: themeManager.background
+            color: themeManager.cardSurface
             border.width: 1
             border.color: themeManager.borderStrong
         }
