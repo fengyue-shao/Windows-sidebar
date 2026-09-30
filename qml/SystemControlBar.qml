@@ -30,6 +30,7 @@ Rectangle {
         SectionButton { Layout.fillWidth: true; label: "通知"; symbol: "●"; selected: root.currentIndex === 1; onClicked: root.sectionRequested(1) }
         SectionButton { Layout.fillWidth: true; label: "专注"; symbol: "◷"; selected: root.currentIndex === 2; onClicked: root.sectionRequested(2) }
         SectionButton { Layout.fillWidth: true; label: "剪贴"; symbol: "▤"; selected: root.currentIndex === 3; onClicked: root.sectionRequested(3) }
+        SectionButton { Layout.fillWidth: true; label: "工具箱"; symbol: "✦"; selected: root.currentIndex === 4; onClicked: root.sectionRequested(4) }
         Repeater {
             model: root.pluginPages
             SectionButton {
@@ -38,8 +39,8 @@ Rectangle {
                 Layout.fillWidth: true
                 label: modelData.title
                 symbol: modelData.symbol
-                selected: root.currentIndex === 4 + index
-                onClicked: root.sectionRequested(4 + index)
+                selected: root.currentIndex === 5 + index
+                onClicked: root.sectionRequested(5 + index)
             }
         }
         Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 26; color: themeManager.track }
@@ -132,24 +133,6 @@ Rectangle {
                 ModuleRow { Layout.fillWidth: true; title: "媒体播放器"; enabledValue: root.mediaEnabled; onClicked: root.mediaEnabledRequested(!root.mediaEnabled) }
                 ModuleRow { Layout.fillWidth: true; title: "通知中心"; enabledValue: root.notificationsEnabled; onClicked: root.notificationsEnabledRequested(!root.notificationsEnabled) }
 
-                SectionLabel { text: "插件系统" }
-                SettingsRow {
-                    Layout.fillWidth: true
-                    title: pluginRegistry.statusText
-                    detail: pluginRegistry.errorDetails || "扫描运行目录中的 plugins 文件夹"
-                    trailing: "↻"
-                    onClicked: pluginRegistry.reload()
-                }
-                Repeater {
-                    model: pluginRegistry.plugins
-                    ModuleRow {
-                        required property var modelData
-                        Layout.fillWidth: true
-                        title: modelData.name + "  v" + modelData.version + " · " + modelData.pageCount + " 个页面"
-                        enabledValue: modelData.enabled
-                        onClicked: pluginRegistry.setPluginEnabled(modelData.id, !modelData.enabled)
-                    }
-                }
                 Text {
                     Layout.fillWidth: true
                     text: "快捷键  Ctrl+Space 展开 · Ctrl+1–4 切页 · Ctrl+Q 退出"

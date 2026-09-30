@@ -16,8 +16,8 @@ Item {
     signal toggleRequested()
 
     function ensureValidSection() {
-        if (root.currentSection >= 4 + pluginRegistry.pageCount)
-            uiSettings.currentSection = 0
+        if (root.currentSection >= 5 + pluginRegistry.pageCount)
+            uiSettings.currentSection = 4
     }
 
     Component.onCompleted: ensureValidSection()
@@ -133,6 +133,11 @@ Item {
                 Layout.fillHeight: true
             }
 
+            ToolboxPage {
+                Layout.fillWidth: true
+                Layout.fillHeight: true
+            }
+
             Repeater {
                 model: pluginRegistry.pages
                 Loader {
@@ -140,7 +145,7 @@ Item {
                     required property int index
                     required property var modelData
                     property bool visited: false
-                    property bool selected: root.currentSection === 4 + index
+                    property bool selected: root.currentSection === 5 + index
                     onSelectedChanged: if (selected) visited = true
                     Component.onCompleted: if (selected) visited = true
                     Layout.fillWidth: true

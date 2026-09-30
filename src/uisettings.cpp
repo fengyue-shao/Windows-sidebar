@@ -26,6 +26,13 @@ UiSettings::UiSettings(QObject *parent)
         settings.setValue(currentSectionKey, m_currentSection);
         settings.setValue(navigationSchemaKey, 2);
     }
+    if (settings.value(navigationSchemaKey, 2).toInt() < 3) {
+        // The former dynamic toolbox was after the terminal; it is now a permanent page.
+        if (m_currentSection == 4) m_currentSection = 5;
+        else if (m_currentSection == 5) m_currentSection = 4;
+        settings.setValue(currentSectionKey, m_currentSection);
+        settings.setValue(navigationSchemaKey, 3);
+    }
     if (m_currentSection < 0 || m_currentSection > 63)
         m_currentSection = 0;
     m_mediaEnabled = settings.value(mediaEnabledKey, true).toBool();

@@ -8,6 +8,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QSettings>
+#include <QSet>
 #include <QUrl>
 #include <algorithm>
 
@@ -21,11 +22,15 @@ void PluginRegistry::reload()
     QVariantList discovered;
     QVariantList plugins;
     QStringList errors;
+    QSet<QString> seenIds;
     const QDir root(QCoreApplication::applicationDirPath() + QStringLiteral("/plugins"));
     if (!root.exists()) errors.append(QStringLiteral("插件目录不存在：") + root.absolutePath());
     const auto pluginDirectories = root.entryInfoList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
 
     for (const QFileInfo &directoryInfo : pluginDirectories) {
+        // An older build may leave the former toolbox plugin directory behind.
+        if (directoryInfo.fileName() == QStringLiteral("com.windows-sidebar.toolbox"))
+            continue;
         const QDir directory(directoryInfo.absoluteFilePath());
         QFile manifestFile(directory.filePath(QStringLiteral("plugin.json")));
         if (!manifestFile.open(QIODevice::ReadOnly)) {
@@ -42,6 +47,15 @@ void PluginRegistry::reload()
             errors.append(directoryInfo.fileName() + QStringLiteral(": 清单无效"));
             continue;
         }
+        // Older builds copied this former plugin into their output directory. The
+        // toolbox is now a built-in page and must never appear as a managed plugin.
+        if (pluginId == QStringLiteral("com.windows-sidebar.toolbox"))
+            continue;
+        if (seenIds.contains(pluginId)) {
+            errors.append(pluginId + QStringLiteral(": 插件 ID 重复"));
+            continue;
+        }
+        seenIds.insert(pluginId);
         const bool enabled = QSettings().value(QStringLiteral("plugins/%1/enabled").arg(pluginId), true).toBool();
         const QJsonArray pages = manifest.value(QStringLiteral("contributes")).toObject()
                                      .value(QStringLiteral("pages")).toArray();
@@ -51,6 +65,12 @@ void PluginRegistry::reload()
         pluginDescriptor.insert(QStringLiteral("version"), manifest.value(QStringLiteral("version")).toString());
         pluginDescriptor.insert(QStringLiteral("enabled"), enabled);
         pluginDescriptor.insert(QStringLiteral("pageCount"), pages.size());
+        QStringList permissions;
+        for (const QJsonValue &permission : manifest.value(QStringLiteral("permissions")).toArray()) {
+            if (permission.isString()) permissions.append(permission.toString());
+        }
+        pluginDescriptor.insert(QStringLiteral("permissionsText"), permissions.isEmpty()
+            ? QStringLiteral("未声明权限") : permissions.join(QStringLiteral(" · ")));
         plugins.append(pluginDescriptor);
         if (!enabled)
             continue;
@@ -96,8 +116,10 @@ void PluginRegistry::reload()
 
 void PluginRegistry::setPluginEnabled(const QString &pluginId, bool enabled)
 {
-    if (pluginId.isEmpty())
-        return;
+    const auto known = std::find_if(m_plugins.cbegin(), m_plugins.cend(), [&pluginId](const QVariant &plugin) {
+        return plugin.toMap().value(QStringLiteral("id")).toString() == pluginId;
+    });
+    if (known == m_plugins.cend()) return;
     QSettings().setValue(QStringLiteral("plugins/%1/enabled").arg(pluginId), enabled);
     reload();
 }
