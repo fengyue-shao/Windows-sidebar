@@ -8,6 +8,9 @@
 
 #include "include/coverimageprovider.h"
 #include "include/fluenticonprovider.h"
+#include "include/audioinputmanager.h"
+#include "include/mediaspectrum.h"
+#include "include/islandbridge.h"
 #include "include/bluetoothmanager.h"
 #include "include/clipboardmanager.h"
 #include "include/cpumonitor.h"
@@ -57,10 +60,13 @@ int main(int argc, char *argv[])
     NotificationModel notificationModel;
     NotificationListener notificationListener;
     SystemTrayManager systemTrayManager;
+    AudioInputManager audioInputManager;
+    MediaSpectrum mediaSpectrum;
     MonitorScheduler monitorScheduler;
     ThemeManager themeManager;
     UiSettings uiSettings;
     DropdownController dropdownController;
+    IslandBridge islandBridge;
     // Destroy the QML engine before its context services, avoiding null context
     // bindings and active callbacks during application teardown.
     QQmlApplicationEngine engine;
@@ -110,15 +116,29 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
     engine.rootContext()->setContextProperty("notificationModel", &notificationModel);
     engine.rootContext()->setContextProperty("systemTrayManager", &systemTrayManager);
+    engine.rootContext()->setContextProperty("audioInputManager", &audioInputManager);
+    engine.rootContext()->setContextProperty("mediaSpectrum", &mediaSpectrum);
+    engine.rootContext()->setContextProperty("islandBridge", &islandBridge);
     engine.rootContext()->setContextProperty("themeManager", &themeManager);
     engine.rootContext()->setContextProperty("uiSettings", &uiSettings);
     engine.rootContext()->setContextProperty("dropdownController", &dropdownController);
     engine.rootContext()->setContextProperty("previewCards", app.arguments().contains("--preview-cards"));
     engine.rootContext()->setContextProperty("uiSelfTest", app.arguments().contains("--ui-self-test"));
+    QString uiCapturePath;
+    for (const auto &arg : app.arguments()) if (arg.startsWith("--ui-capture=")) uiCapturePath = arg.mid(13);
+    engine.rootContext()->setContextProperty("uiCapturePath", uiCapturePath);
     engine.addImageProvider("cover", coverProvider);
     auto *fluentProvider = new FluentIconProvider;
     engine.addImageProvider("fluent", fluentProvider);
     if (app.arguments().contains("--ui-self-test")) {
+        islandBridge.publish("test.low", {{"title","low"}}, 1);
+        islandBridge.publish("test.high", {{"title","high"},{"progress",2.0}}, 9);
+        if (islandBridge.activeState().value("sourceId") != "test.high"
+            || islandBridge.activeState().value("progress").toDouble() != 1.0
+            || islandBridge.publish("bad/id",{},0)) return 6;
+        islandBridge.withdraw("test.high");
+        if (islandBridge.activeState().value("sourceId") != "test.low") return 6;
+        islandBridge.withdraw("test.low");
         QSize iconSize;
         const auto icon = fluentProvider->requestImage("desktop/61a9ff", &iconSize, QSize(40, 40));
         if (icon.isNull() || iconSize != QSize(40, 40)) {

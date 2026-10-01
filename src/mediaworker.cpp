@@ -5,6 +5,9 @@
 #include <QFile>
 #include <QImage>
 #include <QTimer>
+#include <QVariantMap>
+#include <algorithm>
+#include <cmath>
 #include <winrt/base.h>
 #include <winrt/Windows.ApplicationModel.h>
 #include <winrt/windows.Foundation.h>
@@ -82,6 +85,12 @@ QImage MediaWorker::readCover(
     }
     return coverImage;
 }
+MediaWorker::~MediaWorker() {
+    try {
+        unregisterSession();
+        if (m_manager) { m_manager.CurrentSessionChanged(m_sessionToken); m_manager.SessionsChanged(m_sessionsToken); }
+    } catch (...) {}
+}
 
 void MediaWorker::scheduleCoverRetry(const QString &mediaKey)
 {
@@ -144,8 +153,8 @@ void MediaWorker::initialize()
     winrt::init_apartment(
         winrt::apartment_type::multi_threaded);
 
-    m_manager =
-        SessionManager::RequestAsync().get();
+    try { m_manager = SessionManager::RequestAsync().get(); }
+    catch (...) { emit commandStatus(QStringLiteral("无法访问系统媒体会话")); return; }
 
     m_sessionToken =
         m_manager.CurrentSessionChanged(
@@ -155,20 +164,30 @@ void MediaWorker::initialize()
                     this,
                     [this]
                     {
-                        registerSession();
+                        refreshSessions();
                     },
                     Qt::QueuedConnection);
             });
 
-    registerSession();
+    m_sessionsToken = m_manager.SessionsChanged([this](auto&&, auto&&) {
+        QMetaObject::invokeMethod(this, &MediaWorker::refreshSessions, Qt::QueuedConnection);
+    });
+    m_pollTimer = new QTimer(this);
+    m_pollTimer->setInterval(500);
+    connect(m_pollTimer, &QTimer::timeout, this, [this] { refreshSessions(); updatePS(); updateTimeline(); });
+    refreshSessions();
+    m_pollTimer->start();
 
     qDebug() << "MediaWorker initialized";
 }
 void MediaWorker::registerSession()
 {
     unregisterSession();
-
-    m_session = m_manager.GetCurrentSession();
+    m_mediaKey.clear(); m_coverRetryAttempt = 0; m_coverRetryPending = false;
+    emit mediaInfoUpdated("", "", "", "", QImage());
+    emit mediaPSUpdated(false);
+    emit timelineUpdated(0,0,false);
+    for (const auto &entry : m_sessions) if (entry.id == m_selectedId) { m_session = entry.session; break; }
 
     if (!m_session)
     {
@@ -182,6 +201,7 @@ void MediaWorker::registerSession()
             "",
             QImage());
         emit mediaPSUpdated(false);
+        emit timelineUpdated(0, 0, false);
         return;
     }
 
@@ -205,32 +225,108 @@ void MediaWorker::registerSession()
                     Qt::QueuedConnection);
             });
     updatePS();
-    /*m_timelineToken =
+    m_timelineToken =
         m_session.TimelinePropertiesChanged(
             [this](auto&&, auto&&)
             {
                 QMetaObject::invokeMethod(
                     this,
-                    &MediaWorker::update,
+                    &MediaWorker::updateTimeline,
                     Qt::QueuedConnection);
-            });*/
+            });
+    updateTimeline();
+}
 
-    //update();
+void MediaWorker::refreshSessions() {
+    if (!m_manager) return;
+    try {
+        std::vector<Entry> next;
+        for (const auto &session : m_manager.GetSessions()) {
+            auto found = std::find_if(m_sessions.begin(), m_sessions.end(), [&](const Entry &entry) { return entry.session == session; });
+            if (found != m_sessions.end()) next.push_back(*found);
+            else next.push_back({QStringLiteral("session-%1").arg(m_nextId++), providerName(session), session});
+        }
+        m_sessions = std::move(next);
+        const bool missing = std::none_of(m_sessions.begin(), m_sessions.end(), [&](const Entry &entry) { return entry.id == m_selectedId; });
+        if (missing) m_followSystem = true;
+        QString chosen = m_selectedId;
+        if (m_followSystem) {
+            chosen.clear();
+            auto current = m_manager.GetCurrentSession();
+            for (const auto &entry : m_sessions) if (entry.session == current) { chosen = entry.id; break; }
+            if (chosen.isEmpty() && !m_sessions.empty()) chosen = m_sessions.front().id;
+        }
+        const bool changed = chosen != m_selectedId;
+        m_selectedId = chosen;
+        QVariantList list;
+        for (const auto &entry : m_sessions) list.append(QVariantMap{{"id", entry.id}, {"name", entry.name}, {"selected", entry.id == chosen}});
+        emit sessionsUpdated(list, chosen, m_followSystem);
+        if (changed || (!m_session && !chosen.isEmpty())) { emit commandStatus({}); registerSession(); }
+    } catch (...) { emit commandStatus(QStringLiteral("媒体会话读取失败，将自动重试")); }
+}
+void MediaWorker::selectSession(const QString &id) {
+    refreshSessions();
+    auto found = std::find_if(m_sessions.begin(), m_sessions.end(), [&](const Entry &entry) { return entry.id == id; });
+    if (found == m_sessions.end()) { emit commandStatus(QStringLiteral("该媒体会话已结束")); return; }
+    m_followSystem = false;
+    emit commandStatus({});
+    const bool changed = m_selectedId != id;
+    m_selectedId = id;
+    if (changed) registerSession();
+    refreshSessions();
+}
+void MediaWorker::followSystemSession() { m_followSystem = true; refreshSessions(); }
+void MediaWorker::updateTimeline() {
+    if (!m_session) { emit timelineUpdated(0,0,false); return; }
+    try {
+        const auto timeline = m_session.GetTimelineProperties();
+        const auto info = m_session.GetPlaybackInfo();
+        const double start = timeline.StartTime().count()/10000000.0;
+        const double duration = std::max(0.0, timeline.EndTime().count()/10000000.0-start);
+        double position = timeline.Position().count()/10000000.0-start;
+        // Position is a snapshot; use its timestamp and reported rate while playing.
+        if (info.PlaybackStatus() == GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing) {
+            const auto updated = timeline.LastUpdatedTime();
+            if (updated.time_since_epoch().count() > 0) {
+                const double elapsed = std::max(0.0, std::chrono::duration<double>(winrt::clock::now()-updated).count());
+                auto rate = info.PlaybackRate();
+                position += elapsed * (rate ? rate.Value() : 1.0);
+            }
+        }
+        const bool canSeek = duration > 0 && info.Controls().IsPlaybackPositionEnabled()
+            && timeline.MaxSeekTime() > timeline.MinSeekTime();
+        emit timelineUpdated(qBound(0.0, position, duration), duration, canSeek);
+    } catch (...) { emit timelineUpdated(0,0,false); }
+}
+void MediaWorker::seek(double seconds, const QString &sessionId) {
+    if (!m_session || sessionId != m_selectedId || !std::isfinite(seconds)) return;
+    try {
+        const auto timeline = m_session.GetTimelineProperties();
+        if (!m_session.GetPlaybackInfo().Controls().IsPlaybackPositionEnabled()
+            || timeline.MaxSeekTime() <= timeline.MinSeekTime()) return;
+        const double requested = timeline.StartTime().count() + std::max(0.0,seconds)*10000000.0;
+        const auto ticks = static_cast<int64_t>(qBound(double(timeline.MinSeekTime().count()), requested, double(timeline.MaxSeekTime().count())));
+        const bool result = m_session.TryChangePlaybackPositionAsync(ticks).get();
+        emit commandStatus(result ? QString() : QStringLiteral("播放器未接受进度调整"));
+        updateTimeline();
+    } catch (...) { emit commandStatus(QStringLiteral("进度调整失败，会话可能已结束")); }
 }
 
 void MediaWorker::refresh()
 {
+    refreshSessions();
     updateInfo();
     updatePS();
+    updateTimeline();
 }
 void MediaWorker::unregisterSession()
 {
     if (!m_session)
         return;
 
-    m_session.MediaPropertiesChanged(m_mediaToken);
-    m_session.PlaybackInfoChanged(m_playbackToken);
-    //m_session.TimelinePropertiesChanged(m_timelineToken);
+    try { m_session.MediaPropertiesChanged(m_mediaToken); } catch (...) {}
+    try { m_session.PlaybackInfoChanged(m_playbackToken); } catch (...) {}
+    try { m_session.TimelinePropertiesChanged(m_timelineToken); } catch (...) {}
 
     m_session = nullptr;
 }
@@ -241,13 +337,15 @@ void MediaWorker::togglePlayPause()
 
     try
     {
-        m_session
+        const bool result = m_session
             .TryTogglePlayPauseAsync()
             .get();
+        emit commandStatus(result ? QString() : QStringLiteral("播放器未接受播放/暂停操作"));
     }
     catch (...)
     {
         qDebug() << "Toggle failed";
+        emit commandStatus(QStringLiteral("播放/暂停失败，会话可能已结束"));
     }
 }
 void MediaWorker::next()
@@ -257,12 +355,14 @@ void MediaWorker::next()
 
     try
     {
-        m_session
+        const bool result = m_session
             .TrySkipNextAsync()
             .get();
+        emit commandStatus(result ? QString() : QStringLiteral("播放器未接受下一首操作"));
     }
     catch (...)
     {
+        emit commandStatus(QStringLiteral("下一首操作失败"));
     }
 }
 void MediaWorker::previous()
@@ -272,12 +372,14 @@ void MediaWorker::previous()
 
     try
     {
-        m_session
+        const bool result = m_session
             .TrySkipPreviousAsync()
             .get();
+        emit commandStatus(result ? QString() : QStringLiteral("播放器未接受上一首操作"));
     }
     catch (...)
     {
+        emit commandStatus(QStringLiteral("上一首操作失败"));
     }
 }
 

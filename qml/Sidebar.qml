@@ -14,6 +14,9 @@ Item {
     signal expandRequested()
     signal collapseRequested()
     signal hideRequested()
+    function toggleCards() { expanded ? collapseRequested() : expandRequested() }
+    function openSettings() { navigation.openSettings() }
+    onSettingsOpenChanged: if (settingsOpen && root.Window.window) Qt.callLater(root.Window.window.requestActivate)
     function closeTransientUi() { timebar.closeCalendar(); navigation.closeSettings(); notifications.closePopups() }
     function ensureValidSection() {
         if (currentSection < 0 || currentSection >= 5 + pluginRegistry.pageCount) uiSettings.currentSection = 4
@@ -55,9 +58,11 @@ Item {
                     if (visible && root.Window.window) root.Window.window.requestActivate()
                 }
             }
-            Item {
+            TopIslandHost {
                 Layout.fillWidth: true
                 Layout.fillHeight: true
+                onCardsToggleRequested: root.toggleCards()
+                fallbackContent: Component {
                 RowLayout {
                     anchors.fill: parent; spacing: 12
                     Status { iconName: systemTrayManager.online ? "wifi_1" : "wifi_off"; label: systemTrayManager.online ? "联网" : "离线" }
@@ -65,7 +70,7 @@ Item {
                     Status { visible: systemTrayManager.batteryPresent; iconName: "battery_10"; label: systemTrayManager.batteryPercent + "%" }
                     Item { Layout.fillWidth: true }
                 }
-                TapHandler { onDoubleTapped: root.expanded ? root.collapseRequested() : root.expandRequested() }
+                }
             }
             Basic.Button {
                 implicitWidth: 40; implicitHeight: 40

@@ -11,7 +11,7 @@ Flickable {
     function inputRegions(target) {
         const vp = root.mapToItem(target, 0, 0)
         let result = []
-        for (const item of [stats, disk, controls, media]) {
+        for (const item of [stats, disk, controls, microphone, media]) {
             if (!item.visible) continue
             const p = item.mapToItem(target, 0, 0)
             const x = Math.max(vp.x, p.x), y = Math.max(vp.y, p.y)
@@ -47,6 +47,7 @@ Flickable {
                     Text { Layout.fillWidth: true; text: systemTrayManager.online ? "网络已连接" : "网络未连接"; color: themeManager.textMuted; font.pixelSize: 11 }
                 }
             }
+            MicrophoneCard { id: microphone; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight }
             DiskPanel { id: disk; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight; model: diskMonitor }
         }
         ColumnLayout {
@@ -55,11 +56,11 @@ Flickable {
             QuickSettingsPanel { id: controls; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight }
             Rectangle {
                 id: media
-                Layout.fillWidth: true; Layout.preferredHeight: 182; visible: uiSettings.mediaEnabled
+                Layout.fillWidth: true; Layout.preferredHeight: mediaCard.implicitHeight; visible: uiSettings.mediaEnabled
                 radius: 16; color: themeManager.cardSurface; border.width: 1; border.color: themeManager.border
-                MediaBar { anchors.fill: parent; moduleEnabled: uiSettings.mediaEnabled }
+                MediaBar { id: mediaCard; anchors.fill: parent; moduleEnabled: uiSettings.mediaEnabled }
                 Column {
-                    anchors.centerIn: parent; spacing: 10; visible: mediaMonitor.title.length === 0
+                    anchors.centerIn: parent; spacing: 10; visible: !mediaCard.visible
                     Text { anchors.horizontalCenter: parent.horizontalCenter; text: "正在播放"; color: themeManager.textPrimary; font.pixelSize: 16 }
                     Text { anchors.horizontalCenter: parent.horizontalCenter; text: "播放媒体后，在这里控制"; color: themeManager.textMuted; font.pixelSize: 12 }
                 }

@@ -8,6 +8,17 @@ MediaMonitor::MediaMonitor(QObject *parent)
 {
     m_worker = new MediaWorker;
     m_worker->moveToThread(&m_thread);
+    connect(m_worker, &MediaWorker::sessionsUpdated, this, [this](const QVariantList &sessions, const QString &selected, bool following) {
+        if (sessions == m_sessions && selected == m_selectedId && following == m_followingSystem) return;
+        m_sessions = sessions; m_selectedId = selected; m_followingSystem = following; emit sessionsChanged();
+    });
+    connect(m_worker, &MediaWorker::timelineUpdated, this, [this](double position, double duration, bool canSeek) {
+        if (qFuzzyCompare(position+1,m_position+1) && qFuzzyCompare(duration+1,m_duration+1) && canSeek == m_canSeek) return;
+        m_position = position; m_duration = duration; m_canSeek = canSeek; emit timelineChanged();
+    });
+    connect(m_worker, &MediaWorker::commandStatus, this, [this](const QString &status) {
+        if (m_status == status) return; m_status = status; emit statusChanged();
+    });
 
     connect(
         m_worker,
@@ -87,4 +98,13 @@ void MediaMonitor::next()
 void MediaMonitor::previous()
 {
     QMetaObject::invokeMethod(m_worker, &MediaWorker::previous, Qt::QueuedConnection);
+}
+void MediaMonitor::selectSession(const QString &id) {
+    QMetaObject::invokeMethod(m_worker, [worker=m_worker,id] { worker->selectSession(id); }, Qt::QueuedConnection);
+}
+void MediaMonitor::followSystemSession() {
+    QMetaObject::invokeMethod(m_worker, &MediaWorker::followSystemSession, Qt::QueuedConnection);
+}
+void MediaMonitor::seekTo(double seconds, const QString &sessionId) {
+    QMetaObject::invokeMethod(m_worker, [worker=m_worker,seconds,sessionId] { worker->seek(seconds,sessionId); }, Qt::QueuedConnection);
 }

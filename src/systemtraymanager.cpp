@@ -109,8 +109,20 @@ void SystemTrayManager::refresh()
 
 bool SystemTrayManager::ensureAudioEndpoint()
 {
-    if (m_audioEndpoint)
-        return true;
+    if (m_audioEndpoint) {
+        IMMDeviceEnumerator *probe = nullptr; IMMDevice *current = nullptr;
+        LPWSTR currentId = nullptr, cachedId = nullptr;
+        const bool same = SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+                __uuidof(IMMDeviceEnumerator), reinterpret_cast<void **>(&probe)))
+            && SUCCEEDED(probe->GetDefaultAudioEndpoint(eRender,eConsole,&current))
+            && SUCCEEDED(current->GetId(&currentId)) && m_audioDevice
+            && SUCCEEDED(m_audioDevice->GetId(&cachedId)) && wcscmp(currentId,cachedId) == 0;
+        if (currentId) CoTaskMemFree(currentId); if (cachedId) CoTaskMemFree(cachedId);
+        if (current) current->Release(); if (probe) probe->Release();
+        if (same) return true;
+        resetAudioEndpoint();
+    }
+    const auto previousName = m_audioDeviceName;
 
     IMMDeviceEnumerator *enumerator = nullptr;
     HRESULT result = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
@@ -137,6 +149,7 @@ bool SystemTrayManager::ensureAudioEndpoint()
         enumerator->Release();
     if (FAILED(result))
         resetAudioEndpoint();
+    if (previousName != m_audioDeviceName) emit audioChanged();
     return SUCCEEDED(result) && m_audioEndpoint;
 }
 
@@ -177,6 +190,8 @@ void SystemTrayManager::refreshAudioOutputs()
     IMMDeviceEnumerator *enumerator = nullptr;
     IMMDeviceCollection *collection = nullptr;
     QVariantList outputs;
+    LPWSTR selectedId = nullptr;
+    if (m_audioDevice) m_audioDevice->GetId(&selectedId);
     if (SUCCEEDED(CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
             __uuidof(IMMDeviceEnumerator), reinterpret_cast<void **>(&enumerator)))
         && SUCCEEDED(enumerator->EnumAudioEndpoints(eRender, DEVICE_STATE_ACTIVE, &collection))) {
@@ -190,7 +205,7 @@ void SystemTrayManager::refreshAudioOutputs()
                     QVariantMap item;
                     item.insert(QStringLiteral("id"), QString::fromWCharArray(id));
                     item.insert(QStringLiteral("name"), QString::fromWCharArray(value.pwszVal));
-                    item.insert(QStringLiteral("selected"), QString::fromWCharArray(value.pwszVal) == m_audioDeviceName);
+                    item.insert(QStringLiteral("selected"), selectedId && wcscmp(id,selectedId) == 0);
                     outputs.append(item);
                 }
                 PropVariantClear(&value);
@@ -199,6 +214,7 @@ void SystemTrayManager::refreshAudioOutputs()
         }
     }
     if (collection) collection->Release(); if (enumerator) enumerator->Release();
+    if (selectedId) CoTaskMemFree(selectedId);
     if (outputs != m_audioOutputs) { m_audioOutputs = outputs; emit audioOutputsChanged(); }
 }
 

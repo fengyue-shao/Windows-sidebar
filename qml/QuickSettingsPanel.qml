@@ -33,6 +33,14 @@ Rectangle {
     Behavior on implicitHeight { NumberAnimation { duration: 240; easing.type: Easing.OutCubic } }
     Behavior on border.color { ColorAnimation { duration: 160 } }
 
+    AudioLevelBar {
+        anchors.right: parent.right; anchors.rightMargin: 20
+        y: 15; width: Math.min(parent.width - 40, 300); height: 92
+        opacity: 0.10
+        level: audioInputManager.outputPeak
+        available: audioInputManager.outputMeterAvailable; muted: systemTrayManager.muted
+    }
+
     ColumnLayout {
         anchors.fill: parent
         anchors.margins: 12
@@ -48,7 +56,7 @@ Rectangle {
                 HoverHandler { id: muteHover }
                 TapHandler { onTapped: systemTrayManager.toggleMuted() }
             }
-            Slider { Layout.fillWidth: true; from: 0; to: 100; stepSize: 1; value: systemTrayManager.volume; onMoved: systemTrayManager.setVolume(Math.round(value)) }
+            CardSlider { Layout.fillWidth: true; from: 0; to: 100; stepSize: 1; value: systemTrayManager.volume; onMoved: systemTrayManager.setVolume(Math.round(value)) }
             Text { Layout.preferredWidth: 34; horizontalAlignment: Text.AlignRight; text: systemTrayManager.volume; color: themeManager.textSecondary; font.pixelSize: 10 }
         }
 

@@ -36,6 +36,8 @@ Window {
     onHeightChanged: Qt.callLater(syncRegions)
     onXChanged: Qt.callLater(syncRegions)
     onYChanged: Qt.callLater(syncRegions)
+    Binding { target: audioInputManager; property: "meteringEnabled"; value: root.visible && root.shellState === 2 && sidebar.currentSection === 0 }
+    Binding { target: mediaSpectrum; property: "enabled"; value: mediaSpectrum.requested && root.visible && root.shellState === 2 && sidebar.currentSection === 0 && uiSettings.mediaEnabled && mediaMonitor.playing }
     Component.onCompleted: { dropdownController.attach(root); syncRegions(); if (previewCards) showCards() }
     Connections {
         target: dropdownController
@@ -65,6 +67,7 @@ Window {
     Shortcut { sequence: "Ctrl+4"; onActivated: { uiSettings.currentSection = 3; root.showCards() } }
     Shortcut { sequence: "Ctrl+5"; onActivated: { uiSettings.currentSection = 4; root.showCards() } }
     Shortcut { sequence: "Ctrl+Q"; onActivated: Qt.quit() }
+    MediaBarSelfTest { id: mediaTests; visible: uiSelfTest; width: 360; height: implicitHeight; y: root.height-height; z: 100 }
     Timer {
         property int step: 0
         interval: 180; running: uiSelfTest; repeat: true
@@ -72,7 +75,7 @@ Window {
             if (step === 0) { root.hidePanel(); root.showBar() }
             else if (step === 1) {
                 if (root.shellState !== 1 || root.height > 80) { console.error("UI_SELF_TEST Bar failed"); Qt.exit(2); return }
-                root.showCards()
+                sidebar.toggleCards()
             } else if (step === 2) {
                 if (root.shellState !== 2 || root.height < 160) { console.error("UI_SELF_TEST Cards failed"); Qt.exit(2); return }
                 sidebar.currentSection = 0
@@ -97,8 +100,18 @@ Window {
                     }
                 }
                 sidebar.currentSection = step - 5
+            } else if (step === 10 + pluginRegistry.pageCount) {
+                root.collapseCards(); sidebar.openSettings()
+            } else if (step === 11 + pluginRegistry.pageCount) {
+                if (!sidebar.settingsOpen || root.height < 160) { console.error("UI_SELF_TEST minimal bar settings failed"); Qt.exit(4); return }
+                sidebar.closeTransientUi(); root.showCards()
             } else {
-                console.info("UI_SELF_TEST PASS Hidden/Bar/Cards + geometry + input regions + pages"); Qt.quit()
+                running = false
+                try { mediaTests.runTests() } catch (error) { console.error("UI_SELF_TEST", error); Qt.exit(4); return }
+                console.info("UI_SELF_TEST audio endpoints: input="+audioInputManager.available+" inputMeter="+audioInputManager.inputMeterAvailable+" outputMeter="+audioInputManager.outputMeterAvailable)
+                const done = function() { console.info("UI_SELF_TEST PASS Hidden/Bar/Cards + geometry + input regions + pages"); Qt.quit() }
+                if (uiCapturePath.length > 0) mediaTests.capture(uiCapturePath,done)
+                else done()
             }
             step++
         }

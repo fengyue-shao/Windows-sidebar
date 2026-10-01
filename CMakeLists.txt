@@ -31,7 +31,15 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES include/dropdowncontroller.h src/dropdowncontroller.cpp
         QML_FILES qml/DropdownMonitor.qml qml/CardSurface.qml qml/CardRegions.js qml/FocusClockCard.qml qml/FocusPresetCard.qml qml/NotificationPage.qml
         QML_FILES qml/FluentIcon.qml
+        QML_FILES qml/AudioLevelBar.qml qml/MicrophoneCard.qml
         SOURCES include/fluenticonprovider.h
+        SOURCES include/audioinputmanager.h src/audioinputmanager.cpp
+        SOURCES include/mediaspectrum.h src/mediaspectrum.cpp include/spectrumanalyzer.h
+        QML_FILES qml/MediaSpectrumBars.qml
+        SOURCES include/islandbridge.h src/islandbridge.cpp
+        QML_FILES qml/TopIslandHost.qml
+        QML_FILES qml/MediaBarSelfTest.qml
+        QML_FILES qml/CardSlider.qml qml/CardAction.qml
         RESOURCES ${FLUENT_SELECTED_ICONS} assets/fluent/LICENSE
 )
 
@@ -102,6 +110,18 @@ if(WIN32)
 endif()
 
 include(GNUInstallDirs)
+option(SIDEBAR_BUILD_MEDIA_TESTS "Build silent desktop SMTC integration helpers" OFF)
+if(SIDEBAR_BUILD_MEDIA_TESTS)
+    qt_add_executable(sidebar-spectrum-test tests/spectrum-test.cpp src/mediaspectrum.cpp include/mediaspectrum.h)
+    target_include_directories(sidebar-spectrum-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-spectrum-test PRIVATE Qt6::Core ole32 uuid)
+    set_target_properties(sidebar-spectrum-test PROPERTIES WIN32_EXECUTABLE FALSE)
+    qt_add_executable(sidebar-media-fixture tests/mediafixture.cpp)
+    target_link_libraries(sidebar-media-fixture PRIVATE Qt6::Core windowsapp shell32 user32)
+    qt_add_executable(sidebar-media-integration tests/media-integration.cpp src/mediaworker.cpp include/mediaworker.h)
+    target_include_directories(sidebar-media-integration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-media-integration PRIVATE Qt6::Core Qt6::Gui windowsapp)
+endif()
 install(TARGETS appqt_rainmeter
     BUNDLE DESTINATION .
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

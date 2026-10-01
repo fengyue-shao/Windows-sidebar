@@ -1,9 +1,13 @@
-param([Parameter(Mandatory = $true)][string]$Executable)
+param([Parameter(Mandatory = $true)][string]$Executable, [string]$CapturePath = '')
 $ErrorActionPreference = 'Stop'
 $resolvedExecutable = (Resolve-Path -LiteralPath $Executable).Path
 $startInfo = New-Object System.Diagnostics.ProcessStartInfo
 $startInfo.FileName = $resolvedExecutable
 $startInfo.Arguments = '--ui-self-test'
+if ($CapturePath) {
+    if ($CapturePath.Contains('"')) { throw 'Invalid capture path' }
+    $startInfo.Arguments += ' "--ui-capture=' + [System.IO.Path]::GetFullPath($CapturePath) + '"'
+}
 $startInfo.WorkingDirectory = Split-Path -Parent $resolvedExecutable
 $startInfo.UseShellExecute = $false
 $startInfo.CreateNoWindow = $true
@@ -26,7 +30,7 @@ Write-Output $output
 if ($process.ExitCode -ne 0 -or $output -notmatch 'UI_SELF_TEST PASS') {
     throw "Dropdown UI smoke test failed: exit=$($process.ExitCode)"
 }
-if ($output -match 'ReferenceError|TypeError|Binding loop|failed to load component|Cannot assign|Invalid property') {
+if ($output -match 'ReferenceError|TypeError|Binding loop|failed to load component|Cannot assign|Invalid property|Failed to get image|Error:') {
     throw 'QML runtime diagnostics reported an error.'
 }
 Write-Output 'Dropdown UI smoke test passed.'
