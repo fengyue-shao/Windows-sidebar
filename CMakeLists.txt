@@ -10,6 +10,7 @@ find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Svg)
 
 qt_standard_project_setup(REQUIRES 6.8)
+file(GLOB FLUENT_SELECTED_ICONS CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "assets/fluent/*.svg")
 
 qt_add_executable(appqt_rainmeter
     src/main.cpp
@@ -28,7 +29,10 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES include/pluginregistry.h src/pluginregistry.cpp
         SOURCES include/terminalmanager.h src/terminalmanager.cpp
         SOURCES include/dropdowncontroller.h src/dropdowncontroller.cpp
-        QML_FILES qml/DropdownMonitor.qml
+        QML_FILES qml/DropdownMonitor.qml qml/CardSurface.qml qml/CardRegions.js qml/FocusClockCard.qml qml/FocusPresetCard.qml qml/NotificationPage.qml
+        QML_FILES qml/FluentIcon.qml
+        SOURCES include/fluenticonprovider.h
+        RESOURCES ${FLUENT_SELECTED_ICONS} assets/fluent/LICENSE
 )
 
 # Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.

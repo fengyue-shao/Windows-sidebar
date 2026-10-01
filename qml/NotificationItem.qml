@@ -12,6 +12,9 @@ Item {
     property bool unread: true
     property bool removable: true
     property string timeText: ""
+    readonly property bool cardDelegate: true
+    readonly property bool popupOpen: menu.visible
+    function closeMenu() { menu.close() }
 
     signal removeRequested()
     signal markReadRequested()
@@ -33,8 +36,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         radius: 17
-        color: hover.hovered ? themeManager.surfaceHover
-                             : root.unread ? themeManager.surfaceStrong : themeManager.surface
+        color: themeManager.cardSurface
         border.width: 1
         border.color: hover.hovered ? themeManager.borderStrong : themeManager.border
 

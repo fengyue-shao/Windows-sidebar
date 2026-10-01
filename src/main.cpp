@@ -7,6 +7,7 @@
 #include <winrt/base.h>
 
 #include "include/coverimageprovider.h"
+#include "include/fluenticonprovider.h"
 #include "include/bluetoothmanager.h"
 #include "include/clipboardmanager.h"
 #include "include/cpumonitor.h"
@@ -115,6 +116,16 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("previewCards", app.arguments().contains("--preview-cards"));
     engine.rootContext()->setContextProperty("uiSelfTest", app.arguments().contains("--ui-self-test"));
     engine.addImageProvider("cover", coverProvider);
+    auto *fluentProvider = new FluentIconProvider;
+    engine.addImageProvider("fluent", fluentProvider);
+    if (app.arguments().contains("--ui-self-test")) {
+        QSize iconSize;
+        const auto icon = fluentProvider->requestImage("desktop/61a9ff", &iconSize, QSize(40, 40));
+        if (icon.isNull() || iconSize != QSize(40, 40)) {
+            qCritical() << "UI_SELF_TEST Fluent SVG resource failed";
+            return 5;
+        }
+    }
 
     QObject::connect(
         &engine,

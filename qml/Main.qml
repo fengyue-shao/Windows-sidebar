@@ -5,7 +5,7 @@ Window {
     id: root
     title: "Windows Sidebar · 0.8.1 顶部下拉预览"
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-        | (shellState === 2 || sidebar.calendarOpen ? 0 : Qt.WindowDoesNotAcceptFocus)
+        | (shellState === 2 || sidebar.calendarOpen || sidebar.settingsOpen ? 0 : Qt.WindowDoesNotAcceptFocus)
     color: "transparent"
     // Startup never restores expanded cards. Legacy expanded stays available to plugins.
     property int shellState: 0 // Hidden=0, Bar=1, Cards=2
@@ -14,7 +14,7 @@ Window {
     readonly property bool editing: active && activeFocusItem !== null
         && (activeFocusItem instanceof TextInput || activeFocusItem instanceof TextEdit)
     width: Math.max(1, Math.min(Math.round(uiSettings.panelWidth * 1.8), workArea.width - 24))
-    height: shellState === 2 ? expandedHeight : sidebar.calendarOpen ? Math.min(460, expandedHeight) : 72
+    height: shellState === 2 || sidebar.settingsOpen ? expandedHeight : sidebar.calendarOpen ? Math.min(460, expandedHeight) : 72
     x: workArea.x + Math.round((workArea.width - width) / 2)
     y: workArea.y + 6
     opacity: uiSettings.panelOpacity
@@ -45,7 +45,7 @@ Window {
     Timer { interval: 80; running: root.visible; repeat: true; onTriggered: root.syncRegions() }
     Timer {
         interval: root.shellState === 1 ? 4000 : 1200
-        running: root.visible && (uiSettings.autoHide || root.shellState === 1)
+        running: !previewCards && root.visible && (uiSettings.autoHide || root.shellState === 1)
             && !dropdownController.pointerInside && !sidebar.transientUiOpen && !root.editing && !sidebar.interacting
         onTriggered: root.hidePanel()
     }
@@ -88,6 +88,14 @@ Window {
                 if (root.visible) { Qt.exit(2); return }
                 root.showCards()
             } else if (step >= 5 && step < 10 + pluginRegistry.pageCount) {
+                // Check the previously laid-out focus page before switching away.
+                if (step === 8 && root.width >= 620 && root.height >= 500) {
+                    root.syncRegions()
+                    if (sidebar.inputRegions().length < 8
+                        || dropdownController.regionContains(Math.round(root.width/2), 260)) {
+                        console.error("UI_SELF_TEST independent focus cards failed"); Qt.exit(4); return
+                    }
+                }
                 sidebar.currentSection = step - 5
             } else {
                 console.info("UI_SELF_TEST PASS Hidden/Bar/Cards + geometry + input regions + pages"); Qt.quit()

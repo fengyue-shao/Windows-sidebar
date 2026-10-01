@@ -9,12 +9,12 @@ Item {
     property int currentSection: uiSettings.currentSection
     property bool calendarOpen: false
     property bool settingsOpen: false
-    readonly property bool transientUiOpen: calendarOpen || settingsOpen
+    readonly property bool transientUiOpen: calendarOpen || settingsOpen || notifications.popupOpen
     readonly property bool interacting: pointerGuard.pressed
     signal expandRequested()
     signal collapseRequested()
     signal hideRequested()
-    function closeTransientUi() { timebar.closeCalendar(); navigation.closeSettings() }
+    function closeTransientUi() { timebar.closeCalendar(); navigation.closeSettings(); notifications.closePopups() }
     function ensureValidSection() {
         if (currentSection < 0 || currentSection >= 5 + pluginRegistry.pageCount) uiSettings.currentSection = 4
     }
@@ -29,7 +29,11 @@ Item {
         if (!expanded) return regions
         regions.push(rectFor(navigation, 16))
         if (currentSection === 0) regions = regions.concat(monitor.inputRegions(root))
-        else regions.push(rectFor(pageSurface, 18))
+        else if (currentSection === 1) regions = regions.concat(notifications.inputRegions(root))
+        else if (currentSection === 2) regions = regions.concat(focus.inputRegions(root))
+        else if (currentSection === 3) regions = regions.concat(clipboard.inputRegions(root))
+        else if (currentSection === 4) regions = regions.concat(toolbox.inputRegions(root))
+        else regions.push(rectFor(legacySurface, 18))
         return regions
     }
     Component.onCompleted: ensureValidSection()
@@ -51,15 +55,25 @@ Item {
                     if (visible && root.Window.window) root.Window.window.requestActivate()
                 }
             }
-            Text {
+            Item {
                 Layout.fillWidth: true
-                text: (systemTrayManager.online ? "联网" : "离线") + " · "
-                    + (systemTrayManager.muted ? "静音" : "音量 " + systemTrayManager.volume + "%")
-                    + (systemTrayManager.batteryPresent ? " · 电量 " + systemTrayManager.batteryPercent + "%" : "")
-                elide: Text.ElideRight; color: themeManager.textSecondary; font.pixelSize: 11
+                Layout.fillHeight: true
+                RowLayout {
+                    anchors.fill: parent; spacing: 12
+                    Status { iconName: systemTrayManager.online ? "wifi_1" : "wifi_off"; label: systemTrayManager.online ? "联网" : "离线" }
+                    Status { iconName: systemTrayManager.muted ? "speaker_mute" : "speaker_2"; label: systemTrayManager.muted ? "静音" : systemTrayManager.volume + "%" }
+                    Status { visible: systemTrayManager.batteryPresent; iconName: "battery_10"; label: systemTrayManager.batteryPercent + "%" }
+                    Item { Layout.fillWidth: true }
+                }
+                TapHandler { onDoubleTapped: root.expanded ? root.collapseRequested() : root.expandRequested() }
             }
-            BarAction { label: root.expanded ? "收起 ⌃" : "展开 ⌄"; onClicked: root.expanded ? root.collapseRequested() : root.expandRequested() }
-            BarAction { label: "隐藏"; onClicked: root.hideRequested() }
+            Basic.Button {
+                implicitWidth: 40; implicitHeight: 40
+                onClicked: { timebar.closeCalendar(); navigation.openSettings() }
+                contentItem: FluentIcon { name: "settings"; tint: themeManager.accent }
+                background: Rectangle { radius: 12; color: parent.hovered ? themeManager.accentSoft : "transparent" }
+                ToolTip.visible: hovered; ToolTip.text: "设置"
+            }
         }
     }
     SystemControlBar {
@@ -81,46 +95,49 @@ Item {
         visible: root.expanded; clip: true
         DropdownMonitor { id: monitor; anchors.fill: parent; visible: root.currentSection === 0 }
         Rectangle {
-            id: pageSurface
-            anchors.fill: parent; visible: root.currentSection !== 0; radius: 18
+            id: legacySurface
+            anchors.fill: parent; visible: root.currentSection >= 5; radius: 18
             color: themeManager.cardSurface; border.width: 1; border.color: themeManager.border
+        }
+        Item {
+            anchors.fill: parent; visible: root.currentSection !== 0
             StackLayout {
-                anchors.fill: parent; anchors.margins: 18; currentIndex: root.currentSection - 1
-                ColumnLayout {
-                    spacing: 12
-                    Text { text: "通知与媒体"; color: themeManager.textPrimary; font.pixelSize: 18; font.weight: Font.DemiBold }
-                    MediaBar { Layout.fillWidth: true; Layout.preferredHeight: visible ? 152 : 0; moduleEnabled: uiSettings.mediaEnabled }
-                    NotificationArea { Layout.fillWidth: true; Layout.fillHeight: true; visible: uiSettings.notificationsEnabled; model: notificationModel }
-                }
-                FocusPage { Layout.fillWidth: true; Layout.fillHeight: true }
-                ClipboardPage { Layout.fillWidth: true; Layout.fillHeight: true }
-                ToolboxPage { Layout.fillWidth: true; Layout.fillHeight: true }
+                anchors.fill: parent; currentIndex: root.currentSection - 1
+                NotificationPage { id: notifications; Layout.fillWidth: true; Layout.fillHeight: true }
+                FocusPage { id: focus; Layout.fillWidth: true; Layout.fillHeight: true }
+                ClipboardPage { id: clipboard; Layout.fillWidth: true; Layout.fillHeight: true }
+                ToolboxPage { id: toolbox; Layout.fillWidth: true; Layout.fillHeight: true }
                 Repeater {
                     model: pluginRegistry.pages
-                    Loader {
-                        id: pluginLoader
+                    Item {
+                        id: pluginHost
                         required property int index
                         required property var modelData
+                        Layout.fillWidth: true; Layout.fillHeight: true
+                    Loader {
+                        id: pluginLoader
+                        anchors.fill: parent; anchors.margins: 18
                         property bool visited: false
-                        readonly property bool selected: root.currentSection === 5 + index
+                        readonly property bool selected: root.currentSection === 5 + pluginHost.index
                         onSelectedChanged: if (selected) visited = true
                         Component.onCompleted: if (selected) visited = true
-                        Layout.fillWidth: true; Layout.fillHeight: true
-                        source: modelData.source; active: visited
+                        source: pluginHost.modelData.source; active: visited
                         Column {
                             anchors.centerIn: parent; spacing: 8; visible: pluginLoader.status === Loader.Error
-                            Text { text: "插件加载失败：" + modelData.pluginName; color: themeManager.danger }
+                            Text { text: "插件加载失败：" + pluginHost.modelData.pluginName; color: themeManager.danger }
                             Button { text: "重新加载"; onClicked: { pluginLoader.visited = false; pluginLoader.visited = true } }
                         }
+                    }
                     }
                 }
             }
         }
     }
-    component BarAction: Basic.Button {
+    component Status: RowLayout {
+        property string iconName
         property string label
-        text: label; implicitWidth: 64; implicitHeight: 38
-        contentItem: Text { text: parent.text; color: themeManager.accent; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 12 }
-        background: Rectangle { radius: 12; color: parent.hovered || parent.down ? themeManager.accentSoft : "transparent" }
+        spacing: 6
+        FluentIcon { name: parent.iconName; Layout.preferredWidth: 18; Layout.preferredHeight: 18 }
+        Text { text: parent.label; color: themeManager.textSecondary; font.pixelSize: 11 }
     }
 }

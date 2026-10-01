@@ -1,17 +1,26 @@
 import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
+import "CardRegions.js" as Regions
 
 Item {
     id: root
+    function inputRegions(target) { return Regions.collect([toolbar, empty], target, root).concat(Regions.collect(Regions.delegates(history), target, history)) }
 
     onVisibleChanged: if (visible) clipboardManager.refresh()
     Component.onCompleted: if (visible) clipboardManager.refresh()
 
     ColumnLayout {
         anchors.fill: parent
-        spacing: 10
+        spacing: 16
 
+        CardSurface {
+            id: toolbar
+            Layout.fillWidth: true
+            Layout.preferredHeight: header.implicitHeight + 32
+            ColumnLayout {
+                id: header
+                anchors.fill: parent; anchors.margins: 16; spacing: 6
         RowLayout {
             Layout.fillWidth: true
             Text { Layout.fillWidth: true; text: "剪贴板"; color: themeManager.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
@@ -26,21 +35,32 @@ Item {
             font.pixelSize: 10
             wrapMode: Text.WordWrap
         }
+            }
+        }
+
+        CardSurface {
+            id: empty
+            Layout.fillWidth: true; Layout.preferredHeight: 100
+            visible: history.count === 0
+            Text { anchors.centerIn: parent; text: clipboardManager.loading ? "正在读取剪贴板…" : "暂无可预览的历史"; color: themeManager.textMuted; font.pixelSize: 12 }
+        }
 
         ListView {
+            id: history
             Layout.fillWidth: true
             Layout.fillHeight: true
             clip: true
-            spacing: 8
+            spacing: 12
             model: clipboardManager.items
             boundsBehavior: Flickable.StopAtBounds
 
             delegate: Rectangle {
+                readonly property bool cardDelegate: true
                 required property var modelData
                 width: ListView.view.width
                 height: modelData.type === "image" ? 174 : Math.max(76, previewText.implicitHeight + 42)
                 radius: 16
-                color: itemHover.hovered ? themeManager.surfaceHover : themeManager.surface
+                color: themeManager.cardSurface
                 border.width: 1
                 border.color: itemHover.hovered ? themeManager.accent : themeManager.border
 
@@ -103,13 +123,6 @@ Item {
                 TapHandler { onTapped: clipboardManager.activateItem(modelData.id) }
             }
 
-            Text {
-                anchors.centerIn: parent
-                visible: parent.count === 0 && !clipboardManager.loading
-                text: "暂无可预览的历史"
-                color: themeManager.textFaint
-                font.pixelSize: 11
-            }
         }
     }
 

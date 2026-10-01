@@ -1,10 +1,17 @@
 import QtQuick
 import QtQuick.Layouts
+import "CardRegions.js" as Regions
 
 Item {
     id: root
+    function inputRegions(target) {
+        let items = [heading, status, footer]
+        for (let i = 0; i < plugins.count; ++i) items.push(plugins.itemAt(i))
+        return Regions.collect(items, target, viewport)
+    }
 
     Flickable {
+        id: viewport
         anchors.fill: parent
         contentWidth: width
         contentHeight: content.implicitHeight
@@ -14,20 +21,20 @@ Item {
         ColumnLayout {
             id: content
             width: parent.width
-            spacing: 12
+            spacing: 16
 
-            RowLayout {
-                Layout.fillWidth: true
-                spacing: 8
-                ColumnLayout {
-                    Layout.fillWidth: true
-                    spacing: 2
+            CardSurface {
+                id: heading
+                Layout.fillWidth: true; Layout.preferredHeight: 76
+                Column {
+                    x: 16; y: 17; spacing: 6
                     Text { text: "工具箱"; color: themeManager.textPrimary; font.pixelSize: 18; font.weight: Font.DemiBold }
                     Text { text: "在这里管理侧栏插件"; color: themeManager.textMuted; font.pixelSize: 10 }
                 }
                 Rectangle {
-                    Layout.preferredWidth: 72
-                    Layout.preferredHeight: 30
+                    anchors.right: parent.right; anchors.rightMargin: 16
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 72; height: 32
                     radius: 10
                     color: reloadHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
                     border.width: 1
@@ -39,10 +46,11 @@ Item {
             }
 
             Rectangle {
+                id: status
                 Layout.fillWidth: true
                 Layout.preferredHeight: statusColumn.implicitHeight + 24
                 radius: 14
-                color: themeManager.surface
+                color: themeManager.cardSurface
                 border.width: 1
                 border.color: themeManager.border
                 ColumnLayout {
@@ -66,16 +74,15 @@ Item {
                 }
             }
 
-            Text { text: "已发现的插件"; color: themeManager.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
-
             Repeater {
+                id: plugins
                 model: pluginRegistry.plugins
                 delegate: Rectangle {
                     required property var modelData
                     Layout.fillWidth: true
                     Layout.preferredHeight: pluginColumn.implicitHeight + 24
                     radius: 14
-                    color: themeManager.surface
+                    color: themeManager.cardSurface
                     border.width: 1
                     border.color: themeManager.border
 
@@ -138,21 +145,15 @@ Item {
                 }
             }
 
-            Text {
-                visible: pluginRegistry.plugins.length === 0
-                Layout.fillWidth: true
-                text: "还没有可管理的插件。请检查插件目录，然后重新扫描。"
-                color: themeManager.textMuted
-                font.pixelSize: 10
-                wrapMode: Text.Wrap
-            }
-
-            Text {
-                Layout.fillWidth: true
-                text: "插件页目前与宿主共享 QML 引擎；上方权限仅为清单声明，尚未形成强制隔离。请只加载你信任的插件。"
-                color: themeManager.textFaint
-                font.pixelSize: 9
-                wrapMode: Text.Wrap
+            CardSurface {
+                id: footer
+                Layout.fillWidth: true; Layout.preferredHeight: guidance.implicitHeight + 32
+                Text {
+                    id: guidance
+                    anchors.fill: parent; anchors.margins: 16
+                    text: (plugins.count === 0 ? "暂无插件，请检查插件目录后重新扫描。\n\n" : "") + "只加载你信任的插件。插件页目前共享宿主 QML 引擎，权限清单尚未形成强制隔离。"
+                    color: themeManager.textMuted; font.pixelSize: 10; wrapMode: Text.Wrap
+                }
             }
         }
     }

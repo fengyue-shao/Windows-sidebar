@@ -16,6 +16,7 @@ Rectangle {
     signal popupVisibilityChanged(bool visible)
     signal exitRequested()
     function closeSettings() { settingsPopup.close() }
+    function openSettings() { settingsPopup.open() }
 
     implicitHeight: 54
     radius: 16
@@ -27,11 +28,11 @@ Rectangle {
         anchors.fill: parent
         anchors.margins: 6
         spacing: 4
-        SectionButton { Layout.fillWidth: true; label: "监控"; symbol: "◉"; selected: root.currentIndex === 0; onClicked: root.sectionRequested(0) }
-        SectionButton { Layout.fillWidth: true; label: "通知"; symbol: "●"; selected: root.currentIndex === 1; onClicked: root.sectionRequested(1) }
-        SectionButton { Layout.fillWidth: true; label: "专注"; symbol: "◷"; selected: root.currentIndex === 2; onClicked: root.sectionRequested(2) }
-        SectionButton { Layout.fillWidth: true; label: "剪贴"; symbol: "▤"; selected: root.currentIndex === 3; onClicked: root.sectionRequested(3) }
-        SectionButton { Layout.fillWidth: true; label: "工具箱"; symbol: "✦"; selected: root.currentIndex === 4; onClicked: root.sectionRequested(4) }
+        SectionButton { Layout.fillWidth: true; label: "监控"; iconName: "desktop"; selected: root.currentIndex === 0; onClicked: root.sectionRequested(0) }
+        SectionButton { Layout.fillWidth: true; label: "通知"; iconName: "alert"; selected: root.currentIndex === 1; onClicked: root.sectionRequested(1) }
+        SectionButton { Layout.fillWidth: true; label: "专注"; iconName: "timer"; selected: root.currentIndex === 2; onClicked: root.sectionRequested(2) }
+        SectionButton { Layout.fillWidth: true; label: "剪贴"; iconName: "clipboard"; selected: root.currentIndex === 3; onClicked: root.sectionRequested(3) }
+        SectionButton { Layout.fillWidth: true; label: "工具箱"; iconName: "toolbox"; selected: root.currentIndex === 4; onClicked: root.sectionRequested(4) }
         Repeater {
             model: root.pluginPages
             SectionButton {
@@ -44,13 +45,14 @@ Rectangle {
                 onClicked: root.sectionRequested(5 + index)
             }
         }
-        Rectangle { Layout.preferredWidth: 1; Layout.preferredHeight: 26; color: themeManager.track }
+        Rectangle { visible: false; Layout.preferredWidth: 1; Layout.preferredHeight: 26; color: themeManager.track }
         Rectangle {
+            visible: false
             Layout.preferredWidth: 40
             Layout.fillHeight: true
             radius: 13
             color: settingsTap.pressed ? themeManager.accentSoft : settingsHover.hovered ? themeManager.surfaceHover : themeManager.overlayStart
-            Text { anchors.centerIn: parent; text: "⚙"; color: settingsHover.hovered ? themeManager.textPrimary : themeManager.textSecondary; font.pixelSize: 16 }
+            FluentIcon { anchors.centerIn: parent; name: "settings"; tint: settingsHover.hovered ? themeManager.textPrimary : themeManager.textSecondary }
             HoverHandler { id: settingsHover }
             TapHandler { id: settingsTap; onTapped: settingsPopup.open() }
             ToolTip.visible: settingsHover.hovered
@@ -60,11 +62,12 @@ Rectangle {
 
     Popup {
         id: settingsPopup
+        parent: root.Window.window ? root.Window.window.contentItem : root
         onVisibleChanged: root.popupVisibilityChanged(visible)
         x: root.width - width
-        y: root.height + 8
+        y: 72
         width: root.width
-        height: Math.max(100, Math.min(620, root.Window.window ? root.Window.window.height - 150 : 620))
+        height: Math.max(100, Math.min(620, root.Window.window ? root.Window.window.height - 80 : 620))
         modal: true
         dim: false
         padding: 12
@@ -286,6 +289,7 @@ Rectangle {
         id: button
         property string label
         property string symbol
+        property string iconName: ""
         property bool selected: false
         signal clicked()
         Layout.fillHeight: true
@@ -293,8 +297,9 @@ Rectangle {
         color: selected ? themeManager.accentSoft : buttonHover.hovered ? themeManager.surfaceHover : themeManager.overlayStart
         Row {
             anchors.centerIn: parent; spacing: 6
-            Text { text: button.symbol; color: button.selected ? themeManager.accent : themeManager.textMuted; font.pixelSize: 9 }
-            Text { text: button.label; color: button.selected ? themeManager.textPrimary : themeManager.textMuted; font.pixelSize: 9; font.weight: button.selected ? Font.DemiBold : Font.Normal }
+            FluentIcon { visible: button.iconName.length > 0; name: button.iconName; width: 16; height: 16; tint: button.selected ? themeManager.accent : themeManager.textMuted }
+            Text { visible: button.iconName.length === 0; text: button.symbol; color: button.selected ? themeManager.accent : themeManager.textMuted; font.pixelSize: 9; anchors.verticalCenter: parent.verticalCenter }
+            Text { text: button.label; color: button.selected ? themeManager.textPrimary : themeManager.textMuted; font.pixelSize: 9; font.weight: button.selected ? Font.DemiBold : Font.Normal; anchors.verticalCenter: parent.verticalCenter }
         }
         Rectangle { anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 2; width: button.selected ? 20 : 0; height: 2; radius: 1; color: themeManager.accent; Behavior on width { NumberAnimation { duration: 140 } } }
         HoverHandler { id: buttonHover }

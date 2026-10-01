@@ -1,144 +1,63 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
+import "CardRegions.js" as Regions
 
 ColumnLayout {
     id: root
-
     property var model
-    spacing: 10
-
-    RowLayout {
-        Layout.fillWidth: true
-        spacing: 8
-
-        Text {
-            Layout.fillWidth: true
-            text: "通知"
-            color: themeManager.textPrimary
-            font.pixelSize: 17
-            font.weight: Font.DemiBold
-        }
-
-        Rectangle {
-            visible: notificationModel.unreadCount > 0
-            implicitWidth: countText.implicitWidth + 14
-            implicitHeight: 24
-            radius: 12
-            color: themeManager.accentSoft
-
-            Text {
-                id: countText
-                anchors.centerIn: parent
-                text: notificationModel.unreadCount
-                color: themeManager.textPrimary
-                font.pixelSize: 11
-                font.weight: Font.DemiBold
+    property bool popupOpen: false
+    spacing: 16
+    function closePopups() { for (const item of Regions.delegates(listView)) item.closeMenu() }
+    function refreshPopupState() {
+        popupOpen = Regions.delegates(listView).some(item => item.popupOpen)
+    }
+    function inputRegions(target) {
+        return Regions.collect([toolbar, empty], target, root).concat(Regions.collect(Regions.delegates(listView), target, listView))
+    }
+    CardSurface {
+        id: toolbar
+        Layout.fillWidth: true; Layout.preferredHeight: 70
+        RowLayout {
+            anchors.fill: parent; anchors.margins: 16; spacing: 12
+            ColumnLayout {
+                Layout.fillWidth: true; spacing: 4
+                Text { text: "通知中心"; color: themeManager.textPrimary; font.pixelSize: 15; font.weight: Font.DemiBold }
+                Text { text: root.model ? root.model.unreadCount + " 条未读" : "暂无未读"; color: themeManager.textMuted; font.pixelSize: 10 }
             }
-        }
-
-        HeaderButton {
-            text: "全部已读"
-            enabled: notificationModel.unreadCount > 0
-            onClicked: notificationModel.markAllAsRead()
-        }
-
-        HeaderButton {
-            text: "清空"
-            destructive: true
-            enabled: listView.count > 0
-            onClicked: notificationModel.clear()
+            HeaderButton { text: "全部已读"; enabled: root.model && root.model.unreadCount > 0; onClicked: root.model.markAllAsRead() }
+            HeaderButton { text: "清空"; destructive: true; enabled: listView.count > 0; onClicked: root.model.clear() }
         }
     }
-
-    Rectangle {
-        Layout.fillWidth: true
-        Layout.fillHeight: true
-        Layout.minimumHeight: 120
-        radius: 16
-        color: themeManager.surface
-        border.width: 1
-        border.color: themeManager.border
-        clip: true
-
-        ListView {
-            id: listView
-            anchors.fill: parent
-            anchors.margins: 0
-            spacing: 9
-            clip: true
-            model: root.model
-            boundsBehavior: Flickable.StopAtBounds
-
-            delegate: NotificationItem {
-                width: listView.width
-                appName: model.appName
-                title: model.title
-                content: model.content
-                appIcon: model.appIcon
-                unread: model.unread
-                removable: model.removable
-                timeText: Qt.formatTime(model.timestamp, "HH:mm")
-                onRemoveRequested: root.model.removeNotification(index)
-                onMarkReadRequested: root.model.markAsRead(index)
-                onMarkUnreadRequested: root.model.markAsUnread(index)
-            }
-
-            ScrollBar.vertical: ScrollBar { policy: ScrollBar.AsNeeded }
-
-            add: Transition {
-                NumberAnimation { properties: "opacity,scale"; from: 0; to: 1; duration: 180 }
-            }
-            displaced: Transition {
-                NumberAnimation { properties: "x,y"; duration: 180; easing.type: Easing.OutCubic }
-            }
-        }
-
-        Column {
-            anchors.centerIn: parent
-            visible: listView.count === 0
-            spacing: 7
-
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "✓"
-                color: themeManager.accentSoft
-                font.pixelSize: 30
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: "暂无通知"
-                color: themeManager.textMuted
-                font.pixelSize: 13
-            }
+    CardSurface {
+        id: empty
+        Layout.fillWidth: true; Layout.preferredHeight: 112; visible: listView.count === 0
+        Column { anchors.centerIn: parent; spacing: 8
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "✓  暂无通知"; color: themeManager.textSecondary; font.pixelSize: 14 }
+            Text { anchors.horizontalCenter: parent.horizontalCenter; text: "新的通知会以独立卡片显示在这里"; color: themeManager.textMuted; font.pixelSize: 11 }
         }
     }
-
-    component HeaderButton: Rectangle {
-        id: button
-
-        property string text
+    ListView {
+        id: listView
+        Layout.fillWidth: true; Layout.fillHeight: true
+        spacing: 12; clip: true; model: root.model; boundsBehavior: Flickable.StopAtBounds
+        onCountChanged: Qt.callLater(root.refreshPopupState)
+        delegate: NotificationItem {
+            width: listView.width
+            appName: model.appName; title: model.title; content: model.content; appIcon: model.appIcon
+            unread: model.unread; removable: model.removable; timeText: Qt.formatTime(model.timestamp, "HH:mm")
+            onPopupOpenChanged: root.refreshPopupState()
+            Component.onDestruction: Qt.callLater(root.refreshPopupState)
+            onRemoveRequested: root.model.removeNotification(index)
+            onMarkReadRequested: root.model.markAsRead(index)
+            onMarkUnreadRequested: root.model.markAsUnread(index)
+        }
+    }
+    component HeaderButton: Basic.Button {
         property bool destructive: false
-        signal clicked()
-
-        implicitWidth: label.implicitWidth + 16
-        implicitHeight: 28
-        radius: 9
-        color: !enabled ? themeManager.surface
-                        : hover.hovered ? (destructive ? themeManager.dangerSoft : themeManager.surfaceHover)
-                                        : themeManager.surface
+        implicitWidth: contentItem.implicitWidth + 20; implicitHeight: 34
         opacity: enabled ? 1 : 0.45
-
-        Text {
-            id: label
-            anchors.centerIn: parent
-            text: button.text
-            color: button.destructive ? themeManager.danger : themeManager.textSecondary
-            font.pixelSize: 11
-        }
-
-        HoverHandler { id: hover }
-        TapHandler { enabled: button.enabled; onTapped: button.clicked() }
-        Behavior on color { ColorAnimation { duration: 100 } }
+        contentItem: Text { text: parent.text; color: parent.destructive ? themeManager.danger : themeManager.textSecondary; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+        background: Rectangle { radius: 10; color: parent.hovered ? (parent.destructive ? themeManager.dangerSoft : themeManager.surfaceHover) : themeManager.surfaceStrong }
     }
 }

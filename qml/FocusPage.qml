@@ -1,140 +1,66 @@
 import QtQuick
-import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
+import "CardRegions.js" as Regions
 
-Item {
+Flickable {
     id: root
-
-    readonly property int minutes: Math.floor(focusTimer.remainingSeconds / 60)
-    readonly property int seconds: focusTimer.remainingSeconds % 60
-    readonly property string timeText: String(minutes).padStart(2, "0") + ":" + String(seconds).padStart(2, "0")
-
-    ColumnLayout {
-        anchors.fill: parent
-        spacing: 14
-
-        RowLayout {
-            Layout.fillWidth: true
-            Text { Layout.fillWidth: true; text: "专注空间"; color: themeManager.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
-            Rectangle {
-                Layout.preferredWidth: sessionText.implicitWidth + 18; Layout.preferredHeight: 26; radius: 13
-                color: themeManager.accentSoft
-                Text { id: sessionText; anchors.centerIn: parent; text: "已完成 " + focusTimer.completedSessions; color: themeManager.accent; font.pixelSize: 10; font.weight: Font.DemiBold }
-                TapHandler { onTapped: focusTimer.clearCompletedSessions() }
-                ToolTip.visible: sessionHover.hovered
-                ToolTip.text: "点击清零完成次数"
-                HoverHandler { id: sessionHover }
+    contentWidth: width; contentHeight: grid.implicitHeight
+    clip: true; boundsBehavior: Flickable.StopAtBounds
+    readonly property bool wide: width >= 620
+    readonly property string timeText: String(Math.floor(focusTimer.remainingSeconds/60)).padStart(2, "0") + ":" + String(focusTimer.remainingSeconds%60).padStart(2, "0")
+    function inputRegions(target) { return Regions.collect([heading, clock, actions, shortBreak, regular, deep, sessions, continuity], target, root) }
+    GridLayout {
+        id: grid
+        width: root.width; columns: root.wide ? 2 : 1; columnSpacing: 16; rowSpacing: 16
+        CardSurface {
+            id: heading
+            Layout.fillWidth: true; Layout.columnSpan: grid.columns; Layout.preferredHeight: 70
+            Column { x: 18; y: 14; spacing: 6
+                Text { text: "专注空间"; color: themeManager.textPrimary; font.pixelSize: 17; font.weight: Font.DemiBold }
+                Text { text: focusTimer.running ? "把注意力留给眼前这一件事" : "选择节奏，然后开始"; color: themeManager.textMuted; font.pixelSize: 11 }
             }
         }
-
-        Text {
-            Layout.fillWidth: true
-            text: focusTimer.running ? "把注意力留给眼前这一件事" : "选择节奏，然后开始"
-            color: themeManager.textMuted
-            font.pixelSize: 11
-        }
-
-        Item {
-            Layout.alignment: Qt.AlignHCenter
-            Layout.preferredWidth: 230
-            Layout.preferredHeight: 230
-
-            Canvas {
-                id: ring
-                anchors.fill: parent
-                property real progress: focusTimer.progress
-                property color trackColor: themeManager.track
-                property color progressColor: themeManager.accent
-                onProgressChanged: requestPaint()
-                onTrackColorChanged: requestPaint()
-                onProgressColorChanged: requestPaint()
-                onPaint: {
-                    const ctx = getContext("2d")
-                    const center = width / 2
-                    const radius = center - 12
-                    ctx.reset()
-                    ctx.lineWidth = 10
-                    ctx.lineCap = "round"
-                    ctx.strokeStyle = trackColor
-                    ctx.beginPath()
-                    ctx.arc(center, center, radius, 0, Math.PI * 2)
-                    ctx.stroke()
-                    if (progress > 0) {
-                        ctx.strokeStyle = progressColor
-                        ctx.beginPath()
-                        ctx.arc(center, center, radius, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress)
-                        ctx.stroke()
-                    }
+        ColumnLayout {
+            Layout.fillWidth: true; Layout.preferredWidth: (root.width-16)/2; Layout.alignment: Qt.AlignTop; spacing: 16
+            FocusClockCard { id: clock; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight; timeText: root.timeText; progress: focusTimer.progress; running: focusTimer.running }
+            CardSurface {
+                id: actions
+                Layout.fillWidth: true; Layout.preferredHeight: 80
+                RowLayout { anchors.fill: parent; anchors.margins: 16; spacing: 12
+                    Action { Layout.fillWidth: true; text: focusTimer.running ? "暂停" : "开始专注"; primary: true; onClicked: focusTimer.toggle() }
+                    Action { Layout.preferredWidth: 90; text: "重置"; onClicked: focusTimer.reset() }
                 }
             }
-
-            Column {
-                anchors.centerIn: parent
-                spacing: 5
-                Text { anchors.horizontalCenter: parent.horizontalCenter; text: root.timeText; color: themeManager.textPrimary; font.pixelSize: 43; font.weight: Font.Light }
-                Text { anchors.horizontalCenter: parent.horizontalCenter; text: focusTimer.running ? "进行中" : "准备就绪"; color: focusTimer.running ? themeManager.success : themeManager.textMuted; font.pixelSize: 10 }
+            CardSurface {
+                id: continuity
+                Layout.fillWidth: true; Layout.preferredHeight: 80
+                Column { x: 18; y: 17; spacing: 8
+                    Text { text: "跨页面保持计时"; color: themeManager.textSecondary; font.pixelSize: 12 }
+                    Text { text: "收起面板或切换卡片，不会中断专注。"; color: themeManager.textMuted; font.pixelSize: 10 }
+                }
             }
         }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 8
-            PresetButton { Layout.fillWidth: true; label: "短休息"; minutes: 5 }
-            PresetButton { Layout.fillWidth: true; label: "专注"; minutes: 25 }
-            PresetButton { Layout.fillWidth: true; label: "深度"; minutes: 50 }
-        }
-
-        RowLayout {
-            Layout.fillWidth: true
-            spacing: 10
-            ActionButton { Layout.fillWidth: true; primary: true; label: focusTimer.running ? "暂停" : "开始"; onClicked: focusTimer.toggle() }
-            ActionButton { Layout.preferredWidth: 92; label: "重置"; onClicked: focusTimer.reset() }
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            Layout.preferredHeight: 76
-            radius: 16
-            color: themeManager.surface
-            border.width: 1
-            border.color: themeManager.border
-            Column {
-                anchors.centerIn: parent
-                spacing: 5
-                Text { anchors.horizontalCenter: parent.horizontalCenter; text: "完成一个周期后，计数会自动累积"; color: themeManager.textSecondary; font.pixelSize: 10 }
-                Text { anchors.horizontalCenter: parent.horizontalCenter; text: "计时由后台 C++ 对象维护，切换页面不会中断"; color: themeManager.textFaint; font.pixelSize: 9 }
+        ColumnLayout {
+            Layout.fillWidth: true; Layout.preferredWidth: (root.width-16)/2; Layout.alignment: Qt.AlignTop; spacing: 16
+            FocusPresetCard { id: shortBreak; Layout.fillWidth: true; label: "短休息"; description: "给注意力留一点缓冲"; minutes: 5; selected: focusTimer.durationSeconds === minutes*60; onChosen: focusTimer.setDurationMinutes(minutes) }
+            FocusPresetCard { id: regular; Layout.fillWidth: true; label: "标准专注"; description: "适合一个小任务"; minutes: 25; selected: focusTimer.durationSeconds === minutes*60; onChosen: focusTimer.setDurationMinutes(minutes) }
+            FocusPresetCard { id: deep; Layout.fillWidth: true; label: "深度工作"; description: "留出完整的思考时间"; minutes: 50; selected: focusTimer.durationSeconds === minutes*60; onChosen: focusTimer.setDurationMinutes(minutes) }
+            CardSurface {
+                id: sessions
+                Layout.fillWidth: true; Layout.preferredHeight: 120
+                Text { x: 18; y: 15; text: "已完成周期"; color: themeManager.textSecondary; font.pixelSize: 12 }
+                Text { x: 18; y: 40; text: focusTimer.completedSessions; color: themeManager.accent; font.pixelSize: 30 }
+                Text { x: 18; y: 92; text: "每完成一个周期，自动累积一次。"; color: themeManager.textMuted; font.pixelSize: 10 }
+                Action { anchors.right: parent.right; anchors.rightMargin: 16; y: 34; text: "清零计数"; enabled: focusTimer.completedSessions > 0; onClicked: focusTimer.clearCompletedSessions() }
             }
         }
-
-        Item { Layout.fillHeight: true }
     }
-
-    component PresetButton: Rectangle {
-        id: preset
-        property string label
-        property int minutes
-        implicitHeight: 42
-        radius: 12
-        color: focusTimer.durationSeconds === minutes * 60 ? themeManager.accentSoft : presetHover.hovered ? themeManager.surfaceHover : themeManager.surface
-        border.width: 1
-        border.color: focusTimer.durationSeconds === minutes * 60 ? themeManager.accent : themeManager.border
-        Text { anchors.centerIn: parent; text: preset.label + " · " + preset.minutes; color: focusTimer.durationSeconds === preset.minutes * 60 ? themeManager.accent : themeManager.textSecondary; font.pixelSize: 10; font.weight: Font.DemiBold }
-        HoverHandler { id: presetHover }
-        TapHandler { onTapped: focusTimer.setDurationMinutes(preset.minutes) }
-    }
-
-    component ActionButton: Rectangle {
-        id: action
-        property string label
+    component Action: Basic.Button {
         property bool primary: false
-        signal clicked()
-        implicitHeight: 48
-        radius: 14
-        color: primary ? (actionTap.pressed ? themeManager.accentHover : themeManager.accent) : (actionHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong)
-        border.width: primary ? 0 : 1
-        border.color: themeManager.borderStrong
-        Text { anchors.centerIn: parent; text: action.label; color: action.primary ? "#FFFFFF" : themeManager.textPrimary; font.pixelSize: 11; font.weight: Font.DemiBold }
-        HoverHandler { id: actionHover }
-        TapHandler { id: actionTap; onTapped: action.clicked() }
+        implicitWidth: 92; implicitHeight: 44
+        opacity: enabled ? 1 : 0.45
+        contentItem: Text { text: parent.text; color: parent.primary ? "white" : themeManager.textSecondary; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+        background: Rectangle { radius: 11; color: parent.primary ? (parent.down ? themeManager.accentHover : themeManager.accent) : (parent.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong); border.width: parent.primary ? 0 : 1; border.color: themeManager.border }
     }
 }
