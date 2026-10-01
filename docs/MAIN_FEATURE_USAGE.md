@@ -51,9 +51,12 @@ Start-Process '<构建目录>\Release\appqt_rainmeter.exe' -ArgumentList '--feat
 
 ```powershell
 ./scripts/test-packaged-features.ps1 -LogPath '<全新的绝对日志路径>'
+./scripts/test-packaged-ui.ps1 -LogPath '<另一个全新的绝对日志路径>' -CapturePath '<全新的绝对截图路径>'
 ```
 
 使用 COM 应用激活接口传参，而不是直接运行 WindowsApps 内的 EXE。OCR 使用内存中生成的 `WINDOWS OCR TEST 123` 图片，并走生产识别管线；不读私人历史、不覆盖剪贴板。测试只读取热点和网络、枚举 USB，唤醒调用为模拟接口。日志必须有 `FEATURE_TEST PASS`，UI 日志必须有 `UI_SELF_TEST PASS`；QML 错误、样式定制警告与无效截图尺寸均失败。
+
+安装版 UI 脚本不依赖 PowerShell Process 包装器的退出码，使用 Windows 原生句柄核验退出码 0，并验证五张全新截图均存在且非空。其 `PACKAGED_UI_TEST PASS` 证明安装版自检路径及部署能正常运行；详细 QML 日志告警检查仍由普通 EXE 的 UI 脚本承担。
 
 ## 尚需人工验收
 

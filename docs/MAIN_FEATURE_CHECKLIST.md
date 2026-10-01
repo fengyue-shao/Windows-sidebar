@@ -28,6 +28,8 @@
 
 最终包身份日志：`work/ui-tests/feature-packaged-02.log`；普通 EXE 日志：`work/ui-tests/feature-unpackaged-final.log`；最终 UI 截图：`work/ui-tests/features-release.png` 及 `.features.png` / `.ocr.png` 后缀输出。上述相对路径均以仓库父目录工作区为基准。
 
+补充安装版 UI 验收：`test-packaged-ui.ps1` 通过 Windows 原生进程句柄确认退出码 0，要求五张全新截图存在且非空；结果 `PACKAGED_UI_TEST PASS`。对应日志 `work/ui-tests/feature-packaged-04.log`，截图 `work/ui-tests/packaged-ui-verified.png` 及后缀输出。初次补测的 PowerShell Process 包装器退出码为空，不能作为失败/成功依据；已替换为 OpenProcess/WaitForSingleObject/GetExitCodeProcess 核验，未把空值当作通过。
+
 日志位于工作区 `work/ui-tests/`，不写入私人图片、OCR 正文、热点密码或网络地址。测试截图使用合成网络/USB 数据和合成 OCR 文本；监控截图可能包含当前媒体及设备名称，不对外上传。
 
 这是一轮实现与安全自动验收，不等于全部真实设备场景验收。普通 EXE 的 OCR/热点身份限制、设备能力差异、实际 Wi-Fi 共享和 USB 占用拒绝需要按[使用与验收说明](MAIN_FEATURE_USAGE.md)继续验证。
