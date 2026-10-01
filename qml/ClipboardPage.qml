@@ -1,14 +1,23 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import "CardRegions.js" as Regions
 
 Item {
     id: root
-    function inputRegions(target) { return Regions.collect([toolbar, empty], target, root).concat(Regions.collect(Regions.delegates(history), target, history)) }
+    function inputRegions(target) { return Regions.collect([toolbar, empty, ocrResult], target, root).concat(Regions.collect(Regions.delegates(history), target, history)) }
 
     onVisibleChanged: if (visible) clipboardManager.refresh()
     Component.onCompleted: if (visible) clipboardManager.refresh()
+    function scheduleOcrCapture(path) { ocrCapture.path = path; ocrCapture.restart() }
+    Timer { id: ocrCapture; property string path: ""; interval: 80; onTriggered: root.captureOcrTest(path) }
+    function captureOcrTest(path) {
+        if (!uiSelfTest || !ocrResult.visible || ocrEditor.text.length === 0 || ocrResult.width <= 0) return false
+        ocrEditor.text = "已编辑的识别结果\n第二行测试文字，可复制、选择和换行。"
+        if (path.length) ocrResult.grabToImage(result => result.saveToFile(path + ".ocr.png"))
+        return ocrEditor.textFormat === TextEdit.PlainText && ocrResult.height > 150
+    }
 
     ColumnLayout {
         anchors.fill: parent
@@ -45,6 +54,36 @@ Item {
             Text { anchors.centerIn: parent; text: clipboardManager.loading ? "正在读取剪贴板…" : "暂无可预览的历史"; color: themeManager.textMuted; font.pixelSize: 12 }
         }
 
+        CardSurface {
+            id: ocrResult
+            visible: clipboardOcr.status.length > 0
+            Layout.fillWidth: true
+            Layout.preferredHeight: clipboardOcr.text.length > 0 ? 210 : 88
+            ColumnLayout {
+                anchors.fill: parent; anchors.margins: 12; spacing: 8
+                RowLayout {
+                    Layout.fillWidth: true
+                    Text { Layout.fillWidth: true; text: clipboardOcr.status; wrapMode: Text.Wrap; color: themeManager.textMuted; font.pixelSize: 11 }
+                    CardAction { text: "关闭"; enabled: !clipboardOcr.busy; onClicked: clipboardOcr.clear() }
+                }
+                Basic.ScrollView {
+                    Layout.fillWidth: true; Layout.fillHeight: true
+                    visible: clipboardOcr.text.length > 0
+                    Basic.TextArea {
+                        id: ocrEditor
+                        text: clipboardOcr.text
+                        textFormat: TextEdit.PlainText
+                        wrapMode: TextEdit.Wrap
+                        selectByMouse: true
+                        color: themeManager.textPrimary
+                        font.pixelSize: 12
+                        background: Rectangle { color: themeManager.surface; radius: 8 }
+                    }
+                }
+                CardAction { visible: clipboardOcr.text.length > 0; text: "复制编辑后的文字"; onClicked: clipboardOcr.copy(ocrEditor.text) }
+            }
+        }
+
         ListView {
             id: history
             Layout.fillWidth: true
@@ -77,6 +116,7 @@ Item {
                             Text { anchors.centerIn: parent; text: modelData.type === "image" ? "▧" : modelData.type === "files" ? "▤" : "T"; color: themeManager.accent; font.pixelSize: 10; font.weight: Font.Bold }
                         }
                         Text { Layout.fillWidth: true; text: modelData.detail; color: themeManager.textMuted; font.pixelSize: 9 }
+                        CardAction { visible: modelData.type === "image"; text: "识别文字"; enabled: !clipboardOcr.busy; implicitHeight: 26; onClicked: clipboardOcr.recognize(modelData.id) }
                         Rectangle {
                             Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
                             color: modelData.pinned ? themeManager.accentSoft : pinHover.hovered ? themeManager.surfaceStrong : themeManager.overlayStart
@@ -106,6 +146,7 @@ Item {
                         source: modelData.imageSource || ""
                         fillMode: Image.PreserveAspectFit
                         asynchronous: true
+                        TapHandler { onTapped: clipboardManager.activateItem(modelData.id) }
                     }
                     Text {
                         id: previewText
@@ -117,10 +158,11 @@ Item {
                         wrapMode: Text.Wrap
                         maximumLineCount: 4
                         elide: Text.ElideRight
+                        TapHandler { onTapped: clipboardManager.activateItem(modelData.id) }
                     }
                 }
                 HoverHandler { id: itemHover }
-                TapHandler { onTapped: clipboardManager.activateItem(modelData.id) }
+                // A nested OCR/pin/delete action must never also copy the image.
             }
 
         }

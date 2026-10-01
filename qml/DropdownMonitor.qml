@@ -8,10 +8,46 @@ Flickable {
     clip: true; boundsBehavior: Flickable.StopAtBounds
     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOff }
     readonly property bool wide: width >= 620
+    function scheduleFeatureCapture(path) { featureCapture.path = path; featureCapture.restart() }
+    Timer {
+        id: featureCapture
+        property string path: ""
+        interval: 80
+        onTriggered: root.verifyFeatureTestLayout(path)
+    }
+    function setFeatureTestState(enabled) {
+        if (!uiSelfTest) return
+        connectionDetails.expanded = enabled
+        hotspot.expanded = enabled
+        hotspot.pending = enabled ? "configure" : ""
+        awake.confirming = enabled
+        usb.pendingId = enabled ? "test-only-no-eject" : ""
+        usb.pendingName = "USB 测试存储 · X:\\ · Y:\\"
+        if (enabled) {
+            connectionDetails.connectionSummary = "测试连接 · 系统报告互联网连接 · 按流量计费"
+            connectionDetails.adapterItems = [{name: "测试适配器", description: "只用于 UI 验收的虚拟数据", addresses: "192.0.2.10/24\n2001:db8::10/64", gateways: "192.0.2.1", dns: "192.0.2.53", mtu: 1500, speed: "↓ 1000 / ↑ 1000 Mbps"}]
+            usb.deviceItems = [{id: "test-only-no-eject", name: "USB 测试存储", volumes: "X:\\ · Y:\\"}]
+        } else {
+            connectionDetails.connectionSummary = Qt.binding(() => networkDetails.summary)
+            connectionDetails.adapterItems = Qt.binding(() => networkDetails.adapters)
+            usb.deviceItems = Qt.binding(() => usbManager.devices)
+            contentY = 0
+        }
+    }
+    function verifyFeatureTestLayout(capturePath) {
+        if (!uiSelfTest) return false
+        for (const item of [connectionDetails, hotspot, awake, usb]) {
+            if (!Number.isFinite(item.height) || item.height <= 100 || item.width <= 0) return false
+        }
+        if (contentHeight < connectionDetails.y + connectionDetails.height) return false
+        contentY = Math.max(0, Math.min(connectionDetails.y, contentHeight - height))
+        if (capturePath.length) root.grabToImage(result => result.saveToFile(capturePath + ".features.png"))
+        return true
+    }
     function inputRegions(target) {
         const vp = root.mapToItem(target, 0, 0)
         let result = []
-        for (const item of [stats, disk, controls, microphone, media]) {
+        for (const item of [stats, disk, controls, microphone, media, connectionDetails, hotspot, awake, usb]) {
             if (!item.visible) continue
             const p = item.mapToItem(target, 0, 0)
             const x = Math.max(vp.x, p.x), y = Math.max(vp.y, p.y)
@@ -49,11 +85,15 @@ Flickable {
             }
             MicrophoneCard { id: microphone; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight }
             DiskPanel { id: disk; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight; model: diskMonitor }
+            NetworkDetailsCard { id: connectionDetails; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight }
+            UsbCard { id: usb; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight }
         }
         ColumnLayout {
             Layout.fillWidth: true; Layout.preferredWidth: root.wide ? (root.width-16)/2 : root.width
             Layout.alignment: Qt.AlignTop; spacing: 16
             QuickSettingsPanel { id: controls; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight }
+            HotspotCard { id: hotspot; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight }
+            AwakeCard { id: awake; Layout.fillWidth: true; Layout.preferredHeight: implicitHeight }
             Rectangle {
                 id: media
                 Layout.fillWidth: true; Layout.preferredHeight: mediaCard.implicitHeight; visible: uiSettings.mediaEnabled

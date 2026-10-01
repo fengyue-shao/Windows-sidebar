@@ -12,6 +12,11 @@ Item {
     readonly property int barHeight: topbar.height + 8
     readonly property int bodyTop: topbar.height + 78
     property int currentSection: uiSettings.currentSection
+    function setFeatureTestState(enabled) { monitor.setFeatureTestState(enabled) }
+    function verifyFeatureTestLayout(path) { return monitor.verifyFeatureTestLayout(path) }
+    function scheduleFeatureCapture(path) { monitor.scheduleFeatureCapture(path) }
+    function captureOcrTest(path) { return clipboard.captureOcrTest(path) }
+    function scheduleOcrCapture(path) { clipboard.scheduleOcrCapture(path) }
     property bool calendarOpen: false
     property bool settingsOpen: false
     readonly property bool transientUiOpen: calendarOpen || settingsOpen || notifications.popupOpen

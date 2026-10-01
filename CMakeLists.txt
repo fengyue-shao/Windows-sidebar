@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(qt_rainmeter VERSION 0.8.1.0 LANGUAGES CXX)
+project(qt_rainmeter VERSION 0.8.1.1 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -42,6 +42,16 @@ qt_add_qml_module(appqt_rainmeter
         QML_FILES qml/TopIslandHost.qml
         QML_FILES qml/MediaBarSelfTest.qml
         QML_FILES qml/CardSlider.qml qml/CardAction.qml
+        SOURCES include/clipboardocr.h src/clipboardocr.cpp
+        SOURCES include/networkdetails.h src/networkdetails.cpp
+        QML_FILES qml/NetworkDetailsCard.qml
+        SOURCES include/hotspotmanager.h src/hotspotmanager.cpp
+        QML_FILES qml/HotspotCard.qml
+        SOURCES include/awakemanager.h src/awakemanager.cpp
+        QML_FILES qml/AwakeCard.qml
+        SOURCES include/usbmanager.h src/usbmanager.cpp
+        QML_FILES qml/UsbCard.qml
+        SOURCES include/featuretests.h src/featuretests.cpp
         RESOURCES ${FLUENT_SELECTED_ICONS} assets/fluent/LICENSE
 )
 
@@ -62,6 +72,8 @@ target_link_libraries(appqt_rainmeter
 )
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
 target_link_libraries(appqt_rainmeter PRIVATE iphlpapi)
+target_link_libraries(appqt_rainmeter PRIVATE ws2_32)
+target_link_libraries(appqt_rainmeter PRIVATE setupapi cfgmgr32)
 target_link_libraries(appqt_rainmeter PRIVATE pdh)
 target_link_libraries(appqt_rainmeter PRIVATE dxgi)
 target_link_libraries(appqt_rainmeter PRIVATE ole32)

@@ -32,7 +32,7 @@ if (-not $trusted -and $TrustDevelopmentCertificate) {
             '-TrustDevelopmentCertificate'
         )
         $process = Start-Process -FilePath 'powershell.exe' -Verb RunAs `
-            -ArgumentList $arguments -Wait -PassThru
+            -ArgumentList $arguments -WindowStyle Hidden -Wait -PassThru
         if ($process.ExitCode -ne 0) {
             throw "Elevated MSIX installation failed with exit code $($process.ExitCode)"
         }

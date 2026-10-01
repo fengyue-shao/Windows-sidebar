@@ -130,6 +130,11 @@ Window {
                 if (root.visible) { Qt.exit(2); return }
                 root.showCards()
             } else if (step >= 5 && step < 10 + pluginRegistry.pageCount) {
+                if (step === 6) {
+                    if (!sidebar.verifyFeatureTestLayout("")) { console.error("UI_SELF_TEST feature layout failed"); Qt.exit(10); return }
+                    sidebar.setFeatureTestState(false)
+                    console.log("UI_SELF_TEST network/hotspot/awake/USB expanded states PASS")
+                }
                 // Check the previously laid-out focus page before switching away.
                 if (step === 8 && root.width >= 620 && root.height >= 500) {
                     root.syncRegions()
@@ -138,7 +143,10 @@ Window {
                         console.error("UI_SELF_TEST independent focus cards failed"); Qt.exit(4); return
                     }
                 }
+                if (step === 9 && !sidebar.captureOcrTest("")) { console.error("UI_SELF_TEST OCR editor failed"); Qt.exit(10); return }
                 sidebar.currentSection = step - 5
+                if (step === 5) { sidebar.setFeatureTestState(true); sidebar.scheduleFeatureCapture(uiCapturePath) }
+                if (step === 8) sidebar.scheduleOcrCapture(uiCapturePath)
             } else if (step === 10 + pluginRegistry.pageCount) {
                 root.collapseCards(); sidebar.openSettings()
             } else if (step === 11 + pluginRegistry.pageCount) {

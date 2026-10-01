@@ -10,7 +10,7 @@
   <Identity
     Name="WindowsSidebar"
     Publisher="CN=WindowsSidebarDev"
-    Version="0.8.0.3"
+    Version="0.8.1.1"
     ProcessorArchitecture="x64" />
 
   <Properties>
@@ -53,5 +53,6 @@
     <rescap:Capability Name="runFullTrust" />
     <rescap:Capability Name="globalMediaControl" />
     <uap3:Capability Name="userNotificationListener" />
+    <DeviceCapability Name="wiFiControl" />
   </Capabilities>
 </Package>

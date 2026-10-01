@@ -14,6 +14,7 @@
 #include "include/captureusagemonitor.h"
 #include "include/bluetoothmanager.h"
 #include "include/clipboardmanager.h"
+#include "include/clipboardocr.h"
 #include "include/cpumonitor.h"
 #include "include/diskmonitor.h"
 #include "include/displaymanager.h"
@@ -24,6 +25,11 @@
 #include "include/memorymonitor.h"
 #include "include/monitorscheduler.h"
 #include "include/networkmonitor.h"
+#include "include/networkdetails.h"
+#include "include/hotspotmanager.h"
+#include "include/awakemanager.h"
+#include "include/usbmanager.h"
+#include "include/featuretests.h"
 #include "include/radiomanager.h"
 #include "include/pluginregistry.h"
 #include "include/terminalmanager.h"
@@ -38,13 +44,16 @@ int main(int argc, char *argv[])
 {
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     QGuiApplication app(argc, argv);
-    QCoreApplication::setApplicationVersion("0.8.1.0-preview");
+    QCoreApplication::setApplicationVersion("0.8.1.1-preview");
     QCoreApplication::setOrganizationName("WindowsSidebar");
     QCoreApplication::setApplicationName("WindowsSidebar");
     qRegisterMetaType<QImage>("QImage");
     qRegisterMetaType<Notification>("Notification");
+    for (const auto &argument : app.arguments())
+        if (argument.startsWith("--feature-self-test=")) return runFeatureTests(app, argument.mid(20));
 
     ClipboardManager clipboardManager;
+    ClipboardOcr clipboardOcr;
     BluetoothManager bluetoothManager;
     CpuMonitor cpuMonitor;
     GpuMonitor gpuMonitor;
@@ -53,6 +62,10 @@ int main(int argc, char *argv[])
     FocusTimer focusTimer;
     MemoryMonitor memoryMonitor;
     NetworkMonitor networkMonitor;
+    NetworkDetails networkDetails;
+    HotspotManager hotspotManager;
+    AwakeManager awakeManager;
+    UsbManager usbManager;
     RadioManager radioManager;
     PluginRegistry pluginRegistry;
     TerminalManager terminalManager;
@@ -109,6 +122,7 @@ int main(int argc, char *argv[])
     mediaMonitor.setCoverProvider(coverProvider);
     engine.rootContext()->setContextProperty("cpuMonitor", &cpuMonitor);
     engine.rootContext()->setContextProperty("clipboardManager", &clipboardManager);
+    engine.rootContext()->setContextProperty("clipboardOcr", &clipboardOcr);
     engine.rootContext()->setContextProperty("bluetoothManager", &bluetoothManager);
     engine.rootContext()->setContextProperty("gpuMonitor", &gpuMonitor);
     engine.rootContext()->setContextProperty("diskMonitor", &diskMonitor);
@@ -116,6 +130,10 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("focusTimer", &focusTimer);
     engine.rootContext()->setContextProperty("memoryMonitor", &memoryMonitor);
     engine.rootContext()->setContextProperty("networkMonitor", &networkMonitor);
+    engine.rootContext()->setContextProperty("networkDetails", &networkDetails);
+    engine.rootContext()->setContextProperty("hotspotManager", &hotspotManager);
+    engine.rootContext()->setContextProperty("awakeManager", &awakeManager);
+    engine.rootContext()->setContextProperty("usbManager", &usbManager);
     engine.rootContext()->setContextProperty("radioManager", &radioManager);
     engine.rootContext()->setContextProperty("pluginRegistry", &pluginRegistry);
     engine.rootContext()->setContextProperty("terminalManager", &terminalManager);
@@ -139,6 +157,25 @@ int main(int argc, char *argv[])
     auto *fluentProvider = new FluentIconProvider;
     engine.addImageProvider("fluent", fluentProvider);
     if (app.arguments().contains("--ui-self-test")) {
+        clipboardOcr.recognize(QString());
+        clipboardOcr.finish(99, "stale", "stale");
+        if (clipboardOcr.busy() || !clipboardOcr.text().isEmpty() || !clipboardOcr.status().isEmpty()) return 7;
+        clipboardOcr.copy(QString()); // Empty results never alter the clipboard.
+        quint64 testNow = 1000;
+        int testRequests = 0;
+        AwakeManager testAwake(nullptr, [&](bool, bool) { ++testRequests; return true; }, [&] { return testNow; });
+        testAwake.start(0, false);
+        if (testRequests != 0 || testAwake.active()) return 9;
+        testAwake.start(1, false);
+        if (!testAwake.active() || testAwake.remainingSeconds() != 60 || testRequests != 1) return 9;
+        testNow += 60000;
+        QMetaObject::invokeMethod(&testAwake, "tick", Qt::DirectConnection);
+        if (testAwake.active() || testAwake.remainingSeconds() != 0 || testRequests != 2) return 9;
+        if (!HotspotManager::validConfiguration("test", "password123")
+            || HotspotManager::validConfiguration("", "password123")
+            || HotspotManager::validConfiguration("test", "short")
+            || HotspotManager::validConfiguration(QString(33, 'x'), "password123")) return 8;
+        clipboardOcr.finish(0, QStringLiteral("OCR UI 测试\n本地识别结果可编辑"), QStringLiteral("本地识别完成 · 测试数据"));
         islandBridge.publish("test.low", {{"title","low"}}, 1);
         islandBridge.publish("test.high", {{"title","high"},{"progress",2.0}}, 9);
         if (islandBridge.activeState().value("sourceId") != "test.high"
