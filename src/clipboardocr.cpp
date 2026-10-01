@@ -83,6 +83,12 @@ winrt::fire_and_forget recognizeHistory(QPointer<ClipboardOcr> owner, QString id
 }
 }
 
+ClipboardOcr::ClipboardOcr(QObject *parent, std::function<void(const QString &)> copySink)
+    : QObject(parent), m_copySink(std::move(copySink))
+{
+    if (!m_copySink) m_copySink = [](const QString &text) { QGuiApplication::clipboard()->setText(text); };
+}
+
 void ClipboardOcr::recognize(const QString &historyId)
 {
     if (m_busy || historyId.isEmpty()) return;
@@ -110,17 +116,25 @@ void ClipboardOcr::finish(quint64 generation, const QString &text, const QString
     emit changed();
 }
 
-void ClipboardOcr::recognizeFixture()
+void ClipboardOcr::recognizeFixture(const QString &kind)
 {
     bool enabled = false;
     for (const auto &argument : qGuiApp->arguments())
         enabled |= argument.startsWith("--feature-self-test=");
     if (!enabled || m_busy) return;
-    QImage image(900, 120, QImage::Format_RGB32); image.fill(Qt::white);
-    QPainter painter(&image); painter.setPen(Qt::black);
-    QFont font("Arial"); font.setPixelSize(42); painter.setFont(font);
-    painter.drawText(20, 78, "WINDOWS OCR TEST 123"); painter.end();
-    QByteArray bytes; QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly); image.save(&buffer, "PNG");
+    QByteArray bytes;
+    if (kind == "malformed") bytes = "not-a-valid-image";
+    else if (kind == "bytes") bytes = QByteArray(12 * 1024 * 1024 + 1, '0');
+    else {
+        const int width = kind == "dimensions" ? static_cast<int>(winrt::Windows::Media::Ocr::OcrEngine::MaxImageDimension()) + 1 : 900;
+        QImage image(width, 120, QImage::Format_RGB32); image.fill(Qt::white);
+        if (kind == "text") {
+            QPainter painter(&image); painter.setPen(Qt::black);
+            QFont font("Arial"); font.setPixelSize(42); painter.setFont(font);
+            painter.drawText(20, 78, "WINDOWS OCR TEST 123"); painter.end();
+        }
+        QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly); image.save(&buffer, "PNG");
+    }
     m_busy = true; m_text.clear(); m_status = QStringLiteral("识别生成的测试图");
     emit textChanged(); emit changed();
     recognizeHistory(this, {}, ++m_generation, bytes);
@@ -137,6 +151,6 @@ void ClipboardOcr::clear()
 void ClipboardOcr::copy(const QString &text)
 {
     if (m_busy || text.isEmpty() || text.size() > 65536) return;
-    QGuiApplication::clipboard()->setText(text);
+    m_copySink(text);
     m_status = QStringLiteral("识别文字已复制"); emit changed();
 }

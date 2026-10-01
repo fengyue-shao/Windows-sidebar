@@ -82,9 +82,20 @@ int runFeatureTests(QGuiApplication &app, const QString &logPath)
     ClipboardOcr ocr;
     ocr.recognize({}); ocr.finish(99, "stale", "stale"); ocr.copy({});
     check(!ocr.busy() && ocr.text().isEmpty() && ocr.status().isEmpty(), "OCR empty and stale requests ignored; no clipboard write");
+    QStringList copied;
+    ClipboardOcr copyProbe(nullptr, [&](const QString &value) { copied.append(value); });
+    copyProbe.finish(0, "original fixture", "ready");
+    int textSignals = 0;
+    QObject::connect(&copyProbe, &ClipboardOcr::textChanged, &app, [&] { ++textSignals; });
+    copyProbe.copy("edited fixture");
+    copyProbe.copy({}); copyProbe.copy(QString(65537, 'x'));
+    check(copied == QStringList{"edited fixture"} && copyProbe.text() == "original fixture" && textSignals == 0,
+        "OCR copies edited text through mock sink without resetting editor; rejects empty/oversized copy");
     UINT32 length = 0;
     const bool packaged = GetCurrentPackageFullName(&length, nullptr) != APPMODEL_ERROR_NO_PACKAGE;
     bool ocrDone = !packaged, usbDone = false;
+    const QStringList fixtureKinds{"text", "blank", "malformed", "dimensions", "bytes"};
+    int fixtureIndex = 0;
     if (!packaged) {
         ocr.recognize("fixture");
         check(!ocr.busy() && ocr.status().contains("MSIX"), "OCR unpackaged identity guard");
@@ -109,10 +120,14 @@ int runFeatureTests(QGuiApplication &app, const QString &logPath)
     });
     QObject::connect(&ocr, &ClipboardOcr::changed, &app, [&] {
         if (!packaged || ocr.busy() || ocrDone) return;
-        ocrDone = true;
-        check(ocr.text().contains("OCR", Qt::CaseInsensitive) && ocr.text().contains("123"), "OCR generated fixture recognized via production pipeline");
-        if (ocr.text().isEmpty()) { log << "INFO OCR " << ocr.status() << '\n'; log.flush(); }
-        finish();
+        const auto kind = fixtureKinds.at(fixtureIndex);
+        if (kind == "text") check(ocr.text().contains("OCR", Qt::CaseInsensitive) && ocr.text().contains("123"), "OCR generated fixture recognized via production pipeline");
+        else if (kind == "blank") check(ocr.text().isEmpty() && ocr.status().contains(QStringLiteral("未识别到文字")), "OCR blank image returns empty result, not stale text");
+        else if (kind == "malformed") check(ocr.text().isEmpty() && ocr.status().contains(QStringLiteral("失败")), "OCR malformed image reports failure without crashing");
+        else if (kind == "dimensions") check(ocr.text().isEmpty() && ocr.status().contains(QStringLiteral("尺寸限制")), "OCR oversized dimensions rejected before bitmap recognition");
+        else if (kind == "bytes") check(ocr.text().isEmpty() && ocr.status().contains("12 MB"), "OCR stream byte limit enforced before decoder");
+        if (++fixtureIndex == fixtureKinds.size()) { ocrDone = true; finish(); }
+        else QTimer::singleShot(0, &app, [&] { ocr.recognizeFixture(fixtureKinds.at(fixtureIndex)); });
     });
     QTimer::singleShot(0, &app, [&] { if (packaged) ocr.recognizeFixture(); });
     QTimer::singleShot(20000, &app, [&] { log << "FAIL feature test timeout\n"; log.flush(); app.exit(22); });

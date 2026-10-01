@@ -1,6 +1,6 @@
 # Windows Sidebar
 
-当前开发预览：**0.8.1.1-preview**（顶部下拉 UI 与主应用功能卡片），本地已安装 **0.8.1.1** MSIX 测试版，未推送远程。此前版本为 **0.8.0.3**，详见 [修复说明](docs/PLUGIN_FIXES.md)。新功能与验收边界见 [功能清单](docs/MAIN_FEATURE_CHECKLIST.md) 和 [使用说明](docs/MAIN_FEATURE_USAGE.md)。
+当前开发预览：**0.8.1.2-preview**（顶部下拉 UI 与主应用功能卡片），本地已安装 **0.8.1.2** MSIX 测试版，未推送远程。此前版本为 **0.8.0.3**，详见 [修复说明](docs/PLUGIN_FIXES.md)。新功能与验收边界见 [功能清单](docs/MAIN_FEATURE_CHECKLIST.md) 和 [使用说明](docs/MAIN_FEATURE_USAGE.md)。
 
 使用 Qt/QML 和 C++20 编写的 Windows 侧边栏。
 
