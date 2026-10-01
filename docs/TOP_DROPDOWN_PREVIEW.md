@@ -12,7 +12,7 @@
 
 ## 实现
 
-- `Main.qml` 独立三态壳层，不再用旧的 `uiSettings.expanded` 布尔值控制窗口；旧值保留供兼容，不恢复旧版展开状态。
+- `Main.qml` 独立四态壳层（隐藏、精简栏、卡片、仅灵动岛），不再用旧的 `uiSettings.expanded` 布尔值控制窗口；旧值保留供兼容，不恢复旧版展开状态。
 - `DropdownController` 通过 RegisterHotKey / WM_HOTKEY 提供真正的全局唤出，并用 Qt 全局逻辑坐标轮询所选屏幕边缘。
 - 窗口依据屏幕 availableGeometry 顶部居中；监控采用透明双列约束容器，620 逻辑像素以下回退单列。
 - `QWindow::setMask` 将窗口输入与可见卡片区域对齐，保留圆角、滚动裁剪和透明间隙。设置/日历打开时临时扩大至窗口边界以处理点击外部关闭，关闭后恢复；这时窗口内透明空隙不会穿透。
@@ -29,7 +29,7 @@ Release 构建、Qt 依赖部署通过。运行以下脚本可复测三态、窗
 powershell.exe -NoProfile -File scripts/test-dropdown-ui.ps1 -Executable ../build-plugin-integration/Release/appqt_rainmeter.exe
 ```
 
-最新冒烟输出包含 `UI_SELF_TEST PASS Hidden/Bar/Cards + geometry + input regions + pages`，退出码 0，无 QML 类型/绑定/组件加载错误。
+本轮 Release 构建和冒烟通过，实际输出包含 `UI_SELF_TEST PASS Hidden/Bar/Cards/IslandOnly + geometry + input regions + pages`，退出码 0，无 QML 类型/绑定/组件加载错误。调度器及输入会话订阅测试同样通过；实际第三方录音识别仍需场景验证。
 
 实际桌面截图检查了顶部栏、监控双列、工具箱和设置位置；窗口检查确认监控卡片中间透明间隙命中下方窗口而不是预览应用。测试环境为单显示器 1920 × 1080、125% 缩放。截图保留在仓库外工作区 `work/screen-captures`，不提交私人桌面内容。
 
@@ -61,3 +61,11 @@ Release 构建及冒烟测试通过，新增专注卡片数量与双列间隙断
 官方接口参考：[RegisterHotKey](https://learn.microsoft.com/en-us/windows/win32/api/winuser/nf-winuser-registerhotkey)、[QWindow::setMask](https://doc.qt.io/qt-6/qwindow.html#setMask)。
 
 麦克风控制、实时音频峰值、媒体会话/进度与顶部扩展接口见 [音频与媒体预览说明](AUDIO_MEDIA_ISLAND_PREVIEW.md)。
+
+## 独立黑色灵动岛
+
+按用户确认，胶囊移回顶部栏中央，保留空闲 64×24、持续摘要最大 344×52、短时事件最大 420×64 DIP 尺寸。时间在左侧、网络/音量/电量/设置在右侧，中央预留固定 420 DIP 活动区，不因胶囊变化挤动小组件。正常顶栏高 80 DIP，导航从 y=92、卡片从 y=158 开始；宽度小于 900 DIP 时同一个顶栏内部采用两行排布，顶栏高 136 DIP，避免胶囊和状态重叠。应用名称仅在左侧空间充足时显示。黑色胶囊保持不透明、白色主文字与次级灰字，其他表面保留用户透明度设置。
+
+窗口完全隐藏时活动可仅浮出胶囊；其左右透明空间没有原生命中区域。单击打开活动对应页面，双击胶囊或顶栏中间展开/收起卡片。当前尺寸切换即时完成，尚未引入可能影响原生命中区域同步的形变动画。
+
+参考 [Apple Live Activities](https://developer.apple.com/design/human-interface-guidelines/live-activities) 的独立黑色活动区域与紧凑/扩展层次，以及 [Android Live Updates](https://developer.android.com/design/ui/mobile/guides/home-screen/live-updates) 的可扫读摘要原则；这是 Windows QML 实现，不调用移动平台接口。

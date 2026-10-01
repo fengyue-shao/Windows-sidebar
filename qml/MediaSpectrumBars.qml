@@ -4,6 +4,7 @@ Item {
     id: root
     property var bands: []
     property bool active: false
+    property color barColor: themeManager.textPrimary
     readonly property alias barItems: bars
     Repeater {
         id: bars
@@ -16,7 +17,7 @@ Item {
             width: Math.max(2, Math.min(6, root.width/32*0.5))
             height: 2+value*(root.height-2)
             radius: 1
-            color: themeManager.textPrimary
+            color: root.barColor
             Behavior on height { NumberAnimation { duration: 55 } }
             Behavior on y { NumberAnimation { duration: 55 } }
         }

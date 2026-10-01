@@ -24,6 +24,8 @@ CardSurface {
             CardAction { text: audioInputManager.muted ? "取消静音" : "静音"; enabled: audioInputManager.available; onClicked: audioInputManager.toggleMuted() }
         }
         Text { Layout.fillWidth: true; text: audioInputManager.deviceName || "没有输入设备"; color: themeManager.textSecondary; elide: Text.ElideRight; font.pixelSize: 11 }
+        Text { Layout.fillWidth: true; text: captureUsageMonitor.applications.length ? "正在使用："+captureUsageMonitor.applications.map(app=>app.name).join(" · ") : "未检测到标准活动输入会话"; color: captureUsageMonitor.applications.length ? themeManager.accent : themeManager.textMuted; font.pixelSize: 10; wrapMode: Text.Wrap }
+        Text { Layout.fillWidth: true; text: captureUsageMonitor.statusText; color: themeManager.textFaint; font.pixelSize: 9; wrapMode: Text.Wrap }
         RowLayout {
             Layout.fillWidth: true
             CardSlider { Layout.fillWidth: true; enabled: audioInputManager.available; from: 0; to: 100; stepSize: 1; value: audioInputManager.volume; onMoved: audioInputManager.setVolume(Math.round(value)) }

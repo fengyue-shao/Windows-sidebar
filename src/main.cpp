@@ -11,6 +11,7 @@
 #include "include/audioinputmanager.h"
 #include "include/mediaspectrum.h"
 #include "include/islandbridge.h"
+#include "include/captureusagemonitor.h"
 #include "include/bluetoothmanager.h"
 #include "include/clipboardmanager.h"
 #include "include/cpumonitor.h"
@@ -67,6 +68,7 @@ int main(int argc, char *argv[])
     UiSettings uiSettings;
     DropdownController dropdownController;
     IslandBridge islandBridge;
+    CaptureUsageMonitor captureUsageMonitor;
     // Destroy the QML engine before its context services, avoiding null context
     // bindings and active callbacks during application teardown.
     QQmlApplicationEngine engine;
@@ -80,6 +82,11 @@ int main(int argc, char *argv[])
 
     QObject::connect(&notificationListener, &NotificationListener::notificationAdded,
                      &notificationModel, &NotificationModel::addNotification);
+    QObject::connect(&notificationListener,&NotificationListener::notificationArrived,&islandBridge,[&](const Notification &notice) {
+        if (!uiSettings.notificationsEnabled()) return;
+        islandBridge.pushEvent("builtin.notification",notice.id,{{"title",notice.appName.isEmpty() ? QStringLiteral("新通知") : notice.appName+QStringLiteral(" · 新通知")},
+            {"subtitle",QStringLiteral("点击打开通知中心")},{"iconName","alert"},{"route","notifications"},{"kind","notification"}},80,4000,15000);
+    });
     QObject::connect(&notificationListener, &NotificationListener::notificationUpdated,
                      &notificationModel, &NotificationModel::addNotification);
     QObject::connect(&notificationListener, &NotificationListener::notificationRemoved,
@@ -119,6 +126,7 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("audioInputManager", &audioInputManager);
     engine.rootContext()->setContextProperty("mediaSpectrum", &mediaSpectrum);
     engine.rootContext()->setContextProperty("islandBridge", &islandBridge);
+    engine.rootContext()->setContextProperty("captureUsageMonitor", &captureUsageMonitor);
     engine.rootContext()->setContextProperty("themeManager", &themeManager);
     engine.rootContext()->setContextProperty("uiSettings", &uiSettings);
     engine.rootContext()->setContextProperty("dropdownController", &dropdownController);

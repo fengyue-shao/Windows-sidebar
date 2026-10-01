@@ -6,6 +6,11 @@ import QtQuick.Layouts
 Item {
     id: root
     property bool expanded: false
+    property bool islandOnly: false
+    readonly property alias islandItem: island
+    readonly property bool compactTopbar: width < 900
+    readonly property int barHeight: topbar.height + 8
+    readonly property int bodyTop: topbar.height + 78
     property int currentSection: uiSettings.currentSection
     property bool calendarOpen: false
     property bool settingsOpen: false
@@ -28,7 +33,8 @@ Item {
     function inputRegions() {
         // Popups temporarily need outside-press handling; normal gaps stay click-through.
         if (transientUiOpen) return [{x: 0, y: 0, width: width, height: height}]
-        let regions = [rectFor(topbar, 18)]
+        let regions = [rectFor(island, island.radius)]
+        if (!islandOnly) regions.push(rectFor(topbar, 18))
         if (!expanded) return regions
         regions.push(rectFor(navigation, 16))
         if (currentSection === 0) regions = regions.concat(monitor.inputRegions(root))
@@ -44,11 +50,21 @@ Item {
     TapHandler { id: pointerGuard; gesturePolicy: TapHandler.DragThreshold; acceptedButtons: Qt.AllButtons }
     Rectangle {
         id: topbar
-        width: parent.width; height: 64; radius: 18
+        visible: !root.islandOnly
+        opacity: uiSettings.panelOpacity
+        width: parent.width; height: root.compactTopbar ? 136 : 80; radius: 18
         color: themeManager.cardSurface; border.width: 1; border.color: themeManager.borderStrong
+        Item {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: root.compactTopbar ? 64 : 8; width: Math.min(420, root.width - 24); height: 64
+            TapHandler { onDoubleTapped: root.toggleCards() }
+        }
         RowLayout {
-            anchors.fill: parent; anchors.margins: 10; spacing: 12
-            Text { visible: root.width > 600; text: "Windows Sidebar"; color: themeManager.textPrimary; font.pixelSize: 14; font.weight: Font.DemiBold }
+            anchors.left: parent.left; anchors.leftMargin: 12
+            y: 8; height: root.compactTopbar ? 44 : 64
+            width: root.compactTopbar ? 174 : (root.width - 420) / 2 - 24
+            spacing: 12
+            Text { visible: !root.compactTopbar && parent.width > 340; text: "Windows Sidebar"; color: themeManager.textPrimary; font.pixelSize: 14; font.weight: Font.DemiBold }
             Timebar {
                 id: timebar
                 Layout.preferredWidth: root.width > 600 ? 174 : 145
@@ -58,20 +74,17 @@ Item {
                     if (visible && root.Window.window) root.Window.window.requestActivate()
                 }
             }
-            TopIslandHost {
-                Layout.fillWidth: true
-                Layout.fillHeight: true
-                onCardsToggleRequested: root.toggleCards()
-                fallbackContent: Component {
-                RowLayout {
-                    anchors.fill: parent; spacing: 12
-                    Status { iconName: systemTrayManager.online ? "wifi_1" : "wifi_off"; label: systemTrayManager.online ? "联网" : "离线" }
-                    Status { iconName: systemTrayManager.muted ? "speaker_mute" : "speaker_2"; label: systemTrayManager.muted ? "静音" : systemTrayManager.volume + "%" }
-                    Status { visible: systemTrayManager.batteryPresent; iconName: "battery_10"; label: systemTrayManager.batteryPercent + "%" }
-                    Item { Layout.fillWidth: true }
-                }
-                }
-            }
+            Item { Layout.fillWidth: true }
+        }
+        RowLayout {
+            anchors.right: parent.right; anchors.rightMargin: 12
+            y: 8; height: root.compactTopbar ? 44 : 64
+            width: root.compactTopbar ? root.width - 210 : (root.width - 420) / 2 - 24
+            spacing: 12
+            Item { Layout.fillWidth: true }
+            Status { iconName: systemTrayManager.online ? "wifi_1" : "wifi_off"; label: systemTrayManager.online ? "联网" : "离线" }
+            Status { iconName: systemTrayManager.muted ? "speaker_mute" : "speaker_2"; label: systemTrayManager.muted ? "静音" : systemTrayManager.volume + "%" }
+            Status { visible: systemTrayManager.batteryPresent; iconName: "battery_10"; label: systemTrayManager.batteryPercent + "%" }
             Basic.Button {
                 implicitWidth: 40; implicitHeight: 40
                 onClicked: { timebar.closeCalendar(); navigation.openSettings() }
@@ -81,9 +94,17 @@ Item {
             }
         }
     }
+    TopIslandHost {
+        id: island
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: root.islandOnly ? 0 : (root.compactTopbar ? 64 : 8) + (64 - height) / 2
+        availableWidth: Math.max(64, root.width - 24)
+        onCardsToggleRequested: root.toggleCards()
+    }
     SystemControlBar {
         id: navigation
-        x: 0; y: 76; width: parent.width; height: 54; visible: root.expanded
+        x: 0; y: topbar.height + 12; width: parent.width; height: 54; visible: root.expanded
+        opacity: uiSettings.panelOpacity
         currentIndex: root.currentSection
         mediaEnabled: uiSettings.mediaEnabled; monitorEnabled: uiSettings.monitorEnabled; notificationsEnabled: uiSettings.notificationsEnabled
         pluginPages: pluginRegistry.pages
@@ -96,7 +117,8 @@ Item {
     }
     Item {
         id: body
-        x: 0; y: 142; width: parent.width; height: Math.max(0, parent.height - y - 8)
+        x: 0; y: root.bodyTop; width: parent.width; height: Math.max(0, parent.height - y - 8)
+        opacity: uiSettings.panelOpacity
         visible: root.expanded; clip: true
         DropdownMonitor { id: monitor; anchors.fill: parent; visible: root.currentSection === 0 }
         Rectangle {

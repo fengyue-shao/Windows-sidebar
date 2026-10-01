@@ -21,6 +21,7 @@ public slots:
 
 signals:
     void notificationAdded(const Notification &notification);
+    void notificationArrived(const Notification &notification);
     void notificationRemoved(const QString &id);
     void notificationUpdated(const Notification &notification);
     void accessDenied();

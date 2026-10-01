@@ -4,6 +4,22 @@ import QtQuick.Layouts
 
 Item {
     id: root
+    // Each publication declares its own priority, not a fixed plugin rank.
+    property int islandRunPriority: 10
+    property int islandDonePriority: 80
+    property int islandErrorPriority: 90
+    property int islandEventSerial: 0
+    Connections {
+        target: terminalManager
+        function onRunningChanged() {
+            if (terminalManager.running) islandBridge.publishState("plugin.terminal.running", {title:"终端任务执行中",subtitle:terminalManager.shellName,iconName:"terminal",route:"terminal",kind:"terminal"}, root.islandRunPriority)
+            else islandBridge.withdraw("plugin.terminal.running")
+        }
+        function onCommandCompleted(exitCode, elapsedMs) {
+            islandBridge.pushEvent("plugin.terminal", "done-"+Date.now()+"-"+(++root.islandEventSerial), {title:exitCode===0 ? "终端任务已完成" : "终端任务未成功",subtitle:"退出码 "+exitCode+" · 耗时 "+(elapsedMs/1000).toFixed(1)+" 秒",iconName:exitCode===0 ? "checkmark" : "terminal",route:"terminal",kind:"terminal",tone:exitCode===0 ? "success" : "danger"}, exitCode===0 ? root.islandDonePriority : root.islandErrorPriority, 4000, 15000)
+        }
+    }
+    Component.onDestruction: { islandBridge.withdraw("plugin.terminal.running"); islandBridge.withdraw("plugin.terminal") }
     property var commandHistory: []
     property int historyIndex: commandHistory.length
     property int paletteIndex: 0

@@ -392,6 +392,7 @@ void TerminalManager::appendOutput(const QByteArray &data)
             .arg(code).arg(m_runTimer.elapsed()).arg(m_outputBytes));
         emit runningChanged();
         emit statusChanged();
+        emit commandCompleted(code,m_runTimer.elapsed());
     }
     constexpr qsizetype maximumCharacters = 256 * 1024;
     if (m_output.size() > maximumCharacters)

@@ -105,6 +105,7 @@ winrt::fire_and_forget NotificationListener::requestPermissionAndStart(Listener 
                         [self, converted] {
                             if (self) {
                                 emit self->notificationAdded(converted);
+                                emit self->notificationArrived(converted);
                             }
                         },
                         Qt::QueuedConnection);

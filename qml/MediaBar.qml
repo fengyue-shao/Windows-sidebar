@@ -42,7 +42,7 @@ CardSurface {
                 contentItem: Text { text: parent.text; color: root.spectrumBackend.requested ? themeManager.accent : themeManager.textMuted; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter; font.pixelSize: 9 }
                 background: Rectangle { radius: 9; color: root.spectrumBackend.requested ? themeManager.accentSoft : themeManager.surfaceStrong }
                 Basic.ToolTip.visible: hovered
-                Basic.ToolTip.text: "输出频谱（默认关闭）\n分析默认输出的系统混音，包含其他应用声音\n仅在媒体页面展开且播放时分析，不读取麦克风，不保存或上传\n" + root.spectrumBackend.statusText
+                Basic.ToolTip.text: "输出频谱（默认关闭）\n分析默认输出的系统混音，包含其他应用声音\n播放时，媒体卡片或媒体灵动岛可见即可分析\n收起卡片仍可显示；完全隐藏、暂停或关闭 FFT 时停止\n不读取麦克风，不保存或上传\n" + root.spectrumBackend.statusText
             }
             Basic.Button {
                 text: "自动"; implicitWidth: 48; implicitHeight: 30

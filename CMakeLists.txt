@@ -37,6 +37,8 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES include/mediaspectrum.h src/mediaspectrum.cpp include/spectrumanalyzer.h
         QML_FILES qml/MediaSpectrumBars.qml
         SOURCES include/islandbridge.h src/islandbridge.cpp
+        SOURCES include/captureusagemonitor.h src/captureusagemonitor.cpp
+        QML_FILES qml/IslandSources.qml
         QML_FILES qml/TopIslandHost.qml
         QML_FILES qml/MediaBarSelfTest.qml
         QML_FILES qml/CardSlider.qml qml/CardAction.qml
@@ -112,6 +114,10 @@ endif()
 include(GNUInstallDirs)
 option(SIDEBAR_BUILD_MEDIA_TESTS "Build silent desktop SMTC integration helpers" OFF)
 if(SIDEBAR_BUILD_MEDIA_TESTS)
+    qt_add_executable(sidebar-island-test tests/island-test.cpp src/islandbridge.cpp include/islandbridge.h src/captureusagemonitor.cpp include/captureusagemonitor.h)
+    target_include_directories(sidebar-island-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-island-test PRIVATE Qt6::Core ole32 uuid)
+    set_target_properties(sidebar-island-test PROPERTIES WIN32_EXECUTABLE FALSE)
     qt_add_executable(sidebar-spectrum-test tests/spectrum-test.cpp src/mediaspectrum.cpp include/mediaspectrum.h)
     target_include_directories(sidebar-spectrum-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(sidebar-spectrum-test PRIVATE Qt6::Core ole32 uuid)

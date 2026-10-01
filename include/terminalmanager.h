@@ -44,6 +44,7 @@ signals:
     void statusChanged();
     void runningChanged();
     void currentDirectoryChanged();
+    void commandCompleted(int exitCode, qint64 elapsedMs);
 private:
     void appendOutput(const QByteArray &data);
     bool ensureSession();
