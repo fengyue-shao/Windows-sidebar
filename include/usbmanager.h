@@ -16,9 +16,10 @@ public:
     Q_INVOKABLE void eject(const QString &id);
     static bool isStorageFunction(const QString &id, const QString &service, bool removable);
     static bool safeDisk(bool usb, bool numberKnown, bool systemDisk, bool bootOrUnknown);
-    void finish(const QVariantList &devices, const QString &status);
+    void finish(const QVariantList &devices, const QString &status, int operationResult = 0);
 signals:
     void changed();
+    void operationFinished(bool success);
 private:
     QVariantList m_devices;
     bool m_busy = false;

@@ -1,10 +1,12 @@
 #include "include/mediaworker.h"
+#include "include/boundedasync.h"
 #include <QDebug>
 #include <QBuffer>
 #include <QDir>
 #include <QFile>
 #include <QImage>
 #include <QTimer>
+#include <QThread>
 #include <QVariantMap>
 #include <algorithm>
 #include <cmath>
@@ -16,6 +18,14 @@
 #include <winrt/Windows.Storage.Streams.h>
 using namespace winrt;
 using namespace Windows::Media::Control;
+namespace {
+// wait_for is the single waiter; never call get() after it. Cancellation is
+// best effort, but we stop waiting even when a player does not acknowledge it.
+template<typename Operation> auto boundedResult(Operation operation)
+{
+    return SidebarAsync::result(operation, QThread::currentThread()->isInterruptionRequested());
+}
+}
 MediaWorker::MediaWorker(QObject *parent)
     : QObject{parent}
 {
@@ -36,23 +46,23 @@ QImage MediaWorker::readCover(
         }
         else
         {
-            auto stream = thumbnail.OpenReadAsync().get();
+            auto stream = boundedResult(thumbnail.OpenReadAsync());
             if (!stream || stream.Size() == 0)
             {
                 needsRetry = true;
             }
             else
             {
+                if (stream.Size() > 12 * 1024 * 1024) return {};
                 auto size = static_cast<uint32_t>(stream.Size());
 
                 Windows::Storage::Streams::Buffer buffer(size);
 
                 auto readBuffer =
-                    stream.ReadAsync(
+                    boundedResult(stream.ReadAsync(
                               buffer,
                               size,
-                              Windows::Storage::Streams::InputStreamOptions::None)
-                        .get();
+                              Windows::Storage::Streams::InputStreamOptions::None));
                 if (readBuffer.Length() == 0)
                 {
                     needsRetry = true;
@@ -112,7 +122,7 @@ void MediaWorker::updateInfo(){
         if(!session){
             return;
         }
-        auto media=session.TryGetMediaPropertiesAsync().get();
+        auto media=boundedResult(session.TryGetMediaPropertiesAsync());
         QString title=QString::fromWCharArray(media.Title().c_str());
         QString artist=QString::fromWCharArray(media.Artist().c_str());
         QString album=QString::fromWCharArray(media.AlbumTitle().c_str());
@@ -153,7 +163,7 @@ void MediaWorker::initialize()
     winrt::init_apartment(
         winrt::apartment_type::multi_threaded);
 
-    try { m_manager = SessionManager::RequestAsync().get(); }
+    try { m_manager = boundedResult(SessionManager::RequestAsync()); }
     catch (...) { emit commandStatus(QStringLiteral("无法访问系统媒体会话")); return; }
 
     m_sessionToken =
@@ -306,7 +316,7 @@ void MediaWorker::seek(double seconds, const QString &sessionId) {
             || timeline.MaxSeekTime() <= timeline.MinSeekTime()) return;
         const double requested = timeline.StartTime().count() + std::max(0.0,seconds)*10000000.0;
         const auto ticks = static_cast<int64_t>(qBound(double(timeline.MinSeekTime().count()), requested, double(timeline.MaxSeekTime().count())));
-        const bool result = m_session.TryChangePlaybackPositionAsync(ticks).get();
+        const bool result = boundedResult(m_session.TryChangePlaybackPositionAsync(ticks));
         emit commandStatus(result ? QString() : QStringLiteral("播放器未接受进度调整"));
         updateTimeline();
     } catch (...) { emit commandStatus(QStringLiteral("进度调整失败，会话可能已结束")); }
@@ -337,9 +347,7 @@ void MediaWorker::togglePlayPause()
 
     try
     {
-        const bool result = m_session
-            .TryTogglePlayPauseAsync()
-            .get();
+        const bool result = boundedResult(m_session.TryTogglePlayPauseAsync());
         emit commandStatus(result ? QString() : QStringLiteral("播放器未接受播放/暂停操作"));
     }
     catch (...)
@@ -355,9 +363,7 @@ void MediaWorker::next()
 
     try
     {
-        const bool result = m_session
-            .TrySkipNextAsync()
-            .get();
+        const bool result = boundedResult(m_session.TrySkipNextAsync());
         emit commandStatus(result ? QString() : QStringLiteral("播放器未接受下一首操作"));
     }
     catch (...)
@@ -372,9 +378,7 @@ void MediaWorker::previous()
 
     try
     {
-        const bool result = m_session
-            .TrySkipPreviousAsync()
-            .get();
+        const bool result = boundedResult(m_session.TrySkipPreviousAsync());
         emit commandStatus(result ? QString() : QStringLiteral("播放器未接受上一首操作"));
     }
     catch (...)

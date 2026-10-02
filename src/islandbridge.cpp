@@ -12,7 +12,7 @@ QVariantMap sanitize(const QString &id,const QVariantMap &state,int priority) {
     if (validId(route)) safe.insert("route",route);
     // Presentation hints are bounded data, not URLs, markup or plugin code.
     const auto kind=state.value("kind").toString();
-    if (QStringList{"input","media","focus","notification","terminal"}.contains(kind)) safe.insert("kind",kind);
+    if (QStringList{"input","media","focus","notification","terminal","awake","ocr","network","usb"}.contains(kind)) safe.insert("kind",kind);
     const auto tone=state.value("tone").toString();
     if (QStringList{"neutral","success","danger"}.contains(tone)) safe.insert("tone",tone);
     safe.insert("detailText",state.value("detailText").toString().left(24));
@@ -23,8 +23,9 @@ QVariantMap sanitize(const QString &id,const QVariantMap &state,int priority) {
     return safe;
 }
 }
-IslandBridge::IslandBridge(QObject *parent) : QObject(parent) {
+IslandBridge::IslandBridge(QObject *parent, std::function<qint64()> clock) : QObject(parent), m_now(std::move(clock)) {
     m_clock.start(); m_expiryTimer.setInterval(50);
+    if (!m_now) m_now = [this] { return m_clock.elapsed(); };
     connect(&m_expiryTimer,&QTimer::timeout,this,&IslandBridge::refresh);
 }
 bool IslandBridge::publishState(const QString &id,const QVariantMap &state,int priority) { return publish(id,state,priority,0); }
@@ -39,14 +40,24 @@ bool IslandBridge::publish(const QString &id,const QVariantMap &state,int priori
 bool IslandBridge::pushEvent(const QString &id,const QString &key,const QVariantMap &state,int priority,int duration,int validFor) {
     if (!validId(id) || !validId(key)) return false;
     const QString token=id+":"+key;
-    const qint64 now=m_clock.elapsed();
+    refresh(); // Drop stale items before enforcing queue capacity.
+    const qint64 now=m_now();
     if (m_recent.value(token,0)>now) return false;
     auto found=m_events.find(token);
     if (found!=m_events.end()) {
         // Coalesce without renewing the first event's expiry/display duration.
         found->state=sanitize(id,state,priority); found->priority=qBound(-100,priority,100);
     } else {
-        if (m_events.size()>=16) return false;
+        if (m_events.size()>=16) {
+            auto lowest=m_events.end();
+            for (auto it=m_events.begin(); it!=m_events.end(); ++it) {
+                if (it.key()==m_currentEvent) continue;
+                if (lowest==m_events.end() || it->priority<lowest->priority
+                    || (it->priority==lowest->priority && it->order>lowest->order)) lowest=it;
+            }
+            if (lowest==m_events.end() || qBound(-100,priority,100)<=lowest->priority) return false;
+            m_events.erase(lowest); // An urgent event must not be lost to low-priority flooding.
+        }
         m_events.insert(token,{sanitize(id,state,priority),qBound(-100,priority,100),++m_order,
             now+qBound(1000,validFor,60000),qBound(1000,duration,10000)});
     }
@@ -61,13 +72,26 @@ void IslandBridge::withdraw(const QString &id) {
     refresh();
 }
 void IslandBridge::requestDetails() { refresh(); if (!m_active.isEmpty()) emit detailsRequested(m_active.value("sourceId").toString()); }
+void IslandBridge::remember(const QString &token, qint64 now) {
+    if (token.isEmpty()) return;
+    if (m_recent.size()>=64 && !m_recent.contains(token)) {
+        auto oldest=m_recent.begin();
+        for (auto it=m_recent.begin(); it!=m_recent.end(); ++it) if (it.value()<oldest.value()) oldest=it;
+        m_recent.erase(oldest);
+    }
+    m_recent.insert(token,now+15000);
+}
+void IslandBridge::dismissCurrentEvent() {
+    if (m_currentEvent.isEmpty()) return;
+    const auto token=m_currentEvent;
+    m_events.remove(token); m_currentEvent.clear(); remember(token,m_now()); refresh();
+}
 void IslandBridge::refresh() {
-    const qint64 now=m_clock.elapsed();
+    const qint64 now=m_now();
     for (auto it=m_recent.begin();it!=m_recent.end();) it=it.value()<=now ? m_recent.erase(it) : ++it;
     if (!m_currentEvent.isEmpty() && (now>=m_eventEnd || !m_events.contains(m_currentEvent))) {
         m_events.remove(m_currentEvent);
-        if (m_recent.size()>=64) m_recent.clear();
-        m_recent.insert(m_currentEvent,now+15000); m_currentEvent.clear();
+        remember(m_currentEvent,now); m_currentEvent.clear();
     }
     for (auto it=m_events.begin();it!=m_events.end();) it=it.key()!=m_currentEvent && it->expiry<=now ? m_events.erase(it) : ++it;
     const Entry *persistent=nullptr;
@@ -85,18 +109,22 @@ void IslandBridge::refresh() {
     // priority 95+ may interrupt, and the interrupted event keeps remaining time.
     if (!m_currentEvent.isEmpty() && nextEvent!=m_currentEvent && event && event->priority>=95 && now-m_eventStart>=1200
         && event->priority>m_events.value(m_currentEvent).priority) {
-        m_events[m_currentEvent].duration=int(qMax<qint64>(1000,m_eventEnd-now));
+        m_events[m_currentEvent].duration=int(qMax<qint64>(1,m_eventEnd-now));
         m_currentEvent.clear();
     }
     if (!m_currentEvent.isEmpty() && persistent && persistent->priority>m_events.value(m_currentEvent).priority && now-m_eventStart>=1200) {
-        m_events[m_currentEvent].duration=int(qMax<qint64>(1000,m_eventEnd-now));
+        m_events[m_currentEvent].duration=int(qMax<qint64>(1,m_eventEnd-now));
         m_currentEvent.clear();
     }
     if (m_currentEvent.isEmpty() && event && (!persistent || event->priority>=persistent->priority)) {
         m_currentEvent=nextEvent; m_eventStart=now; m_eventEnd=now+event->duration; wake=true;
     }
     QVariantMap active;
-    if (!m_currentEvent.isEmpty()) { active=m_events.value(m_currentEvent).state; active.insert("mode","event"); }
+    if (!m_currentEvent.isEmpty()) {
+        active=m_events.value(m_currentEvent).state; active.insert("mode","event");
+        const int duration=m_events.value(m_currentEvent).duration;
+        active.insert("eventProgress",qBound(0.0,double(now-m_eventStart)/qMax(1,duration),1.0));
+    }
     else if (persistent) {
         active=persistent->state; active.insert("mode","persistent");
         wake=persistentId!=m_stateSource;

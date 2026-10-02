@@ -3,6 +3,9 @@
 #include <iphlpapi.h>
 #include "include/networkdetails.h"
 #include <QTimer>
+#include <QThread>
+#include <memory>
+#include <QDateTime>
 #include <QVariantMap>
 #include <winrt/Windows.Networking.Connectivity.h>
 #include <winrt/Windows.Foundation.h>
@@ -28,6 +31,7 @@ QString address(const SOCKET_ADDRESS &value)
 
 NetworkDetails::NetworkDetails(QObject *parent) : QObject(parent)
 {
+    m_summary = QStringLiteral("正在后台读取网络信息…");
     // A low-frequency read-only snapshot also handles VPN/adapter changes.
     auto *timer = new QTimer(this);
     timer->setInterval(15000);
@@ -36,7 +40,8 @@ NetworkDetails::NetworkDetails(QObject *parent) : QObject(parent)
     refresh();
 }
 
-void NetworkDetails::refresh()
+namespace {
+void readSnapshot(QVariantList &m_adapters, QString &m_summary)
 {
     m_adapters.clear();
     m_summary = QStringLiteral("没有默认互联网连接");
@@ -96,5 +101,37 @@ void NetworkDetails::refresh()
     } else if (result != ERROR_NO_DATA) {
         m_summary += QStringLiteral(" · 适配器读取失败（%1）").arg(result);
     }
+}
+}
+
+NetworkDetails::~NetworkDetails()
+{
+    if (m_worker) { m_worker->wait(); delete m_worker; }
+}
+
+void NetworkDetails::refresh()
+{
+    if (m_worker) return; // Coalesce timer/manual refresh; never grow a queue.
+    struct Snapshot { QVariantList adapters; QString summary; };
+    auto result = std::make_shared<Snapshot>();
+    m_worker = QThread::create([result] {
+        bool apartment = false;
+        try {
+            winrt::init_apartment(winrt::apartment_type::multi_threaded);
+            apartment = true;
+            readSnapshot(result->adapters, result->summary);
+        } catch (...) { result->summary = QStringLiteral("网络信息读取失败，请稍后刷新"); }
+        if (apartment) winrt::uninit_apartment();
+    });
+    connect(m_worker, &QThread::finished, this, [this, result] {
+        auto *completed = m_worker;
+        m_worker = nullptr;
+        completed->deleteLater();
+        m_adapters = result->adapters;
+        m_summary = result->summary;
+        m_updatedAt = QDateTime::currentDateTime().toString("HH:mm:ss");
+        emit changed();
+    }, Qt::QueuedConnection);
+    m_worker->start();
     emit changed();
 }

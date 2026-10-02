@@ -18,11 +18,10 @@ NetworkOperatorTetheringManager manager()
     return NetworkOperatorTetheringManager::CreateFromConnectionProfile(profile);
 }
 
-winrt::fire_and_forget operate(QPointer<HotspotManager> owner, bool configure, bool active, QString ssid, QString password)
+winrt::fire_and_forget operate(QPointer<HotspotManager> owner, NetworkOperatorTetheringManager hotspot, bool configure, bool active, QString ssid, QString password)
 {
     QString message;
     try {
-        const auto hotspot = manager();
         if (!hotspot) {
             message = QStringLiteral("当前连接不支持共享，请检查网络、硬件和系统策略");
         } else if (configure) {
@@ -58,6 +57,17 @@ winrt::fire_and_forget operate(QPointer<HotspotManager> owner, bool configure, b
 }
 }
 
+NetworkOperatorTetheringManager HotspotManager::resolveManager(bool allowCached)
+{
+    // Keep the manager of the active hotspot usable for Stop even when its
+    // upstream profile disappears. Starting/configuring still needs a profile.
+    if (allowCached && m_manager && m_manager.TetheringOperationalState() != TetheringOperationalState::Off)
+        return m_manager;
+    auto current = manager();
+    if (current) m_manager = current;
+    return current ? current : allowCached ? m_manager : nullptr;
+}
+
 HotspotManager::HotspotManager(QObject *parent) : QObject(parent)
 {
     auto *timer = new QTimer(this);
@@ -75,7 +85,7 @@ void HotspotManager::refresh()
         m_status = QStringLiteral("需要 MSIX 版本及 Wi-Fi 控制权限"); emit changed(); return;
     }
     try {
-        const auto hotspot = manager();
+        const auto hotspot = resolveManager(true);
         if (!hotspot) m_status = QStringLiteral("当前网络、硬件或系统策略不支持移动热点");
         else {
             const auto state = hotspot.TetheringOperationalState();
@@ -106,7 +116,8 @@ void HotspotManager::setActive(bool active)
     refresh(); // Recheck support and state immediately before any operation.
     if (!m_supported || m_active == active) return;
     m_busy = true; m_result.clear(); m_status = QStringLiteral("正在提交热点操作…"); emit changed();
-    operate(this, false, active, {}, {});
+    try { operate(this, resolveManager(!active), false, active, {}, {}); }
+    catch (...) { finished(QStringLiteral("无法获取热点控制接口，请使用 Windows 设置")); }
 }
 
 void HotspotManager::configure(const QString &ssid, const QString &password)
@@ -118,10 +129,12 @@ void HotspotManager::configure(const QString &ssid, const QString &password)
     refresh();
     if (!m_supported || m_active) return;
     m_busy = true; m_result.clear(); m_status = QStringLiteral("正在保存热点配置…"); emit changed();
-    operate(this, true, false, ssid, password);
+    try { operate(this, resolveManager(false), true, false, ssid, password); }
+    catch (...) { finished(QStringLiteral("无法获取热点配置接口，请使用 Windows 设置")); }
 }
 
 void HotspotManager::finished(const QString &message)
 {
     m_busy = false; m_result = message; refresh();
+    emit operationCompleted();
 }

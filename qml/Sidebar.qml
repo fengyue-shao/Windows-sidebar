@@ -13,6 +13,7 @@ Item {
     readonly property int bodyTop: topbar.height + 78
     property int currentSection: uiSettings.currentSection
     function setFeatureTestState(enabled) { monitor.setFeatureTestState(enabled) }
+    function revealUtility(route) { monitor.revealUtility(route) }
     function verifyFeatureTestLayout(path) { return monitor.verifyFeatureTestLayout(path) }
     function scheduleFeatureCapture(path) { monitor.scheduleFeatureCapture(path) }
     function captureOcrTest(path) { return clipboard.captureOcrTest(path) }

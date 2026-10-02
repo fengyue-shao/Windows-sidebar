@@ -63,12 +63,15 @@ Window {
             if (route==="focus") uiSettings.currentSection=2
             else if (route==="notifications") uiSettings.currentSection=1
             else if (route==="microphone" || route==="media") uiSettings.currentSection=0
+            else if (route==="clipboard") uiSettings.currentSection=3
+            else if (["awake","usb","hotspot","network"].indexOf(route)>=0) uiSettings.currentSection=0
             else if (route==="terminal") {
                 for (let i=0;i<pluginRegistry.pages.length;++i) {
                     if (pluginRegistry.pages[i].pluginId==="com.windows-sidebar.terminal") { uiSettings.currentSection=5+i; break }
                 }
             } else return
             root.showCards()
+            if (["awake","usb","hotspot","network"].indexOf(route)>=0) Qt.callLater(() => sidebar.revealUtility(route))
         }
     }
     Connections {

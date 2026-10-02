@@ -203,8 +203,8 @@ Rectangle {
                         spacing: 8
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { Layout.fillWidth: true; text: wifiManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
-                            RadioToggle { label: "Wi-Fi"; checked: radioManager.wifiEnabled; onToggled: radioManager.setWifiEnabled(checked) }
+                            Text { Layout.fillWidth: true; text: radioManager.statusText || wifiManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            RadioToggle { label: "Wi-Fi"; enabled: !radioManager.busy; checked: radioManager.wifiEnabled; onToggled: radioManager.setWifiEnabled(checked) }
                             Rectangle {
                                 Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
                                 color: wifiRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
@@ -308,8 +308,8 @@ Rectangle {
                         spacing: 8
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { Layout.fillWidth: true; text: bluetoothManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
-                            RadioToggle { label: "蓝牙"; checked: radioManager.bluetoothEnabled; onToggled: radioManager.setBluetoothEnabled(checked) }
+                            Text { Layout.fillWidth: true; text: radioManager.statusText || bluetoothManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            RadioToggle { label: "蓝牙"; enabled: !radioManager.busy; checked: radioManager.bluetoothEnabled; onToggled: radioManager.setBluetoothEnabled(checked) }
                             Rectangle {
                                 Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
                                 color: bluetoothRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong

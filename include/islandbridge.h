@@ -4,6 +4,7 @@
 #include <QHash>
 #include <QElapsedTimer>
 #include <QTimer>
+#include <functional>
 
 // Data-only extension point; it does not execute plugin code or grant authority.
 class IslandBridge : public QObject {
@@ -12,7 +13,7 @@ class IslandBridge : public QObject {
     Q_PROPERTY(int queuedCount READ queuedCount NOTIFY activeStateChanged)
     Q_PROPERTY(bool eventActive READ eventActive NOTIFY activeStateChanged)
 public:
-    explicit IslandBridge(QObject *parent = nullptr);
+    explicit IslandBridge(QObject *parent = nullptr, std::function<qint64()> clock = {});
     QVariantMap activeState() const { return m_active; }
     int queuedCount() const { return m_events.size(); }
     bool eventActive() const { return !m_currentEvent.isEmpty(); }
@@ -21,6 +22,7 @@ public:
     Q_INVOKABLE bool publish(const QString &sourceId, const QVariantMap &state, int priority = 0, int lifetimeMs = 0);
     Q_INVOKABLE void withdraw(const QString &sourceId);
     Q_INVOKABLE void requestDetails();
+    Q_INVOKABLE void dismissCurrentEvent();
 signals:
     void activeStateChanged();
     void detailsRequested(const QString &sourceId);
@@ -37,5 +39,8 @@ private:
     QElapsedTimer m_clock;
     QTimer m_expiryTimer;
     qint64 m_order = 0;
+    std::function<qint64()> m_now;
+    void remember(const QString &token, qint64 now);
+private slots:
     void refresh();
 };

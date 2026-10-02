@@ -1,5 +1,6 @@
 #pragma once
 #include <QObject>
+#include <winrt/Windows.Networking.NetworkOperators.h>
 
 class HotspotManager : public QObject {
     Q_OBJECT
@@ -22,7 +23,10 @@ public:
     void finished(const QString &message);
 signals:
     void changed();
+    void operationCompleted();
 private:
     bool m_supported = false, m_busy = false, m_active = false;
     QString m_status, m_ssid, m_result;
+    winrt::Windows::Networking::NetworkOperators::NetworkOperatorTetheringManager m_manager{nullptr};
+    winrt::Windows::Networking::NetworkOperators::NetworkOperatorTetheringManager resolveManager(bool allowCached);
 };

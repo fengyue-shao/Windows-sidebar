@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(qt_rainmeter VERSION 0.8.1.2 LANGUAGES CXX)
+project(qt_rainmeter VERSION 0.8.1.3 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -28,6 +28,8 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES include/radiomanager.h src/radiomanager.cpp
         SOURCES include/pluginregistry.h src/pluginregistry.cpp
         SOURCES include/terminalmanager.h src/terminalmanager.cpp
+        SOURCES include/terminalscreen.h src/terminalscreen.cpp
+        SOURCES include/terminalcanvas.h src/terminalcanvas.cpp
         SOURCES include/dropdowncontroller.h src/dropdowncontroller.cpp
         QML_FILES qml/DropdownMonitor.qml qml/CardSurface.qml qml/CardRegions.js qml/FocusClockCard.qml qml/FocusPresetCard.qml qml/NotificationPage.qml
         QML_FILES qml/FluentIcon.qml
@@ -89,12 +91,13 @@ target_link_libraries(sidebar-terminal-runner PRIVATE Qt6::Core)
 set_target_properties(sidebar-terminal-runner PROPERTIES WIN32_EXECUTABLE FALSE)
 add_dependencies(appqt_rainmeter sidebar-terminal-runner)
 
-add_custom_command(TARGET appqt_rainmeter POST_BUILD
+add_custom_target(sidebar-plugin-assets
     COMMAND ${CMAKE_COMMAND} -E copy_directory
         "${CMAKE_CURRENT_SOURCE_DIR}/plugins"
-        "$<TARGET_FILE_DIR:appqt_rainmeter>/plugins"
+        "$<TARGET_FILE_DIR:sidebar-terminal-runner>/plugins"
     COMMENT "Copying trusted prototype plugins"
 )
+add_dependencies(appqt_rainmeter sidebar-plugin-assets)
 
 if(WIN32)
     get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
@@ -124,8 +127,37 @@ if(WIN32)
 endif()
 
 include(GNUInstallDirs)
+option(SIDEBAR_BUILD_TERMINAL_TESTS "Build isolated terminal model, UI and runner tests" OFF)
+if(SIDEBAR_BUILD_TERMINAL_TESTS)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    qt_add_executable(sidebar-terminal-screen-test tests/terminal-screen-test.cpp src/terminalscreen.cpp include/terminalscreen.h)
+    target_include_directories(sidebar-terminal-screen-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-terminal-screen-test PRIVATE Qt6::Core)
+    set_target_properties(sidebar-terminal-screen-test PROPERTIES WIN32_EXECUTABLE FALSE)
+    qt_add_executable(sidebar-terminal-host-test tests/terminal-host-test.cpp src/terminalmanager.cpp include/terminalmanager.h src/terminalscreen.cpp include/terminalscreen.h)
+    target_include_directories(sidebar-terminal-host-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-terminal-host-test PRIVATE Qt6::Quick Qt6::Test)
+    set_target_properties(sidebar-terminal-host-test PROPERTIES WIN32_EXECUTABLE FALSE)
+    add_dependencies(sidebar-terminal-host-test sidebar-terminal-runner)
+    qt_add_executable(sidebar-terminal-ui-test tests/terminal-ui-test.cpp src/terminalscreen.cpp include/terminalscreen.h src/terminalcanvas.cpp include/terminalcanvas.h)
+    target_include_directories(sidebar-terminal-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-terminal-ui-test PRIVATE Qt6::Quick Qt6::Test)
+    set_target_properties(sidebar-terminal-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
+endif()
 option(SIDEBAR_BUILD_MEDIA_TESTS "Build silent desktop SMTC integration helpers" OFF)
 if(SIDEBAR_BUILD_MEDIA_TESTS)
+    find_package(Qt6 REQUIRED COMPONENTS Test)
+    qt_add_executable(sidebar-island-ui-test tests/island-ui-test.cpp src/islandbridge.cpp include/islandbridge.h)
+    target_include_directories(sidebar-island-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-island-ui-test PRIVATE Qt6::Quick Qt6::Svg Qt6::Test)
+    set_target_properties(sidebar-island-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
+    qt_add_executable(sidebar-island-core-test tests/island-core-test.cpp src/islandbridge.cpp include/islandbridge.h src/awakemanager.cpp include/awakemanager.h src/focustimer.cpp include/focustimer.h)
+    target_include_directories(sidebar-island-core-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-island-core-test PRIVATE Qt6::Core)
+    set_target_properties(sidebar-island-core-test PROPERTIES WIN32_EXECUTABLE FALSE)
+    add_executable(sidebar-stability-test tests/stability-test.cpp)
+    target_include_directories(sidebar-stability-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-stability-test PRIVATE windowsapp)
     qt_add_executable(sidebar-island-test tests/island-test.cpp src/islandbridge.cpp include/islandbridge.h src/captureusagemonitor.cpp include/captureusagemonitor.h)
     target_include_directories(sidebar-island-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(sidebar-island-test PRIVATE Qt6::Core ole32 uuid)

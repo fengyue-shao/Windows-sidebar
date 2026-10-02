@@ -35,7 +35,8 @@ CardSurface {
                 }
             }
             Text { Layout.fillWidth: true; text: root.adapterItems.length === 0 ? "没有活动的非回环适配器" : "链路速率不是实时网速；连接状态不保证所有网站可访问。"; color: themeManager.textFaint; font.pixelSize: 10; wrapMode: Text.Wrap }
-            CardAction { text: "刷新详情"; onClicked: networkDetails.refresh() }
+            Text { Layout.fillWidth: true; text: networkDetails.busy ? "后台查询中…" : networkDetails.updatedAt ? "最近查询 · " + networkDetails.updatedAt : "尚未查询"; color: themeManager.textFaint; font.pixelSize: 10 }
+            CardAction { text: networkDetails.busy ? "查询中…" : "刷新详情"; enabled: !networkDetails.busy; onClicked: networkDetails.refresh() }
         }
     }
 }

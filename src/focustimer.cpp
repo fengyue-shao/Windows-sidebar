@@ -1,14 +1,18 @@
 #include "include/focustimer.h"
 
-#include <QDateTime>
 #include <QSettings>
+#include <Windows.h>
 
-FocusTimer::FocusTimer(QObject *parent)
-    : QObject(parent)
+FocusTimer::FocusTimer(QObject *parent, std::function<qint64()> clock, bool persist)
+    : QObject(parent), m_clock(std::move(clock)), m_persist(persist)
 {
-    QSettings settings;
-    m_completedSessions = settings.value(QStringLiteral("focus/completedSessions"), 0).toInt();
-    const int storedMinutes = settings.value(QStringLiteral("focus/durationMinutes"), 25).toInt();
+    if (!m_clock) m_clock = [] { return static_cast<qint64>(GetTickCount64()); };
+    int storedMinutes = 25;
+    if (m_persist) {
+        QSettings settings;
+        m_completedSessions = settings.value(QStringLiteral("focus/completedSessions"), 0).toInt();
+        storedMinutes = settings.value(QStringLiteral("focus/durationMinutes"), 25).toInt();
+    }
     m_durationSeconds = qBound(1, storedMinutes, 120) * 60;
     m_remainingSeconds = m_durationSeconds;
     m_timer.setInterval(250);
@@ -34,9 +38,11 @@ void FocusTimer::toggle()
         setRunning(false);
         return;
     }
-    if (m_remainingSeconds <= 0)
+    if (m_remainingSeconds <= 0) {
         m_remainingSeconds = m_durationSeconds;
-    m_deadlineMs = QDateTime::currentMSecsSinceEpoch() + qint64(m_remainingSeconds) * 1000;
+        emit remainingSecondsChanged();
+    }
+    m_deadlineMs = m_clock() + qint64(m_remainingSeconds) * 1000;
     setRunning(true);
 }
 
@@ -58,7 +64,7 @@ void FocusTimer::setDurationMinutes(int minutes)
     setRunning(false);
     m_durationSeconds = duration;
     m_remainingSeconds = duration;
-    QSettings().setValue(QStringLiteral("focus/durationMinutes"), minutes);
+    if (m_persist) QSettings().setValue(QStringLiteral("focus/durationMinutes"), minutes);
     emit durationChanged();
     emit remainingSecondsChanged();
 }
@@ -68,7 +74,7 @@ void FocusTimer::clearCompletedSessions()
     if (m_completedSessions == 0)
         return;
     m_completedSessions = 0;
-    QSettings().setValue(QStringLiteral("focus/completedSessions"), 0);
+    if (m_persist) QSettings().setValue(QStringLiteral("focus/completedSessions"), 0);
     emit completedSessionsChanged();
 }
 
@@ -76,7 +82,7 @@ void FocusTimer::tick()
 {
     if (!m_running)
         return;
-    const qint64 millisecondsLeft = m_deadlineMs - QDateTime::currentMSecsSinceEpoch();
+    const qint64 millisecondsLeft = m_deadlineMs - m_clock();
     const int secondsLeft = millisecondsLeft > 0
         ? static_cast<int>((millisecondsLeft + 999) / 1000)
         : 0;
@@ -88,7 +94,7 @@ void FocusTimer::tick()
         return;
     setRunning(false);
     ++m_completedSessions;
-    QSettings().setValue(QStringLiteral("focus/completedSessions"), m_completedSessions);
+    if (m_persist) QSettings().setValue(QStringLiteral("focus/completedSessions"), m_completedSessions);
     emit completedSessionsChanged();
     emit sessionCompleted();
 }

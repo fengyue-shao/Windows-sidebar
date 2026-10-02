@@ -2,6 +2,7 @@
 
 #include <QObject>
 #include <QTimer>
+#include <functional>
 
 class FocusTimer : public QObject
 {
@@ -13,7 +14,7 @@ class FocusTimer : public QObject
     Q_PROPERTY(qreal progress READ progress NOTIFY remainingSecondsChanged)
 
 public:
-    explicit FocusTimer(QObject *parent = nullptr);
+    explicit FocusTimer(QObject *parent = nullptr, std::function<qint64()> clock = {}, bool persist = true);
 
     int remainingSeconds() const;
     int durationSeconds() const;
@@ -45,4 +46,6 @@ private:
     int m_durationSeconds = 25 * 60;
     int m_completedSessions = 0;
     bool m_running = false;
+    std::function<qint64()> m_clock;
+    bool m_persist = true;
 };

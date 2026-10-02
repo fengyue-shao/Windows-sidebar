@@ -111,9 +111,11 @@ void ClipboardOcr::recognize(const QString &historyId)
 void ClipboardOcr::finish(quint64 generation, const QString &text, const QString &status)
 {
     if (generation != m_generation) return;
+    const bool wasBusy = m_busy;
     m_busy = false; m_text = text; m_status = status;
     emit textChanged();
     emit changed();
+    if (wasBusy) emit completed(!text.isEmpty());
 }
 
 void ClipboardOcr::recognizeFixture(const QString &kind)

@@ -55,12 +55,6 @@ int runFeatureTests(QGuiApplication &app, const QString &logPath)
         && !HotspotManager::validConfiguration("test", QString(64, 'x'))
         && !HotspotManager::validConfiguration("test", "bad\npassword"), "hotspot UTF-8 name and password validation");
     NetworkDetails network;
-    bool networkValid = !network.summary().isEmpty();
-    for (const auto &adapter : network.adapters()) {
-        const auto data = adapter.toMap();
-        networkValid &= !data.value("addresses").toString().isEmpty() && data.value("mtu").toUInt() > 0;
-    }
-    check(networkValid, "network read-only adapter snapshot");
     HotspotManager hotspot;
     check(!hotspot.busy() && !hotspot.status().isEmpty(), "hotspot read-only capability snapshot; no toggle");
     log << "INFO hotspot supported " << hotspot.supported() << " status " << hotspot.status() << '\n'; log.flush();
@@ -93,7 +87,7 @@ int runFeatureTests(QGuiApplication &app, const QString &logPath)
         "OCR copies edited text through mock sink without resetting editor; rejects empty/oversized copy");
     UINT32 length = 0;
     const bool packaged = GetCurrentPackageFullName(&length, nullptr) != APPMODEL_ERROR_NO_PACKAGE;
-    bool ocrDone = !packaged, usbDone = false;
+    bool ocrDone = !packaged, usbDone = false, networkDone = false;
     const QStringList fixtureKinds{"text", "blank", "malformed", "dimensions", "bytes"};
     int fixtureIndex = 0;
     if (!packaged) {
@@ -102,10 +96,20 @@ int runFeatureTests(QGuiApplication &app, const QString &logPath)
         log << "SKIP OCR real recognition: package identity required\n"; log.flush();
     }
     const auto finish = [&] {
-        if (!ocrDone || !usbDone) return;
+        if (!ocrDone || !usbDone || !networkDone) return;
         log << (failures == 0 ? "FEATURE_TEST PASS" : "FEATURE_TEST FAIL") << '\n'; log.flush();
         app.exit(failures == 0 ? 0 : 21);
     };
+    QObject::connect(&network, &NetworkDetails::changed, &app, [&] {
+        if (networkDone || network.busy()) return;
+        networkDone = true;
+        bool valid = !network.summary().isEmpty();
+        for (const auto &adapter : network.adapters()) {
+            const auto data = adapter.toMap();
+            valid &= !data.value("addresses").toString().isEmpty() && data.value("mtu").toUInt() > 0;
+        }
+        check(valid, "network asynchronous read-only adapter snapshot"); finish();
+    });
     QObject::connect(&usb, &UsbManager::changed, &app, [&] {
         if (usb.busy() || usbDone) return;
         usbDone = true;

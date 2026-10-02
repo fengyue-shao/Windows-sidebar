@@ -40,11 +40,14 @@
 #include "include/thememanager.h"
 #include "include/uisettings.h"
 
+#include "include/terminalcanvas.h"
+
 int main(int argc, char *argv[])
 {
+    qmlRegisterType<TerminalCanvas>("WindowsSidebar.Terminal", 1, 0, "TerminalCanvas");
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     QGuiApplication app(argc, argv);
-    QCoreApplication::setApplicationVersion("0.8.1.2-preview");
+    QCoreApplication::setApplicationVersion("0.8.1.3-preview");
     QCoreApplication::setOrganizationName("WindowsSidebar");
     QCoreApplication::setApplicationName("WindowsSidebar");
     qRegisterMetaType<QImage>("QImage");

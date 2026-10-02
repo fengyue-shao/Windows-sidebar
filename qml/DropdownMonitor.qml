@@ -8,6 +8,14 @@ Flickable {
     clip: true; boundsBehavior: Flickable.StopAtBounds
     ScrollBar.vertical: ScrollBar { policy: ScrollBar.AlwaysOff }
     readonly property bool wide: width >= 620
+    function revealUtility(route) {
+        const card=({network:connectionDetails,hotspot:hotspot,awake:awake,usb:usb})[route]
+        if (!card) return
+        Qt.callLater(function() {
+            const position=card.mapToItem(root.contentItem,0,0)
+            root.contentY=Math.max(0,Math.min(position.y,Math.max(0,root.contentHeight-root.height)))
+        })
+    }
     function scheduleFeatureCapture(path) { featureCapture.path = path; featureCapture.restart() }
     Timer {
         id: featureCapture

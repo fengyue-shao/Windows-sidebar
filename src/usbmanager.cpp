@@ -19,6 +19,10 @@ struct Handle {
     ~Handle() { if (value != INVALID_HANDLE_VALUE) CloseHandle(value); }
 };
 struct Device { DEVINST node = 0; QString id, name; QStringList volumes; bool protectedDisk = false; };
+struct DeviceInfoSet {
+    HDEVINFO value;
+    ~DeviceInfoSet() { if (value != INVALID_HANDLE_VALUE) SetupDiDestroyDeviceInfoList(value); }
+};
 QString vetoReason(PNP_VETO_TYPE veto)
 {
     switch (veto) {
@@ -112,18 +116,28 @@ QMap<QString, Device> enumerate(QString &status)
     }
     if (!protectedSystemFound) { status = QStringLiteral("无法核验系统磁盘，已禁用弹出列表"); return {}; }
     const HDEVINFO info = SetupDiGetClassDevsW(&diskInterface, nullptr, nullptr, DIGCF_PRESENT | DIGCF_DEVICEINTERFACE);
+    const DeviceInfoSet cleanup{info};
     if (info == INVALID_HANDLE_VALUE) { status = QStringLiteral("读取 USB 存储列表失败"); return {}; }
     QMap<QString, Device> groups;
     for (DWORD index = 0;; ++index) {
         SP_DEVICE_INTERFACE_DATA interfaceData{}; interfaceData.cbSize = sizeof(interfaceData);
-        if (!SetupDiEnumDeviceInterfaces(info, nullptr, &diskInterface, index, &interfaceData)) break;
+        if (!SetupDiEnumDeviceInterfaces(info, nullptr, &diskInterface, index, &interfaceData)) {
+            const DWORD error = GetLastError();
+            if (error == ERROR_NO_MORE_ITEMS) break;
+            status = QStringLiteral("设备枚举不完整（错误 %1），已禁用弹出列表").arg(error);
+            return {};
+        }
         DWORD required = 0;
         SetupDiGetDeviceInterfaceDetailW(info, &interfaceData, nullptr, 0, &required, nullptr);
-        if (required < sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) || required > 65536) continue;
+        if (GetLastError() != ERROR_INSUFFICIENT_BUFFER || required < sizeof(SP_DEVICE_INTERFACE_DETAIL_DATA_W) || required > 65536) {
+            status = QStringLiteral("无法完整核验设备接口，已禁用弹出列表"); return {};
+        }
         std::vector<unsigned char> buffer(required);
         auto *detail = reinterpret_cast<SP_DEVICE_INTERFACE_DETAIL_DATA_W *>(buffer.data()); detail->cbSize = sizeof(*detail);
         SP_DEVINFO_DATA deviceInfo{}; deviceInfo.cbSize = sizeof(deviceInfo);
-        if (!SetupDiGetDeviceInterfaceDetailW(info, &interfaceData, detail, required, nullptr, &deviceInfo)) continue;
+        if (!SetupDiGetDeviceInterfaceDetailW(info, &interfaceData, detail, required, nullptr, &deviceInfo)) {
+            status = QStringLiteral("设备接口已改变（错误 %1），请刷新后重试").arg(GetLastError()); return {};
+        }
         const auto parent = storageParent(deviceInfo.DevInst);
         if (!parent) continue;
         const QString id = deviceId(parent);
@@ -142,7 +156,6 @@ QMap<QString, Device> enumerate(QString &status)
         group.protectedDisk |= !UsbManager::safeDisk(true, true, protectedDisks.contains(number), hasBootPartition(handle.value));
         group.volumes.append(volumes.value(number));
     }
-    SetupDiDestroyDeviceInfoList(info);
     for (auto it = groups.begin(); it != groups.end();) {
         // First version requires mounted drive letters so the user can identify
         // the entire physical unit, including multi-LUN volumes, in confirmation.
@@ -159,6 +172,7 @@ winrt::fire_and_forget run(QPointer<UsbManager> owner, QString ejectId)
     co_await winrt::resume_background();
     QString status;
     QVariantList list;
+    int operationResult = ejectId.isEmpty() ? 0 : -1;
     try {
         const auto devices = enumerate(status);
         if (!ejectId.isEmpty()) {
@@ -168,17 +182,18 @@ winrt::fire_and_forget run(QPointer<UsbManager> owner, QString ejectId)
                 PNP_VETO_TYPE veto = PNP_VetoTypeUnknown;
                 wchar_t vetoName[MAX_PATH]{};
                 const auto result = CM_Request_Device_EjectW(it->node, &veto, vetoName, MAX_PATH, 0);
+                operationResult = result == CR_SUCCESS ? 1 : -1;
                 status = result == CR_SUCCESS ? QStringLiteral("Windows 已接受安全弹出请求，请确认设备消失后再拔出")
                     : QStringLiteral("%1（代码 %2）%3；请关闭占用文件后重试")
                         .arg(vetoReason(veto)).arg(result).arg(vetoName[0] ? " · " + QString::fromWCharArray(vetoName) : QString());
             }
         }
         for (const auto &device : devices) {
-            if (!ejectId.isEmpty() && device.id == ejectId && status.startsWith(QStringLiteral("Windows 已接受"))) continue;
+            if (operationResult == 1 && device.id == ejectId) continue;
             list.append(QVariantMap{{"id", device.id}, {"name", device.name}, {"volumes", device.volumes.join(" · ")}});
         }
     } catch (...) { status = QStringLiteral("USB 存储设备操作失败，未强制移除"); }
-    QMetaObject::invokeMethod(qGuiApp, [owner, list, status] { if (owner) owner->finish(list, status); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(qGuiApp, [owner, list, status, operationResult] { if (owner) owner->finish(list, status, operationResult); }, Qt::QueuedConnection);
 }
 }
 
@@ -209,7 +224,8 @@ void UsbManager::eject(const QString &id)
     if (!known) { m_status = QStringLiteral("设备不在当前列表中，请刷新"); emit changed(); return; }
     m_busy = true; m_status = QStringLiteral("正在重新核验并请求安全弹出…"); emit changed(); run(this, id);
 }
-void UsbManager::finish(const QVariantList &devices, const QString &status)
+void UsbManager::finish(const QVariantList &devices, const QString &status, int operationResult)
 {
     m_busy = false; m_devices = devices; m_status = status; emit changed();
+    if (operationResult != 0) emit operationFinished(operationResult > 0);
 }

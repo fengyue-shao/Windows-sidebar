@@ -35,6 +35,36 @@ WifiManager::WifiManager(QObject *parent) : QObject(parent)
 {
     QTimer::singleShot(0, this, &WifiManager::scan);
 }
+WifiManager::~WifiManager() { closeScan(); }
+void WifiManager::closeScan()
+{
+    if (m_scanHandle) {
+        WlanRegisterNotification(m_scanHandle, WLAN_NOTIFICATION_SOURCE_NONE, TRUE, nullptr, nullptr, nullptr, nullptr);
+        WlanCloseHandle(m_scanHandle, nullptr);
+        m_scanHandle = nullptr;
+    }
+    m_pendingAdapters.clear();
+}
+void WINAPI WifiManager::scanNotification(PWLAN_NOTIFICATION_DATA data, PVOID context)
+{
+    if (!data || data->NotificationSource != WLAN_NOTIFICATION_SOURCE_ACM) return;
+    if (data->NotificationCode != wlan_notification_acm_scan_complete && data->NotificationCode != wlan_notification_acm_scan_fail) return;
+    const auto scan = *static_cast<ScanContext *>(context);
+    auto *owner = scan.owner;
+    const QByteArray adapter(reinterpret_cast<const char *>(&data->InterfaceGuid), sizeof(GUID));
+    const bool failed = data->NotificationCode == wlan_notification_acm_scan_fail;
+    // Do not close/unregister a WLAN handle from its notification callback.
+    QMetaObject::invokeMethod(owner, [owner, generation = scan.generation, adapter, failed] { owner->scanFinished(generation, adapter, failed); }, Qt::QueuedConnection);
+}
+void WifiManager::scanFinished(quint64 generation, const QByteArray &adapter, bool failed)
+{
+    if (generation != m_scanGeneration || !m_scanning || !m_pendingAdapters.remove(adapter)) return;
+    m_scanFailed |= failed;
+    if (!m_pendingAdapters.isEmpty()) return;
+    const bool errors = m_scanFailed;
+    closeScan(); loadNetworks();
+    if (errors) setStatus(QStringLiteral("部分适配器扫描失败，显示系统缓存网络"));
+}
 
 void WifiManager::setStatus(const QString &text)
 {
@@ -52,17 +82,35 @@ void WifiManager::scan()
     emit scanningChanged();
     setStatus(QStringLiteral("正在扫描附近网络…"));
 
-    WlanHandle wlan;
+    closeScan();
+    m_scanFailed = false;
+    const auto generation = ++m_scanGeneration;
+    m_scanContext = {this, generation};
+    DWORD version = 0;
+    DWORD error = WlanOpenHandle(2, nullptr, &version, &m_scanHandle);
     PWLAN_INTERFACE_INFO_LIST interfaces = nullptr;
-    if (wlan.result() == ERROR_SUCCESS
-        && WlanEnumInterfaces(wlan.get(), nullptr, &interfaces) == ERROR_SUCCESS) {
-        for (DWORD i = 0; i < interfaces->dwNumberOfItems; ++i)
-            WlanScan(wlan.get(), &interfaces->InterfaceInfo[i].InterfaceGuid, nullptr, nullptr, nullptr);
-        WlanFreeMemory(interfaces);
+    if (error == ERROR_SUCCESS)
+        error = WlanRegisterNotification(m_scanHandle, WLAN_NOTIFICATION_SOURCE_ACM, TRUE, &WifiManager::scanNotification, &m_scanContext, nullptr, nullptr);
+    if (error == ERROR_SUCCESS) error = WlanEnumInterfaces(m_scanHandle, nullptr, &interfaces);
+    if (error == ERROR_SUCCESS) {
+        for (DWORD i = 0; i < interfaces->dwNumberOfItems; ++i) {
+            const auto &guid = interfaces->InterfaceInfo[i].InterfaceGuid;
+            const auto scanError = WlanScan(m_scanHandle, &guid, nullptr, nullptr, nullptr);
+            if (scanError == ERROR_SUCCESS)
+                m_pendingAdapters.insert(QByteArray(reinterpret_cast<const char *>(&guid), sizeof(GUID)));
+            else { m_scanFailed = true; error = scanError; }
+        }
     }
-
-    // WlanScan completes asynchronously; read the refreshed cache shortly after.
-    QTimer::singleShot(1800, this, &WifiManager::loadNetworks);
+    if (interfaces) WlanFreeMemory(interfaces);
+    if (m_pendingAdapters.isEmpty()) {
+        closeScan(); loadNetworks();
+        setStatus(QStringLiteral("无法启动 Wi-Fi 扫描（错误 %1），显示系统缓存").arg(error)); return;
+    }
+    QTimer::singleShot(4500, this, [this, generation] {
+        if (generation != m_scanGeneration || !m_scanning) return;
+        closeScan(); loadNetworks();
+        setStatus(QStringLiteral("Wi-Fi 扫描超时，显示系统缓存；可稍后刷新"));
+    });
 }
 
 void WifiManager::loadNetworks()
@@ -98,6 +146,7 @@ void WifiManager::loadNetworks()
                     continue;
                 QVariantMap item;
                 item.insert(QStringLiteral("ssid"), ssid);
+                item.insert(QStringLiteral("interfaceId"), QByteArray(reinterpret_cast<const char *>(&adapter.InterfaceGuid), sizeof(GUID)));
                 item.insert(QStringLiteral("profileName"), QString::fromWCharArray(network.strProfileName));
                 item.insert(QStringLiteral("strength"), static_cast<int>(network.wlanSignalQuality));
                 item.insert(QStringLiteral("secure"), network.bSecurityEnabled != FALSE);
@@ -138,7 +187,20 @@ void WifiManager::connectNetwork(const QString &ssid, const QString &profileName
     }
 
     QString targetProfile = profileName;
-    const GUID interfaceGuid = interfaces->InterfaceInfo[0].InterfaceGuid;
+    GUID interfaceGuid{};
+    bool found = false;
+    for (const auto &item : m_networks) {
+        const auto network = item.toMap();
+        if (network.value("ssid").toString() != ssid || network.value("profileName").toString() != profileName) continue;
+        const auto id = network.value("interfaceId").toByteArray();
+        if (id.size() != sizeof(GUID)) continue;
+        for (DWORD index = 0; index < interfaces->dwNumberOfItems; ++index)
+            if (memcmp(id.constData(), &interfaces->InterfaceInfo[index].InterfaceGuid, sizeof(GUID)) == 0) {
+                interfaceGuid = interfaces->InterfaceInfo[index].InterfaceGuid; found = true; break;
+            }
+        if (found) break;
+    }
+    if (!found) { WlanFreeMemory(interfaces); setStatus(QStringLiteral("网络适配器已改变，请刷新后连接")); return; }
     if (targetProfile.isEmpty()) {
         if (secure && password.size() < 8) {
             setStatus(QStringLiteral("WPA2 密码至少需要 8 个字符"));
@@ -174,5 +236,5 @@ void WifiManager::connectNetwork(const QString &ssid, const QString &profileName
         ? QStringLiteral("正在连接 %1…").arg(ssid)
         : QStringLiteral("连接请求失败（错误 %1）").arg(connectResult));
     if (connectResult == ERROR_SUCCESS)
-        QTimer::singleShot(3500, this, &WifiManager::loadNetworks);
+        QTimer::singleShot(3500, this, [this] { if (!m_scanning) loadNetworks(); });
 }

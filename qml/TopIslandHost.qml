@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Layouts
+import QtQuick.Controls.Basic as Basic
 
 Rectangle {
     id: root
@@ -8,12 +9,12 @@ Rectangle {
     readonly property var activeState: stateOverride === null ? islandBridge.activeState : stateOverride
     readonly property bool hasActivity: !!activeState.sourceId
     readonly property bool isEvent: activeState.mode === "event"
-    readonly property string kind: activeState.kind || ({microphone:"input",media:"media",focus:"focus",notifications:"notification",terminal:"terminal"})[activeState.route] || ""
+    readonly property string kind: activeState.kind || ({microphone:"input",media:"media",focus:"focus",notifications:"notification",terminal:"terminal",awake:"awake",clipboard:"ocr",usb:"usb",hotspot:"network"})[activeState.route] || ""
     readonly property bool inputActive: hasActivity && kind === "input" && !isEvent
     readonly property bool builtinMedia: hasActivity && kind === "media" && !isEvent && activeState.sourceId === "builtin.media"
     readonly property color accent: activeState.tone === "danger" ? "#FF939A"
         : activeState.tone === "success" || kind === "input" ? "#80DAB2"
-        : kind === "focus" ? "#B7A4FF" : "#8CCBFF"
+        : kind === "focus" ? "#B7A4FF" : kind === "awake" ? "#F5CB80" : "#8CCBFF"
     readonly property int pendingCount: Math.max(0, (activeState.queuedCount || 0) - (isEvent ? 1 : 0))
     readonly property bool hasProgress: hasActivity && activeState.progress !== undefined && isFinite(activeState.progress)
     readonly property string detail: activeState.detailText || (inputActive && activeState.applicationCount > 1 ? String(activeState.applicationCount) : "")
@@ -27,6 +28,7 @@ Rectangle {
     border.width: 1; border.color: "#303036"; clip: true
     Accessible.name: hasActivity ? activeState.title + " " + (activeState.subtitle || "") + " " + detail : "灵动岛，双击展开卡片"
     Accessible.role: Accessible.Button
+    Accessible.description: isEvent ? "单击查看详情，右侧关闭只结束本次提醒，不取消任务或删除通知" : "单击查看详情，双击展开或收起卡片"
     signal cardsToggleRequested()
     Row {
         anchors.centerIn: parent; spacing: 5; visible: !root.hasActivity
@@ -54,11 +56,13 @@ Rectangle {
             Text {
                 objectName: "islandTitle"
                 Layout.fillWidth: true; text: root.activeState.title || ""; color: "#FFFFFF"
+                textFormat: Text.PlainText
                 font.family: "Segoe UI"; font.pixelSize: 12; elide: Text.ElideRight
             }
             Text {
                 Layout.fillWidth: true; visible: text.length > 0
                 text: root.activeState.subtitle || ""; color: "#B5B5BE"
+                textFormat: Text.PlainText
                 font.family: "Segoe UI"; font.pixelSize: 10; elide: Text.ElideRight
             }
         }
@@ -69,6 +73,7 @@ Rectangle {
             Text {
                 anchors.fill: parent; visible: root.detail.length > 0
                 text: root.detail; color: root.accent; font.family: "Segoe UI"; font.pixelSize: 14
+                textFormat: Text.PlainText
                 horizontalAlignment: Text.AlignRight; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight
             }
             AudioLevelBar {
@@ -107,6 +112,17 @@ Rectangle {
             Layout.preferredWidth: 28; Layout.preferredHeight: 20; radius: 10; color: "#25252C"
             Text { anchors.centerIn: parent; text: "+" + root.pendingCount; color: "#FFFFFF"; font.pixelSize: 10 }
         }
+        Basic.ToolButton {
+            objectName: "islandDismiss"
+            visible: root.isEvent; Layout.preferredWidth: 22; Layout.preferredHeight: 22
+            text: "×"; focusPolicy: Qt.TabFocus
+            Accessible.name: "关闭本次灵动岛提醒"
+            background: Rectangle { radius: 11; color: parent.hovered || parent.activeFocus ? "#35353D" : "#202027" }
+            contentItem: Text { text: "×"; color: "#CFCFD7"; font.pixelSize: 16; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+            onClicked: islandBridge.dismissCurrentEvent()
+            Basic.ToolTip.visible: hovered
+            Basic.ToolTip.text: "只关闭提醒，不取消任务"
+        }
     }
     Rectangle {
         objectName: "islandProgress"
@@ -118,9 +134,19 @@ Rectangle {
             radius: 1; color: root.accent
         }
     }
-    TapHandler {
-        exclusiveSignals: TapHandler.SingleTap | TapHandler.DoubleTap
-        onDoubleTapped: root.cardsToggleRequested()
-        onSingleTapped: islandBridge.requestDetails()
+    Rectangle {
+        objectName: "islandEventLifetime"
+        visible: root.isEvent && root.activeState.eventProgress !== undefined
+        anchors.bottom: parent.bottom; anchors.bottomMargin: 2; anchors.horizontalCenter: parent.horizontalCenter
+        width: Math.max(0,parent.width-70)*(1-Math.max(0,Math.min(1,root.activeState.eventProgress || 0)))
+        height: 1; color: root.accent; opacity: 0.45
+    }
+    Item {
+        anchors.fill: parent; anchors.rightMargin: root.isEvent ? 52 : 0
+        TapHandler {
+            exclusiveSignals: TapHandler.SingleTap | TapHandler.DoubleTap
+            onDoubleTapped: root.cardsToggleRequested()
+            onSingleTapped: islandBridge.requestDetails()
+        }
     }
 }

@@ -2,8 +2,8 @@
   "schemaVersion": 1,
   "id": "com.windows-sidebar.terminal",
   "name": "受限终端",
-  "version": "0.8.0.3",
-  "minimumHostVersion": "0.8.0",
+  "version": "0.8.1.3",
+  "minimumHostVersion": "0.8.1.3",
   "contributes": {
     "pages": [
       {

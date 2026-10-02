@@ -68,6 +68,7 @@ MediaMonitor::MediaMonitor(QObject *parent)
 
 MediaMonitor::~MediaMonitor()
 {
+    m_thread.requestInterruption();
     m_thread.quit();
     m_thread.wait();
 }

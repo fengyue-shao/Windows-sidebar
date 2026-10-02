@@ -20,6 +20,7 @@ public:
 signals:
     void changed();
     void textChanged();
+    void completed(bool hasText);
 private:
     bool m_busy = false;
     quint64 m_generation = 0;
