@@ -10,7 +10,8 @@ Item {
     property int islandDonePriority: 80
     property int islandErrorPriority: 90
     property int islandEventSerial: 0
-    readonly property bool nativeMode: terminalManager.transportInteractive || (!terminalManager.sessionActive && terminalManager.preferredTransport !== "pipe")
+    // Running precedes the transport handshake. Keep the chosen input surface during that gap.
+    readonly property bool nativeMode: terminalManager.transportInteractive || (terminalManager.preferredTransport !== "pipe" && (!terminalManager.sessionActive || pendingSessionFocus))
     readonly property var screen: terminalManager.screen
     readonly property real cellWidth: Math.max(1, terminalMetrics.advanceWidth("M"))
     readonly property real cellHeight: Math.max(1, Math.ceil(terminalMetrics.height))
@@ -18,6 +19,7 @@ Item {
     property bool copyMode: false
     property bool followOutput: true
     property bool flushingInput: false
+    property bool pendingSessionFocus: false
     property string pendingPaste: ""
     property string notice: ""
     property var commandHistory: []
@@ -66,8 +68,21 @@ Item {
     Connections {
         target: terminalManager
         function onRunningChanged() { root.publishActivity() }
-        function onSessionChanged() { root.publishActivity(); root.copyMode = false; root.scheduleResize() }
-        function onTransportChanged() { root.scheduleResize() }
+        function onSessionChanged() {
+            root.publishActivity(); root.scheduleResize()
+            if (!terminalManager.sessionActive && !terminalManager.sessionStarting) {
+                root.copyMode = false; root.pendingSessionFocus = false
+            }
+        }
+        function onTransportChanged() {
+            root.scheduleResize()
+            if (!terminalManager.sessionActive || !root.pendingSessionFocus) return
+            root.pendingSessionFocus = false
+            // Let visibility bindings settle, and respect an explicit assistant/selection choice.
+            Qt.callLater(function() {
+                if (terminalManager.sessionActive && !root.assistantVisible && !root.copyMode) root.focusTerminal()
+            })
+        }
         function onOperationFinished(kind, outcome, exitCode, elapsedMs) { root.publishOutcome(kind, outcome, exitCode, elapsedMs) }
     }
     Connections { target: root.screen; function onChanged() { if (root.followOutput && !root.copyMode) Qt.callLater(root.scrollToBottom) } }
@@ -83,6 +98,10 @@ Item {
             terminalManager.resizeTerminal(Math.max(10, Math.floor(nativeScroll.width / cellWidth)), Math.max(2, Math.floor(nativeScroll.height / cellHeight)))
     }
     Timer { id: resizeDebounce; interval: 100; onTriggered: root.resizeGrid() }
+    function startTerminalSession() {
+        pendingSessionFocus = true; copyMode = false
+        terminalManager.startSession(); focusTerminal()
+    }
     function focusTerminal() {
         if (!nativeMode || assistantVisible) commandInput.forceActiveFocus()
         else if (!copyMode) rawTextInput.forceActiveFocus()
@@ -299,7 +318,7 @@ Item {
                     }
                     Text { Layout.fillWidth: true; text: terminalManager.shellName + " · " + terminalManager.transportName; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
                     Text { visible: terminalManager.running || terminalManager.sessionActive; text: root.formatElapsed(terminalManager.elapsedMilliseconds); color: themeManager.accent; font.family: "Cascadia Mono"; font.pixelSize: 10 }
-                    ActionButton { visible: !terminalManager.sessionActive && !terminalManager.sessionStarting; label: "启动会话"; onClicked: { terminalManager.startSession(); root.focusTerminal() } }
+                    ActionButton { visible: !terminalManager.sessionActive && !terminalManager.sessionStarting; label: "启动会话"; onClicked: root.startTerminalSession() }
                 }
                 RowLayout {
                     Layout.fillWidth: true; spacing: 6

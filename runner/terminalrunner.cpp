@@ -3,6 +3,7 @@
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QFileInfo>
+#include <QDir>
 #include <QFile>
 #include <QDateTime>
 #include <QLockFile>
@@ -281,6 +282,14 @@ std::optional<int> runPseudoConsole(const QString &shellProgram, bool commandPro
     std::vector<unsigned char> attributes(attributeBytes);
     STARTUPINFOEXW startup{};
     startup.StartupInfo.cb = sizeof(startup);
+    // Even with bInheritHandles=FALSE, Windows can duplicate redirected parent
+    // standard handles into a console child unless STARTF_USESTDHANDLES is set.
+    // The Runner's handles carry its host protocol, not shell input/output;
+    // leave these NULL so the pseudoconsole supplies the child's own handles.
+    startup.StartupInfo.dwFlags |= STARTF_USESTDHANDLES;
+    startup.StartupInfo.hStdInput = nullptr;
+    startup.StartupInfo.hStdOutput = nullptr;
+    startup.StartupInfo.hStdError = nullptr;
     startup.lpAttributeList = reinterpret_cast<LPPROC_THREAD_ATTRIBUTE_LIST>(attributes.data());
     if (attributeBytes == 0 || !InitializeProcThreadAttributeList(startup.lpAttributeList, 1, 0, &attributeBytes)) {
         closeAndDrain();
@@ -304,7 +313,9 @@ std::optional<int> runPseudoConsole(const QString &shellProgram, bool commandPro
         ? QStringList{QStringLiteral("/D"), QStringLiteral("/K"), QStringLiteral("chcp 65001>nul")}
         : QStringList{QStringLiteral("-NoLogo"), QStringLiteral("-NoProfile"), QStringLiteral("-ExecutionPolicy"),
                       QStringLiteral("Restricted"), QStringLiteral("-NoExit"), QStringLiteral("-Command"), initialization};
-    QString commandLine = quoteWindowsArgument(shellProgram);
+    const QString nativeProgram = QDir::toNativeSeparators(shellProgram);
+    const QString nativeDirectory = QDir::toNativeSeparators(cwd);
+    QString commandLine = quoteWindowsArgument(nativeProgram);
     if (commandPrompt)
         commandLine += QStringLiteral(" /D /K chcp 65001>nul");
     else
@@ -312,9 +323,9 @@ std::optional<int> runPseudoConsole(const QString &shellProgram, bool commandPro
     std::wstring mutableCommand = commandLine.toStdWString();
     std::wstring childEnvironment = environmentBlock(environment);
     PROCESS_INFORMATION child{};
-    const BOOL started = CreateProcessW(reinterpret_cast<LPCWSTR>(shellProgram.utf16()), mutableCommand.data(),
+    const BOOL started = CreateProcessW(reinterpret_cast<LPCWSTR>(nativeProgram.utf16()), mutableCommand.data(),
         nullptr, nullptr, FALSE, EXTENDED_STARTUPINFO_PRESENT | CREATE_UNICODE_ENVIRONMENT | CREATE_SUSPENDED,
-        childEnvironment.data(), reinterpret_cast<LPCWSTR>(cwd.utf16()), &startup.StartupInfo, &child);
+        childEnvironment.data(), reinterpret_cast<LPCWSTR>(nativeDirectory.utf16()), &startup.StartupInfo, &child);
     const DWORD startError = started ? ERROR_SUCCESS : GetLastError();
     DeleteProcThreadAttributeList(startup.lpAttributeList);
     if (!started) {

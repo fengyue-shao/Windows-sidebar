@@ -39,10 +39,15 @@ public:
     QStringList inputs, commands;
     QObject *screen() { return &display; }
     Q_INVOKABLE void resizeTerminal(int columns, int rows) { ++resizeCount; display.resize(columns, rows); }
-    Q_INVOKABLE void startSession() { ++starts; active = interactive = true; emit sessionChanged(); emit transportChanged(); }
+    Q_INVOKABLE void startSession() { ++starts; starting = true; active = interactive = false; emit sessionChanged(); }
+    void markProcessRunning() { starting = false; active = true; emit sessionChanged(); }
+    void completeTransport(bool native) {
+        interactive = native; transportName = native ? "ConPTY" : "Pipe";
+        emit transportChanged(); emit sessionChanged();
+    }
     Q_INVOKABLE void sendInput(const QString &input) { inputs.append(input); }
     Q_INVOKABLE void run(const QString &command) { commands.append(command); }
-    Q_INVOKABLE void stop() { active = running = false; emit sessionChanged(); emit runningChanged(); }
+    Q_INVOKABLE void stop() { active = starting = interactive = running = false; emit sessionChanged(); emit transportChanged(); emit runningChanged(); }
     Q_INVOKABLE void resetSession() { stop(); display.clear(); }
     Q_INVOKABLE void clear() { display.clear(); output.clear(); emit outputChanged(); }
     Q_INVOKABLE void openLogFile() {}
@@ -101,7 +106,22 @@ int main(int argc, char **argv)
     auto *draft = view.rootObject()->findChild<QQuickItem *>("terminalCommandInput");
     auto *preview = view.rootObject()->findChild<QQuickItem *>("terminalCompletionPreview");
     CHECK(raw && draft && preview);
-    manager.startSession(); raw->forceActiveFocus(); QTest::qWait(50);
+    // Match QProcess: Starting -> Running, then an asynchronous transport header.
+    // The old synchronous mock hid the invisible-draft focus regression.
+    CHECK(QMetaObject::invokeMethod(view.rootObject(), "startTerminalSession"));
+    CHECK(manager.starting && !manager.active && raw->hasActiveFocus());
+    manager.markProcessRunning(); QTest::qWait(30);
+    CHECK(manager.active && !manager.interactive && !manager.starting);
+    CHECK(view.rootObject()->property("nativeMode").toBool() && raw->isVisible() && !draft->isVisible());
+    CHECK(raw->hasActiveFocus() && raw->property("readOnly").toBool());
+    QTest::keyClick(&view, 'A'); QTest::keyClick(&view, 'R');
+    CHECK(manager.inputs.isEmpty() && raw->property("text").toString().isEmpty() && draft->property("text").toString().isEmpty());
+    manager.completeTransport(true); QTest::qWait(50);
+    CHECK(raw->hasActiveFocus() && !raw->property("readOnly").toBool() && !draft->isVisible());
+    QTest::keyClick(&view, 'A'); QTest::keyClick(&view, 'R');
+    if (manager.inputs != QStringList({"A", "R"})) qWarning() << "Fixture A/R input received:" << manager.inputs;
+    CHECK(manager.inputs == QStringList({"A", "R"}));
+    CHECK(raw->property("text").toString().isEmpty() && draft->property("text").toString().isEmpty());
     CHECK(island.statePriority == 10 && island.state.value("title") == QStringLiteral("交互终端已打开"));
     emit manager.operationFinished("command", "timeout", -1, 1250);
     CHECK(island.events.size() == 1 && island.events.last().value("priority") == 90 && island.events.last().value("tone") == "warning");
@@ -142,7 +162,31 @@ int main(int argc, char **argv)
     view.rootObject()->setProperty("copyMode", false);
     CHECK(!view.grabWindow().isNull());
     CHECK(view.grabWindow().save(QString::fromLocal8Bit(argv[2]) + "/terminal-native-preview.png"));
-    manager.stop(); manager.interactive = false; manager.preferredTransport = "pipe"; emit manager.transportChanged();
+
+    // A user choosing another surface while starting owns focus, even after the header arrives.
+    manager.stop();
+    CHECK(QMetaObject::invokeMethod(view.rootObject(), "startTerminalSession"));
+    manager.markProcessRunning();
+    view.rootObject()->setProperty("assistantVisible", true); QTest::qWait(30);
+    draft->forceActiveFocus(); draft->setProperty("text", "user draft");
+    manager.completeTransport(true); QTest::qWait(50);
+    CHECK(view.rootObject()->property("assistantVisible").toBool() && draft->hasActiveFocus());
+    CHECK(draft->property("text") == "user draft");
+    emit manager.transportChanged(); QTest::qWait(30);
+    CHECK(draft->hasActiveFocus());
+    manager.stop(); view.rootObject()->setProperty("assistantVisible", false); draft->setProperty("text", "");
+    CHECK(QMetaObject::invokeMethod(view.rootObject(), "startTerminalSession"));
+    manager.markProcessRunning();
+    view.rootObject()->setProperty("copyMode", true); QTest::qWait(30); selection->forceActiveFocus();
+    manager.completeTransport(true); QTest::qWait(50);
+    CHECK(view.rootObject()->property("copyMode").toBool() && selection->hasActiveFocus() && !raw->hasActiveFocus());
+
+    // Automatic fallback must move focus to the visible compatibility editor, not a hidden raw field.
+    manager.stop();
+    CHECK(QMetaObject::invokeMethod(view.rootObject(), "startTerminalSession"));
+    manager.markProcessRunning(); manager.completeTransport(false); QTest::qWait(50);
+    CHECK(!view.rootObject()->property("nativeMode").toBool() && draft->isVisible() && draft->hasActiveFocus());
+    manager.stop(); manager.preferredTransport = "pipe"; emit manager.transportChanged();
     QTest::qWait(100); draft->forceActiveFocus(); draft->setProperty("text", "echo fixture");
     QTest::keyClick(&view, Qt::Key_Return); CHECK(manager.commands.last() == "echo fixture");
     for (const QSize size : {QSize(360, 780), QSize(960, 560)}) {
@@ -155,7 +199,7 @@ int main(int argc, char **argv)
     CHECK(confirmation->property("height").toReal() > 112);
     confirmation->setProperty("visible", false);
     CHECK(warnings == 0);
-    std::cout << "PASS cell grid + no auto-start + native Tab/focus + Ctrl+C/arrows + IME commit + bracketed paste + assistant preview + insert-only + pipe mode + layouts + island outcomes\n";
+    std::cout << "PASS cell grid + no auto-start + async startup focus + A/R character input + user focus ownership + pipe fallback + native Tab/focus + Ctrl+C/arrows + IME commit + bracketed paste + assistant preview + insert-only + pipe mode + layouts + island outcomes\n";
     return 0;
 }
 #include "terminal-ui-test.moc"

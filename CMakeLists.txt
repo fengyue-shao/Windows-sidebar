@@ -143,6 +143,15 @@ if(SIDEBAR_BUILD_TERMINAL_TESTS)
     target_include_directories(sidebar-terminal-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(sidebar-terminal-ui-test PRIVATE Qt6::Quick Qt6::Test)
     set_target_properties(sidebar-terminal-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
+    qt_add_executable(sidebar-terminal-native-test tests/terminal-native-test.cpp
+        src/terminalmanager.cpp include/terminalmanager.h
+        src/terminalscreen.cpp include/terminalscreen.h
+        src/terminalcanvas.cpp include/terminalcanvas.h
+        src/islandbridge.cpp include/islandbridge.h)
+    target_include_directories(sidebar-terminal-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-terminal-native-test PRIVATE Qt6::Quick Qt6::Test)
+    set_target_properties(sidebar-terminal-native-test PROPERTIES WIN32_EXECUTABLE FALSE)
+    add_dependencies(sidebar-terminal-native-test sidebar-terminal-runner)
 endif()
 option(SIDEBAR_BUILD_MEDIA_TESTS "Build silent desktop SMTC integration helpers" OFF)
 if(SIDEBAR_BUILD_MEDIA_TESTS)
