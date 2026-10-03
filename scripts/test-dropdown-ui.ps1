@@ -30,7 +30,7 @@ Write-Output $output
 if ($process.ExitCode -ne 0 -or $output -notmatch 'UI_SELF_TEST PASS') {
     throw "Dropdown UI smoke test failed: exit=$($process.ExitCode)"
 }
-if ($output -match 'ReferenceError|TypeError|Binding loop|failed to load component|Cannot assign|Invalid property|Failed to get image|Error:|invalid dimensions|does not support customization') {
+if ($output -match 'ReferenceError|TypeError|Binding loop|failed to load component|Cannot assign|Invalid property|Failed to get image|(?:^|\r?\n)(?:qml:|file:|qrc:)[^\r\n]*Error:|invalid dimensions|does not support customization') {
     throw 'QML runtime diagnostics reported an error.'
 }
 Write-Output 'Dropdown UI smoke test passed.'

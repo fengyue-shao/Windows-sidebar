@@ -22,6 +22,20 @@ DropdownController::DropdownController(QObject *parent) : QObject(parent)
     m_timer.setInterval(60);
     connect(&m_timer, &QTimer::timeout, this, &DropdownController::pollPointer);
     m_timer.start();
+    readAnimationPreference();
+    m_preferencesTimer.setInterval(2000);
+    connect(&m_preferencesTimer, &QTimer::timeout, this, &DropdownController::readAnimationPreference);
+    m_preferencesTimer.start();
+}
+
+void DropdownController::readAnimationPreference()
+{
+    BOOL enabled = FALSE;
+    if (!SystemParametersInfoW(SPI_GETCLIENTAREAANIMATION, 0, &enabled, 0)) return;
+    const bool value = enabled != FALSE;
+    if (value == m_systemAnimationsEnabled) return;
+    m_systemAnimationsEnabled = value;
+    emit systemAnimationsEnabledChanged();
 }
 
 DropdownController::~DropdownController()

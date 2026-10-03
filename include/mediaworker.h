@@ -20,6 +20,7 @@ signals:
     void mediaInfoUpdated(const QString& title,const QString& artist,const QString& album,
                           const QString& provider,const QImage& coverImage);
     void mediaPSUpdated(bool playing);
+    void controlsUpdated(const QVariantMap &controls);
     void sessionsUpdated(const QVariantList &sessions, const QString &selectedId, bool followingSystem);
     void timelineUpdated(double position, double duration, bool canSeek);
     void commandStatus(const QString &message);
@@ -31,6 +32,7 @@ public slots:
     void refresh();
     void selectSession(const QString &id);
     void followSystemSession();
+    void invokeControl(const QString &actionId, const QString &sessionId);
     void seek(double seconds, const QString &sessionId);
 private:
     using SessionManager =

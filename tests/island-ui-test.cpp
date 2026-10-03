@@ -11,6 +11,8 @@
 #include <QPainter>
 #include <QMouseEvent>
 #include <QtTest/QTest>
+#include <QSignalSpy>
+#include <QStyleHints>
 #include <QEventLoop>
 #include <QTimer>
 #include <iostream>
@@ -29,6 +31,18 @@ public:
     }
 };
 static void settle() { QEventLoop loop; QTimer::singleShot(350,&loop,&QEventLoop::quit); loop.exec(); }
+static QQuickItem *findVisual(QQuickItem *item, const QString &name) {
+    if (item->objectName()==name) return item;
+    for (auto *child:item->childItems()) if (auto *found=findVisual(child,name)) return found;
+    return nullptr;
+}
+class Backdrop : public QQuickItem {
+public:
+    int presses=0;
+    explicit Backdrop(QQuickItem *parent):QQuickItem(parent) { setAcceptedMouseButtons(Qt::AllButtons); }
+protected:
+    void mousePressEvent(QMouseEvent *event) override { ++presses; event->accept(); }
+};
 int main(int argc,char **argv) {
     // This executable contains no app services, audio workers or device managers.
     qInstallMessageHandler([](QtMsgType,const QMessageLogContext &,const QString &message) { std::cerr<<message.toStdString()<<'\n'; });
@@ -78,5 +92,62 @@ int main(int argc,char **argv) {
         std::cerr<<"Button="<<point.x()<<","<<point.y()<<" size="<<button->width()<<","<<button->height()<<" view="<<view.width()<<","<<view.height()<<'\n';
         return 5;
     }
+    // Live updates are not presentation overrides: exercise actual animated
+    // geometry, interrupt expansion, and ensure a clock tick does not re-enter.
+    bridge.withdraw("base"); settle();
+    if (view.rootObject()->width()!=64 || view.rootObject()->height()!=24) return 7;
+    bridge.publishState("motion",{{"title","专注"},{"kind","focus"},{"detailText","1:00"}},20);
+    QTest::qWait(60);
+    const qreal intermediate = view.rootObject()->width();
+    if (intermediate<=64 || intermediate>=344 || !view.rootObject()->property("motionRunning").toBool()) return 8;
+    bridge.pushEvent("alert","motion",{{"title","高优先级提醒"},{"kind","usb"}},95,10000,20000);
+    settle();
+    if (view.rootObject()->width()!=420 || view.rootObject()->height()!=64) return 9;
+    bridge.dismissCurrentEvent(); settle();
+    const auto key = view.rootObject()->property("contentKey");
+    bridge.publishState("motion",{{"title","专注"},{"kind","focus"},{"detailText","0:59"}},20);
+    if (view.rootObject()->property("contentKey")!=key || view.rootObject()->property("motionRunning").toBool()) return 10;
+    view.rootObject()->setProperty("motionEnabled",false);
+    bridge.withdraw("motion");
+    if (view.rootObject()->width()!=64 || view.rootObject()->height()!=24) return 11;
+    view.rootObject()->setProperty("motionEnabled",true);
+    view.rootObject()->setProperty("availableWidth",280);
+    bridge.publishState("narrow",{{"title","窄屏"},{"kind","media"}},40); settle();
+    if (view.rootObject()->width()!=280 || warnings) return 12;
+    view.rootObject()->setProperty("availableWidth",420);
+    view.rootObject()->setProperty("controlData",QVariantMap{{"status","当前任务快捷控制"},
+        {"targetId","session-a"},{"actions",QVariantList{QVariantMap{{"id","media.toggle"},{"label","暂停"},{"enabled",true}},
+        QVariantMap{{"id","media.next"},{"label","下一首"},{"enabled",false}}}}});
+    view.rootObject()->setProperty("controlsOpen",true); settle();
+    if (view.rootObject()->width()!=420 || view.rootObject()->height()<=100) return 13;
+    auto *action=findVisual(view.rootObject(),"islandAction_media.toggle");
+    auto *disabled=findVisual(view.rootObject(),"islandAction_media.next");
+    if (!action || !disabled || disabled->isEnabled()) return 14;
+    int actions=0;
+    // QSignalSpy verifies the data-only boundary without launching a media worker.
+    QSignalSpy actionSpy(view.rootObject(), SIGNAL(actionRequested(QString,QString,QString)));
+    const auto actionPoint=action->mapToScene(QPointF(action->width()/2,action->height()/2));
+    QTest::mouseClick(&view,Qt::LeftButton,Qt::NoModifier,actionPoint.toPoint(),50); settle();
+    actions=actionSpy.count();
+    if (actions!=1 || actionSpy.first().at(0)!="narrow" || actionSpy.first().at(1)!="media.toggle" || actionSpy.first().at(2)!="session-a" || details!=0) return 15;
+    auto *detailsButton=view.rootObject()->findChild<QQuickItem *>("islandDetails");
+    if (!detailsButton) return 16;
+    const auto detailsPoint=detailsButton->mapToScene(QPointF(detailsButton->width()/2,detailsButton->height()/2));
+    QTest::mouseClick(&view,Qt::LeftButton,Qt::NoModifier,detailsPoint.toPoint(),50); settle();
+    if (details!=1 || view.rootObject()->property("controlsOpen").toBool() || warnings) return 17;
+    view.rootObject()->setProperty("controlsOpen",true); settle();
+    if (!view.grabWindow().save(QString::fromLocal8Bit(argv[2])+".expanded.png")) return 18;
+    Backdrop backdrop(view.contentItem());
+    backdrop.setZ(-1); backdrop.setWidth(460); backdrop.setHeight(400);
+    QTest::mouseClick(&view,Qt::LeftButton,Qt::NoModifier,QPoint(400,int(view.rootObject()->height())-6),50); settle();
+    if (backdrop.presses!=0) return 19;
+    view.rootObject()->setProperty("controlsOpen",false); settle();
+    QTest::mouseClick(&view,Qt::LeftButton,Qt::NoModifier,QPoint(150,26),50);
+    QTest::qWait(QGuiApplication::styleHints()->mouseDoubleClickInterval()+80);
+    if (!view.rootObject()->property("controlsOpen").toBool() || details!=1) return 20;
+    bridge.publishState("preempt",{{"title","麦克风"},{"kind","input"}},60); settle();
+    if (view.rootObject()->property("controlsOpen").toBool()) return 21;
     std::cout<<"ISLAND UI PASS: 6 rendered cases + dismiss does not trigger details + zero QML warnings; mock-only offscreen\n";
+    std::cout<<"ISLAND MOTION PASS: intermediate geometry, interrupted target, stable clock updates, instant mode, narrow bounds\n";
+    std::cout<<"ISLAND CONTROLS PASS: expansion, disabled capability, scoped action signal, explicit source navigation, no background click-through, single tap, preemption closes controls\n";
 }

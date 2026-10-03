@@ -5,7 +5,7 @@ Window {
     id: root
     title: "Windows Sidebar · 0.8.1 顶部下拉预览"
     flags: Qt.FramelessWindowHint | Qt.WindowStaysOnTopHint | Qt.Tool
-        | (shellState === 2 || sidebar.calendarOpen || sidebar.settingsOpen ? 0 : Qt.WindowDoesNotAcceptFocus)
+        | (shellState === 2 || sidebar.calendarOpen || sidebar.settingsOpen || sidebar.islandItem.controlsOpen ? 0 : Qt.WindowDoesNotAcceptFocus)
     color: "transparent"
     // Startup never restores expanded cards. Legacy expanded stays available to plugins.
     property int shellState: 0 // Hidden=0, Bar=1, Cards=2, IslandOnly=3
@@ -15,7 +15,7 @@ Window {
     readonly property bool editing: active && activeFocusItem !== null
         && (activeFocusItem instanceof TextInput || activeFocusItem instanceof TextEdit)
     width: Math.max(1, Math.min(Math.round(uiSettings.panelWidth * 1.8), workArea.width - 24))
-    height: shellState === 2 || sidebar.settingsOpen ? expandedHeight : sidebar.calendarOpen ? Math.min(460, expandedHeight) : shellState === 3 ? 72 : sidebar.barHeight
+    height: shellState === 2 || sidebar.settingsOpen ? expandedHeight : sidebar.calendarOpen ? Math.min(460, expandedHeight) : Math.max(shellState === 3 ? 72 : sidebar.barHeight, Math.ceil(sidebar.islandItem.y+sidebar.islandItem.height+8))
     x: workArea.x + Math.round((workArea.width - width) / 2)
     y: workArea.y + 6
     opacity: 1 // The island stays opaque; other surfaces retain their configured opacity.
@@ -48,6 +48,28 @@ Window {
     }
     Component.onCompleted: { dropdownController.attach(root); syncRegions(); if (previewCards) showCards() }
     IslandSources {}
+    Connections {
+        target: sidebar.islandItem
+        // Refresh the native input mask on every rendered geometry change,
+        // not just the 80 ms fallback poll. Use the actual animated rectangle.
+        function onWidthChanged() { root.syncRegions() }
+        function onHeightChanged() { root.syncRegions() }
+        function onYChanged() { root.syncRegions() }
+        function onControlsOpenChanged() { if (sidebar.islandItem.controlsOpen) root.requestActivate(); root.syncRegions() }
+        function onActionRequested(sourceId, actionId, targetId) {
+            if (sourceId !== islandBridge.activeState.sourceId || islandBridge.eventActive) return
+            if (sourceId === "builtin.media" && targetId === mediaMonitor.selectedSessionId) {
+                if ((actionId === "media.previous" && mediaMonitor.controls.previous)
+                    || (actionId === "media.toggle" && mediaMonitor.controls.toggle)
+                    || (actionId === "media.next" && mediaMonitor.controls.next)) mediaMonitor.invokeControl(actionId, targetId)
+            } else if (sourceId === "builtin.focus" && actionId === "focus.toggle") focusTimer.toggle()
+            else if (sourceId === "builtin.input") {
+                if (actionId === "input.mute" && audioInputManager.available) audioInputManager.toggleMuted()
+                else if (actionId === "input.settings") audioInputManager.openInputSettings()
+            } else if (sourceId === "builtin.ocr" && actionId === "ocr.cancel" && clipboardOcr.busy) clipboardOcr.cancel()
+            else if (sourceId === "builtin.awake" && actionId === "awake.stop" && awakeManager.active) awakeManager.stop()
+        }
+    }
     Connections {
         target: islandBridge
         function onDisplayRequested() {
@@ -96,7 +118,7 @@ Window {
         onHideRequested: root.hidePanel()
     }
     Shortcut { sequence: "Ctrl+Space"; onActivated: root.toggleBar() }
-    Shortcut { sequence: "Escape"; enabled: !sidebar.transientUiOpen; onActivated: root.shellState === 2 ? root.collapseCards() : root.hidePanel() }
+    Shortcut { sequence: "Escape"; enabled: !sidebar.blockingPopupOpen; onActivated: sidebar.islandItem.controlsOpen ? sidebar.islandItem.closeControls() : root.shellState === 2 ? root.collapseCards() : root.hidePanel() }
     Shortcut { sequence: "Ctrl+1"; onActivated: { uiSettings.currentSection = 0; root.showCards() } }
     Shortcut { sequence: "Ctrl+2"; onActivated: { uiSettings.currentSection = 1; root.showCards() } }
     Shortcut { sequence: "Ctrl+3"; onActivated: { uiSettings.currentSection = 2; root.showCards() } }

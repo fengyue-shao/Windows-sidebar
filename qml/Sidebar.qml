@@ -20,7 +20,8 @@ Item {
     function scheduleOcrCapture(path) { clipboard.scheduleOcrCapture(path) }
     property bool calendarOpen: false
     property bool settingsOpen: false
-    readonly property bool transientUiOpen: calendarOpen || settingsOpen || notifications.popupOpen
+    readonly property bool blockingPopupOpen: calendarOpen || settingsOpen || notifications.popupOpen
+    readonly property bool transientUiOpen: calendarOpen || settingsOpen || notifications.popupOpen || island.controlsOpen
     readonly property bool interacting: pointerGuard.pressed
     signal expandRequested()
     signal collapseRequested()
@@ -28,7 +29,7 @@ Item {
     function toggleCards() { expanded ? collapseRequested() : expandRequested() }
     function openSettings() { navigation.openSettings() }
     onSettingsOpenChanged: if (settingsOpen && root.Window.window) Qt.callLater(root.Window.window.requestActivate)
-    function closeTransientUi() { timebar.closeCalendar(); navigation.closeSettings(); notifications.closePopups() }
+    function closeTransientUi() { timebar.closeCalendar(); navigation.closeSettings(); notifications.closePopups(); island.closeControls() }
     function ensureValidSection() {
         if (currentSection < 0 || currentSection >= 5 + pluginRegistry.pageCount) uiSettings.currentSection = 4
     }
@@ -38,7 +39,7 @@ Item {
     }
     function inputRegions() {
         // Popups temporarily need outside-press handling; normal gaps stay click-through.
-        if (transientUiOpen) return [{x: 0, y: 0, width: width, height: height}]
+        if (calendarOpen || settingsOpen || notifications.popupOpen) return [{x: 0, y: 0, width: width, height: height}]
         let regions = [rectFor(island, island.radius)]
         if (!islandOnly) regions.push(rectFor(topbar, 18))
         if (!expanded) return regions
@@ -102,9 +103,26 @@ Item {
     }
     TopIslandHost {
         id: island
+        z: 20
         anchors.horizontalCenter: parent.horizontalCenter
-        y: root.islandOnly ? 0 : (root.compactTopbar ? 64 : 8) + (64 - height) / 2
+        y: root.islandOnly ? 0 : (root.compactTopbar ? 64 : 8) + Math.max(0, (64 - height) / 2)
         availableWidth: Math.max(64, root.width - 24)
+        motionEnabled: !uiSelfTest && dropdownController.systemAnimationsEnabled
+        controlData: {
+            const id = island.activeState.sourceId
+            if (island.isEvent) return {actions: [], status: "提醒不代表任务仍在运行；打开来源查看实际结果"}
+            if (id === "builtin.media") return {targetId: mediaMonitor.selectedSessionId, status: mediaMonitor.statusText || "控制当前媒体会话", actions: [
+                {id:"media.previous", label:"上一首", enabled: !!mediaMonitor.controls.previous},
+                {id:"media.toggle", label:mediaMonitor.playing ? "暂停" : "播放", enabled: !!mediaMonitor.controls.toggle},
+                {id:"media.next", label:"下一首", enabled: !!mediaMonitor.controls.next}]}
+            if (id === "builtin.focus") return {status:"专注计时 · " + island.detail, actions:[{id:"focus.toggle",label:focusTimer.running ? "暂停专注" : "继续专注"}]}
+            if (id === "builtin.input") return {status:island.activeState.subtitle + "\n" + audioInputManager.deviceName, actions:[
+                {id:"input.mute",label:audioInputManager.muted ? "取消静音" : "静音麦克风",enabled:audioInputManager.available},
+                {id:"input.settings",label:"输入设备设置"}]}
+            if (id === "builtin.ocr") return {status:"停止等待不保证系统识别已撤回",actions:[{id:"ocr.cancel",label:"停止识别",enabled:clipboardOcr.busy}]}
+            if (id === "builtin.awake") return {status:"停止后释放本应用的保持唤醒请求",actions:[{id:"awake.stop",label:"停止保持唤醒",enabled:awakeManager.active}]}
+            return {actions:[],status:"通过独立来源卡片查看详情与操作"}
+        }
         onCardsToggleRequested: root.toggleCards()
     }
     SystemControlBar {

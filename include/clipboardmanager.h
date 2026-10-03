@@ -11,7 +11,7 @@ class ClipboardManager : public QObject
     Q_PROPERTY(bool loading READ loading NOTIFY loadingChanged)
 
 public:
-    explicit ClipboardManager(QObject *parent = nullptr);
+    explicit ClipboardManager(QObject *parent = nullptr, bool persist = true);
 
     QVariantList items() const;
     QString statusText() const;
@@ -25,7 +25,7 @@ public:
 
     void applyHistory(const QVariantList &items, const QString &statusText);
     void applyDeleteResult(const QString &itemId, bool deleted, const QString &statusText);
-    void applyClearResult(int deletedCount, const QString &statusText);
+    void applyClearResult(const QStringList &deletedIds, const QString &statusText);
     QStringList pinnedIds() const;
 
 signals:
@@ -37,5 +37,6 @@ private:
     QVariantList m_items;
     QString m_statusText = QStringLiteral("打开页面后读取 Windows 剪贴板历史");
     bool m_loading = false;
+    bool m_persist = true;
     QStringList m_pinnedIds;
 };

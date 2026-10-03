@@ -152,7 +152,11 @@ void MediaWorker::updatePS(){
         if(!session){
             return;
         }
-        bool playing=session.GetPlaybackInfo().PlaybackStatus()==GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
+        const auto info = session.GetPlaybackInfo();
+        const auto controls = info.Controls();
+        emit controlsUpdated({{"toggle", controls.IsPlayPauseToggleEnabled()},
+                              {"next", controls.IsNextEnabled()}, {"previous", controls.IsPreviousEnabled()}});
+        bool playing=info.PlaybackStatus()==GlobalSystemMediaTransportControlsSessionPlaybackStatus::Playing;
         emit mediaPSUpdated(playing);
     }catch(...){
         qDebug()<<"GMSTC error";
@@ -193,6 +197,7 @@ void MediaWorker::initialize()
 void MediaWorker::registerSession()
 {
     unregisterSession();
+    emit controlsUpdated({});
     m_mediaKey.clear(); m_coverRetryAttempt = 0; m_coverRetryPending = false;
     emit mediaInfoUpdated("", "", "", "", QImage());
     emit mediaPSUpdated(false);
@@ -347,6 +352,9 @@ void MediaWorker::togglePlayPause()
 
     try
     {
+        if (!m_session.GetPlaybackInfo().Controls().IsPlayPauseToggleEnabled()) {
+            emit commandStatus(QStringLiteral("当前播放器不支持播放/暂停切换")); return;
+        }
         const bool result = boundedResult(m_session.TryTogglePlayPauseAsync());
         emit commandStatus(result ? QString() : QStringLiteral("播放器未接受播放/暂停操作"));
     }
@@ -356,6 +364,15 @@ void MediaWorker::togglePlayPause()
         emit commandStatus(QStringLiteral("播放/暂停失败，会话可能已结束"));
     }
 }
+void MediaWorker::invokeControl(const QString &actionId, const QString &sessionId)
+{
+    if (!m_session || sessionId.isEmpty() || sessionId != m_selectedId) {
+        emit commandStatus(QStringLiteral("媒体会话已切换，未执行过期控制")); return;
+    }
+    if (actionId == QStringLiteral("media.toggle")) togglePlayPause();
+    else if (actionId == QStringLiteral("media.next")) next();
+    else if (actionId == QStringLiteral("media.previous")) previous();
+}
 void MediaWorker::next()
 {
     if (!m_session)
@@ -363,6 +380,9 @@ void MediaWorker::next()
 
     try
     {
+        if (!m_session.GetPlaybackInfo().Controls().IsNextEnabled()) {
+            emit commandStatus(QStringLiteral("当前播放器不支持下一首")); return;
+        }
         const bool result = boundedResult(m_session.TrySkipNextAsync());
         emit commandStatus(result ? QString() : QStringLiteral("播放器未接受下一首操作"));
     }
@@ -378,6 +398,9 @@ void MediaWorker::previous()
 
     try
     {
+        if (!m_session.GetPlaybackInfo().Controls().IsPreviousEnabled()) {
+            emit commandStatus(QStringLiteral("当前播放器不支持上一首")); return;
+        }
         const bool result = boundedResult(m_session.TrySkipPreviousAsync());
         emit commandStatus(result ? QString() : QStringLiteral("播放器未接受上一首操作"));
     }

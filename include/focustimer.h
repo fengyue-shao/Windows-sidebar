@@ -10,6 +10,7 @@ class FocusTimer : public QObject
     Q_PROPERTY(int remainingSeconds READ remainingSeconds NOTIFY remainingSecondsChanged)
     Q_PROPERTY(int durationSeconds READ durationSeconds NOTIFY durationChanged)
     Q_PROPERTY(bool running READ running NOTIFY runningChanged)
+    Q_PROPERTY(bool paused READ paused NOTIFY runningChanged)
     Q_PROPERTY(int completedSessions READ completedSessions NOTIFY completedSessionsChanged)
     Q_PROPERTY(qreal progress READ progress NOTIFY remainingSecondsChanged)
 
@@ -19,6 +20,7 @@ public:
     int remainingSeconds() const;
     int durationSeconds() const;
     bool running() const;
+    bool paused() const { return m_sessionStarted && !m_running && m_remainingSeconds > 0; }
     int completedSessions() const;
     qreal progress() const;
 
@@ -46,6 +48,7 @@ private:
     int m_durationSeconds = 25 * 60;
     int m_completedSessions = 0;
     bool m_running = false;
+    bool m_sessionStarted = false;
     std::function<qint64()> m_clock;
     bool m_persist = true;
 };

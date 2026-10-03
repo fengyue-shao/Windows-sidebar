@@ -23,22 +23,23 @@ QtObject {
         islandBridge.publishState("builtin.input",{title:apps.length===1 ? apps[0].name+" · 麦克风使用中" : apps.length+" 个应用正在使用麦克风",subtitle:apps.length===1 ? "音频输入 · 当前应用" : names,iconName:"mic",route:"microphone",kind:"input",applicationCount:apps.length},60)
     }
     function updateMedia() {
-        if (!uiSettings.mediaEnabled || !mediaMonitor.playing) { islandBridge.withdraw("builtin.media"); return }
-        const state={title:mediaMonitor.title||"媒体播放中",subtitle:mediaMonitor.artist||mediaMonitor.provider,iconName:"play",route:"media",kind:"media"}
+        if (!uiSettings.mediaEnabled || mediaMonitor.sessions.length === 0 || !mediaMonitor.title) { islandBridge.withdraw("builtin.media"); return }
+        const state={title:mediaMonitor.title,subtitle:(mediaMonitor.playing ? "" : "已暂停 · ")+(mediaMonitor.artist||mediaMonitor.provider),iconName:mediaMonitor.playing ? "play" : "pause",route:"media",kind:"media"}
         // A missing timeline is not a real 0% progress value.
         if (mediaMonitor.durationSeconds>0) state.progress=mediaMonitor.positionSeconds/mediaMonitor.durationSeconds
-        islandBridge.publishState("builtin.media",state,40)
+        islandBridge.publishState("builtin.media",state,mediaMonitor.playing ? 40 : 8)
     }
     function updateFocus() {
-        if (!focusTimer.running) { islandBridge.withdraw("builtin.focus"); return }
+        if (!focusTimer.running && !focusTimer.paused) { islandBridge.withdraw("builtin.focus"); return }
         const seconds=focusTimer.remainingSeconds
-        islandBridge.publishState("builtin.focus",{title:"专注进行中",subtitle:"剩余时间",detailText:Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0"),iconName:"timer",route:"focus",kind:"focus",progress:focusTimer.progress},20)
+        islandBridge.publishState("builtin.focus",{title:focusTimer.running ? "专注进行中" : "专注已暂停",subtitle:"剩余时间",detailText:Math.floor(seconds/60)+":"+String(seconds%60).padStart(2,"0"),iconName:"timer",route:"focus",kind:"focus",progress:focusTimer.progress},focusTimer.running ? 20 : 5)
     }
     property Connections inputConnection: Connections { target:captureUsageMonitor; function onUsageChanged() { root.updateInput() } }
     property Connections mediaConnection: Connections {
         target:mediaMonitor
         function onMediaChanged() { root.updateMedia() }
         function onTimelineChanged() { root.updateMedia() }
+        function onSessionsChanged() { root.updateMedia() }
     }
     property Connections settingsConnection: Connections { target:uiSettings; function onMediaEnabledChanged() { root.updateMedia() } }
     property Connections focusConnection: Connections {

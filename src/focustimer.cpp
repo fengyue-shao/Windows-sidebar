@@ -43,12 +43,16 @@ void FocusTimer::toggle()
         emit remainingSecondsChanged();
     }
     m_deadlineMs = m_clock() + qint64(m_remainingSeconds) * 1000;
+    m_sessionStarted = true;
     setRunning(true);
 }
 
 void FocusTimer::reset()
 {
+    const bool wasPaused = paused();
+    m_sessionStarted = false;
     setRunning(false);
+    if (wasPaused) emit runningChanged();
     if (m_remainingSeconds == m_durationSeconds)
         return;
     m_remainingSeconds = m_durationSeconds;
@@ -61,7 +65,10 @@ void FocusTimer::setDurationMinutes(int minutes)
     const int duration = minutes * 60;
     if (m_durationSeconds == duration && m_remainingSeconds == duration)
         return;
+    const bool wasPaused = paused();
+    m_sessionStarted = false;
     setRunning(false);
+    if (wasPaused) emit runningChanged();
     m_durationSeconds = duration;
     m_remainingSeconds = duration;
     if (m_persist) QSettings().setValue(QStringLiteral("focus/durationMinutes"), minutes);
@@ -92,6 +99,7 @@ void FocusTimer::tick()
     }
     if (secondsLeft > 0)
         return;
+    m_sessionStarted = false;
     setRunning(false);
     ++m_completedSessions;
     if (m_persist) QSettings().setValue(QStringLiteral("focus/completedSessions"), m_completedSessions);

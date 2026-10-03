@@ -24,6 +24,7 @@ class MediaMonitor : public QObject
     Q_PROPERTY(double durationSeconds READ durationSeconds NOTIFY timelineChanged)
     Q_PROPERTY(bool canSeek READ canSeek NOTIFY timelineChanged)
     Q_PROPERTY(QString statusText READ statusText NOTIFY statusChanged)
+    Q_PROPERTY(QVariantMap controls READ controls NOTIFY controlsChanged)
 
 public:
     explicit MediaMonitor(QObject *parent = nullptr);
@@ -43,9 +44,11 @@ public:
     double durationSeconds() const { return m_duration; }
     bool canSeek() const { return m_canSeek; }
     QString statusText() const { return m_status; }
+    QVariantMap controls() const { return m_controls; }
     Q_INVOKABLE void selectSession(const QString &id);
     Q_INVOKABLE void followSystemSession();
     Q_INVOKABLE void seekTo(double seconds, const QString &sessionId);
+    Q_INVOKABLE void invokeControl(const QString &actionId, const QString &sessionId);
 
     void setCoverProvider(
         CoverImageProvider* provider);
@@ -55,6 +58,7 @@ signals:
     void sessionsChanged();
     void timelineChanged();
     void statusChanged();
+    void controlsChanged();
 public slots:
     void togglePlayPause();
     void next();
@@ -72,6 +76,7 @@ private:
     int m_coverVersion = 0;
     QVariantList m_sessions;
     QString m_selectedId, m_status;
+    QVariantMap m_controls;
     bool m_followingSystem = true, m_canSeek = false;
     double m_position = 0, m_duration = 0;
 };

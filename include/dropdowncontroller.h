@@ -16,6 +16,7 @@ class DropdownController : public QObject, public QAbstractNativeEventFilter
     Q_PROPERTY(bool hotkeyAvailable READ hotkeyAvailable NOTIFY hotkeyAvailableChanged)
     Q_PROPERTY(QString shortcutText READ shortcutText NOTIFY hotkeyAvailableChanged)
     Q_PROPERTY(QString hotkeyStatus READ hotkeyStatus NOTIFY hotkeyAvailableChanged)
+    Q_PROPERTY(bool systemAnimationsEnabled READ systemAnimationsEnabled NOTIFY systemAnimationsEnabledChanged)
 public:
     explicit DropdownController(QObject *parent = nullptr);
     ~DropdownController() override;
@@ -23,6 +24,7 @@ public:
     bool hotkeyAvailable() const { return m_hotkey; }
     QString shortcutText() const { return m_shortcut; }
     QString hotkeyStatus() const { return m_hotkeyStatus; }
+    bool systemAnimationsEnabled() const { return m_systemAnimationsEnabled; }
     Q_INVOKABLE bool applyShortcut(const QString &shortcut);
     Q_INVOKABLE void attach(QWindow *window);
     Q_INVOKABLE void configureEdge(int x, int y, int width);
@@ -36,13 +38,17 @@ signals:
     void hotkeyRequested();
     void pointerInsideChanged();
     void hotkeyAvailableChanged();
+    void systemAnimationsEnabledChanged();
 private:
     void pollPointer();
+    void readAnimationPreference();
     bool foregroundCoversTargetMonitor() const;
     QPointer<QWindow> m_window;
     QRegion m_region;
     QRect m_edge;
     QTimer m_timer;
+    QTimer m_preferencesTimer;
+    bool m_systemAnimationsEnabled = false;
     int m_dwell = 0;
     bool m_blocked = false;
     bool m_inside = false;

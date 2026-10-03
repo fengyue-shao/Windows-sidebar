@@ -21,22 +21,62 @@ Rectangle {
     readonly property bool inputMeterVisible: inputActive && audioInputManager.inputMeterAvailable && !audioInputManager.muted
     readonly property bool spectrumVisible: builtinMedia && mediaSpectrum.requested && mediaSpectrum.enabled && mediaSpectrum.available
     property real availableWidth: 420
-    implicitWidth: hasActivity ? Math.min(availableWidth, isEvent ? 420 : 344) : 64
-    implicitHeight: hasActivity ? (isEvent ? 64 : 52) : 24
+    // Target geometry stays deterministic for layout; only the rendered shell
+    // interpolates. No bounce/overshoot may spill into neighbouring controls.
+    property bool motionEnabled: true
+    property bool controlsOpen: false
+    property var controlData: ({actions: []})
+    readonly property int headerHeight: hasActivity ? (isEvent ? 64 : 52) : 24
+    signal actionRequested(string sourceId, string actionId, string targetId)
+    function closeControls() { controlsOpen = false }
+    readonly property bool motionRunning: widthMotion.running || heightMotion.running || contentReveal.running
+    readonly property string contentKey: (activeState.sourceId || "") + ":" + kind + ":" + (activeState.mode || "") + ":" + (activeState.tone || "")
+    function revealContent() {
+        contentReveal.stop()
+        activityContent.opacity = 1
+        if (motionEnabled && visible && hasActivity) contentReveal.restart()
+    }
+    onContentKeyChanged: { closeControls(); revealContent() }
+    onVisibleChanged: {
+        if (visible) revealContent()
+        else { widthMotion.complete(); heightMotion.complete(); contentReveal.stop(); activityContent.opacity = 1 }
+    }
+    onMotionEnabledChanged: if (!motionEnabled) { widthMotion.complete(); heightMotion.complete(); contentReveal.stop(); activityContent.opacity = 1 }
+    implicitWidth: hasActivity ? Math.min(availableWidth, controlsOpen || isEvent ? 420 : 344) : 64
+    implicitHeight: controlsOpen && hasActivity ? headerHeight + controlsColumn.implicitHeight + 24 : headerHeight
     width: implicitWidth; height: implicitHeight
-    radius: height / 2; color: "#050506"
+    Behavior on width {
+        enabled: root.motionEnabled && root.stateOverride === null && root.visible
+        NumberAnimation { id: widthMotion; duration: 280; easing.type: Easing.OutCubic }
+    }
+    Behavior on height {
+        enabled: root.motionEnabled && root.stateOverride === null && root.visible
+        NumberAnimation { id: heightMotion; duration: 240; easing.type: Easing.OutCubic }
+    }
+    NumberAnimation {
+        id: contentReveal; target: activityContent; property: "opacity"
+        from: 0; to: 1; duration: 180; easing.type: Easing.OutQuad
+    }
+    radius: Math.min(32, height / 2); color: "#050506"
     border.width: 1; border.color: "#303036"; clip: true
     Accessible.name: hasActivity ? activeState.title + " " + (activeState.subtitle || "") + " " + detail : "灵动岛，双击展开卡片"
     Accessible.role: Accessible.Button
-    Accessible.description: isEvent ? "单击查看详情，右侧关闭只结束本次提醒，不取消任务或删除通知" : "单击查看详情，双击展开或收起卡片"
+    Accessible.description: "单击展开岛内控制，双击展开或收起卡片；关闭提醒不取消任务"
     signal cardsToggleRequested()
+    // Painted surfaces must also consume background input. Otherwise an empty
+    // patch of the expanded island can activate the navigation underneath it.
+    MouseArea {
+        anchors.fill: parent; acceptedButtons: Qt.AllButtons
+        onWheel: wheel => wheel.accepted = true
+    }
     Row {
         anchors.centerIn: parent; spacing: 5; visible: !root.hasActivity
         Repeater { model: 3; Rectangle { width: 4; height: 4; radius: 2; color: "#808088" } }
     }
     RowLayout {
+        id: activityContent
         anchors.fill: parent; anchors.leftMargin: 18; anchors.rightMargin: 18
-        anchors.topMargin: 9; anchors.bottomMargin: 9; spacing: 12; visible: root.hasActivity
+        anchors.topMargin: 9; anchors.bottomMargin: Math.max(9, root.height-root.headerHeight+9); spacing: 12; visible: root.hasActivity
         Rectangle {
             Layout.preferredWidth: 32; Layout.preferredHeight: 32; radius: 16; color: "#1C2730"
             Image {
@@ -96,7 +136,7 @@ Rectangle {
                         required property int index
                         width: 4; height: 4; radius: 2; color: root.accent; opacity: 0.4
                         SequentialAnimation on opacity {
-                            running: root.visible && root.hasActivity && root.kind === "terminal" && !root.isEvent
+                            running: root.motionEnabled && root.visible && root.hasActivity && root.kind === "terminal" && !root.isEvent
                             loops: Animation.Infinite
                             PauseAnimation { duration: index * 120 }
                             NumberAnimation { to: 1; duration: 280 }
@@ -126,7 +166,7 @@ Rectangle {
     }
     Rectangle {
         objectName: "islandProgress"
-        anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: 5
+        anchors.horizontalCenter: parent.horizontalCenter; anchors.bottom: parent.bottom; anchors.bottomMargin: Math.max(5, root.height-root.headerHeight+5)
         width: Math.max(0, parent.width - 100); height: 2; radius: 1; color: "#303036"
         visible: root.hasProgress
         Rectangle {
@@ -137,16 +177,54 @@ Rectangle {
     Rectangle {
         objectName: "islandEventLifetime"
         visible: root.isEvent && root.activeState.eventProgress !== undefined
-        anchors.bottom: parent.bottom; anchors.bottomMargin: 2; anchors.horizontalCenter: parent.horizontalCenter
+        anchors.bottom: parent.bottom; anchors.bottomMargin: Math.max(2, root.height-root.headerHeight+2); anchors.horizontalCenter: parent.horizontalCenter
         width: Math.max(0,parent.width-70)*(1-Math.max(0,Math.min(1,root.activeState.eventProgress || 0)))
         height: 1; color: root.accent; opacity: 0.45
     }
     Item {
-        anchors.fill: parent; anchors.rightMargin: root.isEvent ? 52 : 0
+        width: parent.width-(root.isEvent ? 52 : 0); height: root.headerHeight
         TapHandler {
             exclusiveSignals: TapHandler.SingleTap | TapHandler.DoubleTap
-            onDoubleTapped: root.cardsToggleRequested()
-            onSingleTapped: islandBridge.requestDetails()
+            onDoubleTapped: { root.closeControls(); root.cardsToggleRequested() }
+            onSingleTapped: if (root.hasActivity) root.controlsOpen = !root.controlsOpen
         }
+    }
+    ColumnLayout {
+        id: controlsColumn
+        objectName: "islandControls"
+        x: 18; y: root.headerHeight+8; width: Math.max(0, root.width-36)
+        spacing: 10; visible: root.controlsOpen && root.hasActivity
+        Text {
+            Layout.fillWidth: true; text: root.controlData.status || root.activeState.subtitle || "查看来源卡片获取完整信息"
+            color: "#B5B5BE"; font.pixelSize: 11; textFormat: Text.PlainText
+            wrapMode: Text.Wrap; maximumLineCount: 3; elide: Text.ElideRight
+        }
+        Flow {
+            Layout.fillWidth: true; spacing: 8
+            Repeater {
+                model: root.controlData.actions || []
+                IslandButton {
+                    required property var modelData
+                    objectName: "islandAction_" + modelData.id
+                    text: modelData.label; enabled: modelData.enabled !== false
+                    onClicked: root.actionRequested(root.activeState.sourceId, modelData.id, root.controlData.targetId || "")
+                }
+            }
+        }
+        RowLayout {
+            Layout.fillWidth: true
+            IslandButton {
+                objectName: "islandDetails"; text: "打开来源卡片"
+                onClicked: { root.closeControls(); islandBridge.requestDetails() }
+            }
+            Item { Layout.fillWidth: true }
+            IslandButton { objectName: "islandCollapse"; text: "收起"; onClicked: root.closeControls() }
+        }
+    }
+    component IslandButton: Basic.Button {
+        implicitWidth: Math.max(68, contentItem.implicitWidth+24); implicitHeight: 32
+        focusPolicy: Qt.TabFocus
+        contentItem: Text { text: parent.text; color: parent.enabled ? "#E6E6EF" : "#676770"; font.pixelSize: 11; horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter }
+        background: Rectangle { radius: 12; color: parent.hovered || parent.activeFocus ? "#30303A" : "#1D1D25"; border.width: parent.activeFocus ? 1 : 0; border.color: root.accent }
     }
 }

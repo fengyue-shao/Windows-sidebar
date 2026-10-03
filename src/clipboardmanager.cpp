@@ -166,36 +166,39 @@ fire_and_forget deleteHistoryItem(QPointer<ClipboardManager> manager, const QStr
 
 fire_and_forget clearUnpinnedHistory(QPointer<ClipboardManager> manager, const QStringList pinnedIds)
 {
-    int deletedCount = 0;
+    QStringList deletedIds;
+    int failedCount = 0;
     QString statusText;
     try {
         const auto result = co_await Clipboard::GetHistoryItemsAsync();
         if (result.Status() == ClipboardHistoryItemsResultStatus::Success) {
             for (const auto &historyItem : result.Items()) {
                 const QString id = QString::fromStdWString(historyItem.Id().c_str());
-                if (!pinnedIds.contains(id) && Clipboard::DeleteItemFromHistory(historyItem))
-                    ++deletedCount;
+                if (pinnedIds.contains(id)) continue;
+                if (Clipboard::DeleteItemFromHistory(historyItem)) deletedIds.append(id);
+                else ++failedCount;
             }
-            statusText = deletedCount > 0
-                ? QStringLiteral("已清除 %1 条未固定历史，固定项目已保留").arg(deletedCount)
+            statusText = failedCount > 0
+                ? QStringLiteral("已清除 %1 条；%2 条删除失败，失败及固定项目保留").arg(deletedIds.size()).arg(failedCount)
+                : !deletedIds.isEmpty() ? QStringLiteral("已清除 %1 条未固定历史，固定项目已保留").arg(deletedIds.size())
                 : QStringLiteral("没有可清除的未固定历史");
         } else {
             statusText = QStringLiteral("无法读取剪贴板历史");
         }
     } catch (const hresult_error &error) {
-        statusText = QStringLiteral("清空失败：") + QString::fromStdWString(error.message().c_str());
+        statusText = QStringLiteral("已清除 %1 条，其余清理失败：").arg(deletedIds.size()) + QString::fromStdWString(error.message().c_str());
     }
-    QMetaObject::invokeMethod(qGuiApp, [manager, deletedCount, statusText] {
+    QMetaObject::invokeMethod(qGuiApp, [manager, deletedIds, statusText] {
         if (manager)
-            manager->applyClearResult(deletedCount, statusText);
+            manager->applyClearResult(deletedIds, statusText);
     }, Qt::QueuedConnection);
 }
 }
 
-ClipboardManager::ClipboardManager(QObject *parent)
-    : QObject(parent)
+ClipboardManager::ClipboardManager(QObject *parent, bool persist)
+    : QObject(parent), m_persist(persist)
 {
-    m_pinnedIds = QSettings().value(QStringLiteral("clipboard/pinnedIds")).toStringList();
+    if (m_persist) m_pinnedIds = QSettings().value(QStringLiteral("clipboard/pinnedIds")).toStringList();
 }
 
 QVariantList ClipboardManager::items() const { return m_items; }
@@ -222,7 +225,7 @@ void ClipboardManager::togglePinned(const QString &itemId)
         m_pinnedIds.removeAll(itemId);
     else
         m_pinnedIds.prepend(itemId);
-    QSettings().setValue(QStringLiteral("clipboard/pinnedIds"), m_pinnedIds);
+    if (m_persist) QSettings().setValue(QStringLiteral("clipboard/pinnedIds"), m_pinnedIds);
     m_statusText = m_pinnedIds.contains(itemId) ? QStringLiteral("已在应用内置顶")
                                                 : QStringLiteral("已取消应用内置顶");
     emit statusChanged();
@@ -248,7 +251,7 @@ void ClipboardManager::applyDeleteResult(const QString &itemId, bool deleted, co
 {
     if (deleted) {
         m_pinnedIds.removeAll(itemId);
-        QSettings().setValue(QStringLiteral("clipboard/pinnedIds"), m_pinnedIds);
+        if (m_persist) QSettings().setValue(QStringLiteral("clipboard/pinnedIds"), m_pinnedIds);
         for (qsizetype index = m_items.size() - 1; index >= 0; --index) {
             if (m_items.at(index).toMap().value(QStringLiteral("id")).toString() == itemId)
                 m_items.removeAt(index);
@@ -261,11 +264,11 @@ void ClipboardManager::applyDeleteResult(const QString &itemId, bool deleted, co
     }
 }
 
-void ClipboardManager::applyClearResult(int deletedCount, const QString &statusText)
+void ClipboardManager::applyClearResult(const QStringList &deletedIds, const QString &statusText)
 {
-    if (deletedCount > 0) {
+    if (!deletedIds.isEmpty()) {
         for (qsizetype index = m_items.size() - 1; index >= 0; --index) {
-            if (!m_items.at(index).toMap().value(QStringLiteral("pinned")).toBool())
+            if (deletedIds.contains(m_items.at(index).toMap().value(QStringLiteral("id")).toString()))
                 m_items.removeAt(index);
         }
         emit itemsChanged();

@@ -8,6 +8,10 @@ MediaMonitor::MediaMonitor(QObject *parent)
 {
     m_worker = new MediaWorker;
     m_worker->moveToThread(&m_thread);
+    connect(m_worker, &MediaWorker::controlsUpdated, this, [this](const QVariantMap &controls) {
+        if (m_controls == controls) return;
+        m_controls = controls; emit controlsChanged();
+    });
     connect(m_worker, &MediaWorker::sessionsUpdated, this, [this](const QVariantList &sessions, const QString &selected, bool following) {
         if (sessions == m_sessions && selected == m_selectedId && following == m_followingSystem) return;
         m_sessions = sessions; m_selectedId = selected; m_followingSystem = following; emit sessionsChanged();
@@ -108,4 +112,9 @@ void MediaMonitor::followSystemSession() {
 }
 void MediaMonitor::seekTo(double seconds, const QString &sessionId) {
     QMetaObject::invokeMethod(m_worker, [worker=m_worker,seconds,sessionId] { worker->seek(seconds,sessionId); }, Qt::QueuedConnection);
+}
+void MediaMonitor::invokeControl(const QString &actionId, const QString &sessionId) {
+    QMetaObject::invokeMethod(m_worker, [worker=m_worker,actionId,sessionId] {
+        worker->invokeControl(actionId,sessionId);
+    }, Qt::QueuedConnection);
 }
