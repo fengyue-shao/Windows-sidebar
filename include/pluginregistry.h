@@ -2,6 +2,11 @@
 
 #include <QObject>
 #include <QVariantList>
+#include <QHash>
+#include <QPointer>
+#include <QSet>
+class PluginProcess;
+class IslandBridge;
 
 class PluginRegistry : public QObject
 {
@@ -13,7 +18,11 @@ class PluginRegistry : public QObject
     Q_PROPERTY(QString errorDetails READ errorDetails NOTIFY statusChanged)
 
 public:
-    explicit PluginRegistry(QObject *parent = nullptr);
+    explicit PluginRegistry(QObject *parent = nullptr, const QString &pluginRoot = {});
+    ~PluginRegistry() override;
+    void setIslandBridge(IslandBridge *bridge);
+    void setThemeTokens(const QVariantMap &tokens);
+    static QString packageError(const QString &path);
 
     QVariantList pages() const { return m_pages; }
     QVariantList plugins() const { return m_plugins; }
@@ -23,6 +32,12 @@ public:
 
     Q_INVOKABLE void reload();
     Q_INVOKABLE void setPluginEnabled(const QString &pluginId, bool enabled);
+    Q_INVOKABLE void launch(const QString &pluginId);
+    Q_INVOKABLE void stop(const QString &pluginId);
+    Q_INVOKABLE bool openRoute(const QString &route);
+    Q_INVOKABLE void trustAndEnable(const QString &pluginId);
+    Q_INVOKABLE bool importTrustedFolder(const QString &path);
+    Q_INVOKABLE void openPluginFolder();
 
 signals:
     void pagesChanged();
@@ -34,4 +49,11 @@ private:
     QVariantList m_plugins;
     QString m_statusText;
     QString m_errorDetails;
+    QHash<QString, PluginProcess *> m_processes;
+    QHash<QString, QString> m_executables, m_routes;
+    QHash<QString, QSet<QString>> m_pageIds;
+    QPointer<IslandBridge> m_bridge;
+    QString m_rootPath;
+    QVariantMap m_themeTokens;
+    void updateProcessStatus();
 };

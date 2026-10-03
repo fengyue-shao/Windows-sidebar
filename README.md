@@ -1,6 +1,6 @@
 # Windows Sidebar
 
-当前开发预览：**0.8.1.2-preview**（顶部下拉 UI 与主应用功能卡片），本地已安装 **0.8.1.2** MSIX 测试版，未推送远程。此前版本为 **0.8.0.3**，详见 [修复说明](docs/PLUGIN_FIXES.md)。新功能与验收边界见 [功能清单](docs/MAIN_FEATURE_CHECKLIST.md) 和 [使用说明](docs/MAIN_FEATURE_USAGE.md)。
+当前开发候选：**0.8.2.0-preview**，本地已安装 **0.8.2.0** MSIX 测试候选；尚未全面验收，不合并/推送远程。包含灵动岛动效/快捷控制与独立进程插件拆分，当前证据、产物和阻塞项以 [候选记录](docs/RELEASE_0.8.2.0_CANDIDATE.md) 为准。此前功能见 [功能清单](docs/MAIN_FEATURE_CHECKLIST.md) 和 [使用说明](docs/MAIN_FEATURE_USAGE.md)。
 
 使用 Qt/QML 和 C++20 编写的 Windows 侧边栏。
 
@@ -22,14 +22,14 @@
 - 网络面板可直接扫描附近 Wi-Fi、查看信号和安全状态，并连接已保存、开放或常见 WPA2-PSK 网络，无需跳转到系统设置。
 - 蓝牙面板可扫描经典蓝牙与 BLE 设备，显示已连接/已配对状态，并直接完成配对或取消配对；具体设备服务由 Windows 自动连接。
 - Wi-Fi 与蓝牙面板支持直接开关系统无线功能；声音面板可选择系统默认输出设备。
-- 插件系统原型可从运行目录的 `plugins` 文件夹校验清单并动态注册侧栏页面；内置“工具箱”是唯一的插件管理界面，可查看状态与错误、重新扫描及启停插件。
-- 主界面以监控页为首页，系统控制中心位于监控信息下方；插件仅在工具箱中启用或禁用，并即时加入或移出导航。
-- 首个后端型插件“受限终端”使用独立常驻 Runner、PowerShell Constrained Language、受限工作目录、Job Object 进程树和资源/时间/输出限制；它是实验性隔离，不等同于 AppContainer 强沙盒。
+- 工具箱是唯一插件管理 GUI：导入并明确信任本地独立进程包、查看错误、扫描、启停、打开与停止。插件不共享宿主 QML 引擎，扫描不会自动执行，不再从应用目录加载旧共享 QML 插件。
+- 主界面以监控页为首页，系统控制中心位于监控信息下方。主 MSIX 不包含终端代码或 Runner；终端为独立可选包，首版使用独立窗口，经版本化通用 IPC 接入生命周期、路由、主题颜色与灵动岛。
+- “受限终端”的 UI、字符画布、管理器和 Runner 全部属于插件。Job Object、工作目录和命令限制不是 AppContainer 强沙盒；插件仍以当前用户权限运行。
 - 终端 Runner 默认使用 UTF-8 输入输出，并尝试继承 Windows Terminal 的默认 Profile（支持 PowerShell 7、Windows PowerShell 与 CMD，无法解析时回退到 Windows PowerShell）。
 - 终端插件单独记录宿主与 Runner 生命周期日志到应用本地 `logs/terminal-plugin.log`，日志包含退出码、耗时、输出量和错误信息，达到 2 MB 后轮转且不记录完整命令。
 - PowerShell 输出强制使用 PlainText，并由宿主流式清除 ANSI/OSC 控制序列；Runner 使用二进制 UTF-8 stdout，避免转义码泄漏、字符分块损坏和 CRLF 二次转换。
 - 终端插件使用内联终端表面输入，支持持续 Shell 状态、目录与环境变量同步、命令历史、Ctrl+R 搜索、Tab 智能补全、斜杠命令、Ctrl+C 停止和 Ctrl+L 清屏。
-- Runner 已支持桌面应用兼容资源档，并继承 Windows 应用启动所需的用户目录环境；ConPTY 能力会在运行时检测，实际伪控制台与 VT 屏幕渲染仍在后续阶段。
+- ConPTY 与 VT 字符画布已实现，真实 CMD A/R、回删、UTF-8 与退出回归通过；用户默认 Shell、中文输入法和新安装独立窗口仍需实机验收。拆分不会自动删除或迁移旧终端数据。
 
 终端插件的架构、调试方法、已知限制和后续计划见 [终端插件说明](docs/TERMINAL_PLUGIN.md)。
 

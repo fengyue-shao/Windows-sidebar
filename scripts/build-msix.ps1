@@ -9,7 +9,8 @@ param(
     [string]$SourceDir,
 
     [Parameter(Mandatory = $true)]
-    [string]$OutputDir
+    [string]$OutputDir,
+    [string]$MsvcRuntimeDir = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -55,10 +56,6 @@ New-Item -ItemType Directory -Path $stageDir -Force | Out-Null
 New-Item -ItemType Directory -Path (Join-Path $stageDir 'Assets') -Force | Out-Null
 
 Copy-Item -LiteralPath $resolvedExecutable -Destination $stageDir
-$runnerPath = Join-Path (Split-Path $resolvedExecutable) 'sidebar-terminal-runner.exe'
-if (!(Test-Path -LiteralPath $runnerPath)) { throw "Terminal Runner missing: $runnerPath" }
-Copy-Item -LiteralPath $runnerPath -Destination $stageDir
-Copy-Item -LiteralPath (Join-Path $resolvedSourceDir 'plugins') -Destination $stageDir -Recurse
 Copy-Item -LiteralPath (Join-Path $resolvedSourceDir 'packaging\AppxManifest.xml') -Destination $stageDir
 Copy-Item -Path (Join-Path $resolvedSourceDir 'packaging\Assets\*.png') -Destination (Join-Path $stageDir 'Assets')
 
@@ -72,6 +69,10 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 $makeAppx = Find-WindowsSdkTool 'makeappx.exe'
+if ($MsvcRuntimeDir) { Copy-Item -LiteralPath @((Get-ChildItem -LiteralPath $MsvcRuntimeDir -Filter '*.dll' -File).FullName) -Destination $stageDir }
+foreach ($name in @('msvcp140.dll','vcruntime140.dll','vcruntime140_1.dll')) {
+    if (!(Test-Path -LiteralPath (Join-Path $stageDir $name))) { throw "Missing MSVC runtime: $name. Supply -MsvcRuntimeDir with the x64 redistributable CRT folder." }
+}
 $signTool = Find-WindowsSdkTool 'signtool.exe'
 New-Item -ItemType Directory -Path $resolvedOutputDir -Force | Out-Null
 & $makeAppx pack /o /d $stageDir /p $packagePath

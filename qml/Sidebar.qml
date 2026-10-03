@@ -18,10 +18,11 @@ Item {
     function scheduleFeatureCapture(path) { monitor.scheduleFeatureCapture(path) }
     function captureOcrTest(path) { return clipboard.captureOcrTest(path) }
     function scheduleOcrCapture(path) { clipboard.scheduleOcrCapture(path) }
+    function scheduleToolboxCapture(path) { toolbox.scheduleCapture(path) }
     property bool calendarOpen: false
     property bool settingsOpen: false
-    readonly property bool blockingPopupOpen: calendarOpen || settingsOpen || notifications.popupOpen
-    readonly property bool transientUiOpen: calendarOpen || settingsOpen || notifications.popupOpen || island.controlsOpen
+    readonly property bool blockingPopupOpen: calendarOpen || settingsOpen || notifications.popupOpen || toolbox.popupOpen
+    readonly property bool transientUiOpen: blockingPopupOpen || island.controlsOpen
     readonly property bool interacting: pointerGuard.pressed
     signal expandRequested()
     signal collapseRequested()
@@ -29,7 +30,7 @@ Item {
     function toggleCards() { expanded ? collapseRequested() : expandRequested() }
     function openSettings() { navigation.openSettings() }
     onSettingsOpenChanged: if (settingsOpen && root.Window.window) Qt.callLater(root.Window.window.requestActivate)
-    function closeTransientUi() { timebar.closeCalendar(); navigation.closeSettings(); notifications.closePopups(); island.closeControls() }
+    function closeTransientUi() { timebar.closeCalendar(); navigation.closeSettings(); notifications.closePopups(); toolbox.closePopups(); island.closeControls() }
     function ensureValidSection() {
         if (currentSection < 0 || currentSection >= 5 + pluginRegistry.pageCount) uiSettings.currentSection = 4
     }
@@ -39,7 +40,7 @@ Item {
     }
     function inputRegions() {
         // Popups temporarily need outside-press handling; normal gaps stay click-through.
-        if (calendarOpen || settingsOpen || notifications.popupOpen) return [{x: 0, y: 0, width: width, height: height}]
+        if (blockingPopupOpen) return [{x: 0, y: 0, width: width, height: height}]
         let regions = [rectFor(island, island.radius)]
         if (!islandOnly) regions.push(rectFor(topbar, 18))
         if (!expanded) return regions
@@ -158,29 +159,7 @@ Item {
                 FocusPage { id: focus; Layout.fillWidth: true; Layout.fillHeight: true }
                 ClipboardPage { id: clipboard; Layout.fillWidth: true; Layout.fillHeight: true }
                 ToolboxPage { id: toolbox; Layout.fillWidth: true; Layout.fillHeight: true }
-                Repeater {
-                    model: pluginRegistry.pages
-                    Item {
-                        id: pluginHost
-                        required property int index
-                        required property var modelData
-                        Layout.fillWidth: true; Layout.fillHeight: true
-                    Loader {
-                        id: pluginLoader
-                        anchors.fill: parent; anchors.margins: 18
-                        property bool visited: false
-                        readonly property bool selected: root.currentSection === 5 + pluginHost.index
-                        onSelectedChanged: if (selected) visited = true
-                        Component.onCompleted: if (selected) visited = true
-                        source: pluginHost.modelData.source; active: visited
-                        Column {
-                            anchors.centerIn: parent; spacing: 8; visible: pluginLoader.status === Loader.Error
-                            Text { text: "插件加载失败：" + pluginHost.modelData.pluginName; color: themeManager.danger }
-                            Button { text: "重新加载"; onClicked: { pluginLoader.visited = false; pluginLoader.visited = true } }
-                        }
-                    }
-                    }
-                }
+
             }
         }
     }

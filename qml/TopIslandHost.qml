@@ -9,7 +9,7 @@ Rectangle {
     readonly property var activeState: stateOverride === null ? islandBridge.activeState : stateOverride
     readonly property bool hasActivity: !!activeState.sourceId
     readonly property bool isEvent: activeState.mode === "event"
-    readonly property string kind: activeState.kind || ({microphone:"input",media:"media",focus:"focus",notifications:"notification",terminal:"terminal",awake:"awake",clipboard:"ocr",usb:"usb",hotspot:"network"})[activeState.route] || ""
+    readonly property string kind: activeState.kind || ({microphone:"input",media:"media",focus:"focus",notifications:"notification",awake:"awake",clipboard:"ocr",usb:"usb",hotspot:"network"})[activeState.route] || ""
     readonly property bool inputActive: hasActivity && kind === "input" && !isEvent
     readonly property bool builtinMedia: hasActivity && kind === "media" && !isEvent && activeState.sourceId === "builtin.media"
     readonly property color accent: activeState.tone === "danger" ? "#FF939A"
@@ -109,7 +109,7 @@ Rectangle {
         Item {
             Layout.preferredWidth: root.detail.length > 0 ? 52 : 64
             Layout.preferredHeight: 28
-            visible: root.detail.length > 0 || root.inputMeterVisible || root.spectrumVisible || (root.kind === "terminal" && !root.isEvent)
+            visible: root.detail.length > 0 || root.inputMeterVisible || root.spectrumVisible || (root.kind === "task" && !root.isEvent)
             Text {
                 anchors.fill: parent; visible: root.detail.length > 0
                 text: root.detail; color: root.accent; font.family: "Segoe UI"; font.pixelSize: 14
@@ -128,7 +128,7 @@ Rectangle {
             }
             Row {
                 anchors.centerIn: parent
-                visible: root.kind === "terminal" && !root.isEvent && !root.detail.length
+                visible: root.kind === "task" && !root.isEvent && !root.detail.length
                 spacing: 5
                 Repeater {
                     model: 3
@@ -136,7 +136,7 @@ Rectangle {
                         required property int index
                         width: 4; height: 4; radius: 2; color: root.accent; opacity: 0.4
                         SequentialAnimation on opacity {
-                            running: root.motionEnabled && root.visible && root.hasActivity && root.kind === "terminal" && !root.isEvent
+                            running: root.motionEnabled && root.visible && root.hasActivity && root.kind === "task" && !root.isEvent
                             loops: Animation.Infinite
                             PauseAnimation { duration: index * 120 }
                             NumberAnimation { to: 1; duration: 280 }

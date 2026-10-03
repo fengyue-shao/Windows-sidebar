@@ -76,6 +76,7 @@ void PluginProcess::readMessages() {
             PluginProtocol::Message message;
             if (!m_session->accept(frame,m_clock.elapsed(),message)) { fail("protocol-error"); return; }
             if (message.type=="hello") { m_handshakeTimer.stop(); setStatus("running"); send("ready"); }
+            else if (message.type=="closing") { m_stopping=true; m_handshakeTimer.stop(); m_server.close(); withdraw(); setStatus("stopping"); m_killTimer.start(); }
             else emit messageReceived(message.type,message.sourceId,message.state,message.priority,message.key,message.durationMs,message.validForMs);
             if (m_stopping) return;
         }
@@ -83,11 +84,14 @@ void PluginProcess::readMessages() {
 }
 void PluginProcess::send(const QString &type) {
     if (m_socket && m_socket->state()==QLocalSocket::ConnectedState && m_session && m_session->authenticated()) {
-        m_socket->write(QJsonDocument(QJsonObject{{"type",type},{"protocolVersion",PluginProtocol::Version}}).toJson(QJsonDocument::Compact)+'\n');
+        QJsonObject object{{"type",type},{"protocolVersion",PluginProtocol::Version}};
+        if (type=="ready" || type=="theme") object.insert("tokens",QJsonObject::fromVariantMap(m_themeTokens));
+        m_socket->write(QJsonDocument(object).toJson(QJsonDocument::Compact)+'\n');
         m_socket->flush();
     }
 }
 void PluginProcess::show() { if (!m_stopping) send("show"); }
+void PluginProcess::setThemeTokens(const QVariantMap &tokens) { m_themeTokens=tokens; send("theme"); }
 void PluginProcess::withdraw() { if (m_session) emit sourcesWithdrawn(m_session->sourceIds()); }
 void PluginProcess::stop() {
     if (m_stopping) return;

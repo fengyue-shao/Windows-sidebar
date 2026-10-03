@@ -12,7 +12,7 @@ QVariantMap sanitize(const QString &id,const QVariantMap &state,int priority) {
     if (validId(route)) safe.insert("route",route);
     // Presentation hints are bounded data, not URLs, markup or plugin code.
     const auto kind=state.value("kind").toString();
-    if (QStringList{"input","media","focus","notification","terminal","awake","ocr","network","usb"}.contains(kind)) safe.insert("kind",kind);
+    if (QStringList{"input","media","focus","notification","task","awake","ocr","network","usb"}.contains(kind)) safe.insert("kind",kind);
     const auto tone=state.value("tone").toString();
     if (QStringList{"neutral","success","danger"}.contains(tone)) safe.insert("tone",tone);
     safe.insert("detailText",state.value("detailText").toString().left(24));

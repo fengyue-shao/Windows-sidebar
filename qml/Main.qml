@@ -87,11 +87,8 @@ Window {
             else if (route==="microphone" || route==="media") uiSettings.currentSection=0
             else if (route==="clipboard") uiSettings.currentSection=3
             else if (["awake","usb","hotspot","network"].indexOf(route)>=0) uiSettings.currentSection=0
-            else if (route==="terminal") {
-                for (let i=0;i<pluginRegistry.pages.length;++i) {
-                    if (pluginRegistry.pages[i].pluginId==="com.windows-sidebar.terminal") { uiSettings.currentSection=5+i; break }
-                }
-            } else return
+            else if (pluginRegistry.openRoute(route)) return
+            else return
             root.showCards()
             if (["awake","usb","hotspot","network"].indexOf(route)>=0) Qt.callLater(() => sidebar.revealUtility(route))
         }
@@ -172,6 +169,7 @@ Window {
                 sidebar.currentSection = step - 5
                 if (step === 5) { sidebar.setFeatureTestState(true); sidebar.scheduleFeatureCapture(uiCapturePath) }
                 if (step === 8) sidebar.scheduleOcrCapture(uiCapturePath)
+                if (step === 9) sidebar.scheduleToolboxCapture(uiCapturePath)
             } else if (step === 10 + pluginRegistry.pageCount) {
                 root.collapseCards(); sidebar.openSettings()
             } else if (step === 11 + pluginRegistry.pageCount) {
@@ -214,9 +212,9 @@ Window {
                         {kind:"focus",mode:"event",tone:"success"},
                         {kind:"notification",mode:"event"},
                         {kind:"notification",mode:"event",queuedCount:4},
-                        {kind:"terminal"},
-                        {kind:"terminal",mode:"event",tone:"success"},
-                        {kind:"terminal",mode:"event",tone:"danger"},
+                        {kind:"task"},
+                        {kind:"task",mode:"event",tone:"success"},
+                        {kind:"task",mode:"event",tone:"danger"},
                         {kind:"focus",mode:"event",tone:"success"}
                     ]
                     for (let i=0; i<cases.length; ++i) {

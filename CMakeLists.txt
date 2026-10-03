@@ -1,6 +1,6 @@
 cmake_minimum_required(VERSION 3.16)
 
-project(qt_rainmeter VERSION 0.8.1.4 LANGUAGES CXX)
+project(qt_rainmeter VERSION 0.8.2.0 LANGUAGES CXX)
 
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_STANDARD 20)
@@ -8,6 +8,7 @@ set(CMAKE_CXX_STANDARD 20)
 find_package(Qt6 REQUIRED COMPONENTS Quick)
 find_package(Qt6 REQUIRED COMPONENTS Core)
 find_package(Qt6 REQUIRED COMPONENTS Svg)
+find_package(Qt6 REQUIRED COMPONENTS Network)
 
 qt_standard_project_setup(REQUIRES 6.8)
 file(GLOB FLUENT_SELECTED_ICONS CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "assets/fluent/*.svg")
@@ -28,9 +29,7 @@ qt_add_qml_module(appqt_rainmeter
         SOURCES include/notificationviewmodel.h src/notificationviewmodel.cpp
         SOURCES include/radiomanager.h src/radiomanager.cpp
         SOURCES include/pluginregistry.h src/pluginregistry.cpp
-        SOURCES include/terminalmanager.h src/terminalmanager.cpp
-        SOURCES include/terminalscreen.h src/terminalscreen.cpp
-        SOURCES include/terminalcanvas.h src/terminalcanvas.cpp
+        SOURCES include/pluginprocess.h src/pluginprocess.cpp
         SOURCES include/dropdowncontroller.h src/dropdowncontroller.cpp
         QML_FILES qml/DropdownMonitor.qml qml/CardSurface.qml qml/CardRegions.js qml/FocusClockCard.qml qml/FocusPresetCard.qml qml/NotificationPage.qml
         QML_FILES qml/FluentIcon.qml
@@ -83,24 +82,18 @@ target_link_libraries(appqt_rainmeter PRIVATE ole32)
 target_link_libraries(appqt_rainmeter PRIVATE wininet)
 target_link_libraries(appqt_rainmeter PRIVATE wlanapi)
 target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
+target_link_libraries(appqt_rainmeter PRIVATE Qt6::Network)
 target_link_libraries(appqt_rainmeter PRIVATE user32)
 
-qt_add_executable(sidebar-terminal-runner
-    runner/terminalrunner.cpp
-)
-target_link_libraries(sidebar-terminal-runner PRIVATE Qt6::Core)
-set_target_properties(sidebar-terminal-runner PROPERTIES WIN32_EXECUTABLE FALSE)
-add_dependencies(appqt_rainmeter sidebar-terminal-runner)
-
-add_custom_target(sidebar-plugin-assets
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/plugins"
-        "$<TARGET_FILE_DIR:sidebar-terminal-runner>/plugins"
-    COMMENT "Copying trusted prototype plugins"
-)
-add_dependencies(appqt_rainmeter sidebar-plugin-assets)
+option(SIDEBAR_BUILD_TERMINAL_PLUGIN "Build the independent optional terminal package" OFF)
+option(SIDEBAR_BUILD_TERMINAL_TESTS "Build isolated regression tests" OFF)
+set(TERMINAL_PLUGIN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/plugins/com.windows-sidebar.terminal")
+if(SIDEBAR_BUILD_TERMINAL_PLUGIN OR SIDEBAR_BUILD_TERMINAL_TESTS)
+    add_subdirectory(plugins/com.windows-sidebar.terminal)
+endif()
 
 if(WIN32)
+    set(SIDEBAR_MSVC_RUNTIME_DIR "" CACHE PATH "MSVC x64 redistributable CRT folder for packaging")
     get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
     get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
 
@@ -111,6 +104,7 @@ if(WIN32)
             -QtBin "${QT_BIN_DIR}"
             -SourceDir "${CMAKE_CURRENT_SOURCE_DIR}"
             -OutputDir "${CMAKE_CURRENT_BINARY_DIR}/msix"
+            -MsvcRuntimeDir "${SIDEBAR_MSVC_RUNTIME_DIR}"
         DEPENDS appqt_rainmeter
         COMMENT "Deploying Qt and creating a signed MSIX package"
         VERBATIM
@@ -128,10 +122,13 @@ if(WIN32)
 endif()
 
 include(GNUInstallDirs)
-option(SIDEBAR_BUILD_TERMINAL_TESTS "Build isolated terminal model, UI and runner tests" OFF)
 if(SIDEBAR_BUILD_TERMINAL_TESTS)
     find_package(Qt6 REQUIRED COMPONENTS Test)
     find_package(Qt6 REQUIRED COMPONENTS Network)
+    qt_add_executable(sidebar-plugin-package-test tests/plugin-package-test.cpp src/pluginregistry.cpp include/pluginregistry.h src/pluginprocess.cpp include/pluginprocess.h src/islandbridge.cpp include/islandbridge.h)
+    target_include_directories(sidebar-plugin-package-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_link_libraries(sidebar-plugin-package-test PRIVATE Qt6::Gui Qt6::Network)
+    set_target_properties(sidebar-plugin-package-test PROPERTIES WIN32_EXECUTABLE FALSE)
     qt_add_executable(sidebar-plugin-process-test tests/plugin-process-test.cpp src/pluginprocess.cpp include/pluginprocess.h)
     target_include_directories(sidebar-plugin-process-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(sidebar-plugin-process-test PRIVATE Qt6::Core Qt6::Network)
@@ -160,25 +157,25 @@ if(SIDEBAR_BUILD_TERMINAL_TESTS)
     target_include_directories(sidebar-notification-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
     target_link_libraries(sidebar-notification-ui-test PRIVATE Qt6::Quick Qt6::Test)
     set_target_properties(sidebar-notification-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-terminal-screen-test tests/terminal-screen-test.cpp src/terminalscreen.cpp include/terminalscreen.h)
-    target_include_directories(sidebar-terminal-screen-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    qt_add_executable(sidebar-terminal-screen-test tests/terminal-screen-test.cpp "${TERMINAL_PLUGIN_ROOT}/src/terminalscreen.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalscreen.h")
+    target_include_directories(sidebar-terminal-screen-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${TERMINAL_PLUGIN_ROOT}")
     target_link_libraries(sidebar-terminal-screen-test PRIVATE Qt6::Core)
     set_target_properties(sidebar-terminal-screen-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-terminal-host-test tests/terminal-host-test.cpp src/terminalmanager.cpp include/terminalmanager.h src/terminalscreen.cpp include/terminalscreen.h)
-    target_include_directories(sidebar-terminal-host-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    qt_add_executable(sidebar-terminal-host-test tests/terminal-host-test.cpp "${TERMINAL_PLUGIN_ROOT}/src/terminalmanager.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalmanager.h" "${TERMINAL_PLUGIN_ROOT}/src/terminalscreen.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalscreen.h")
+    target_include_directories(sidebar-terminal-host-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${TERMINAL_PLUGIN_ROOT}")
     target_link_libraries(sidebar-terminal-host-test PRIVATE Qt6::Quick Qt6::Test)
     set_target_properties(sidebar-terminal-host-test PROPERTIES WIN32_EXECUTABLE FALSE)
     add_dependencies(sidebar-terminal-host-test sidebar-terminal-runner)
-    qt_add_executable(sidebar-terminal-ui-test tests/terminal-ui-test.cpp src/terminalscreen.cpp include/terminalscreen.h src/terminalcanvas.cpp include/terminalcanvas.h)
-    target_include_directories(sidebar-terminal-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    qt_add_executable(sidebar-terminal-ui-test tests/terminal-ui-test.cpp "${TERMINAL_PLUGIN_ROOT}/src/terminalscreen.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalscreen.h" "${TERMINAL_PLUGIN_ROOT}/src/terminalcanvas.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalcanvas.h")
+    target_include_directories(sidebar-terminal-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${TERMINAL_PLUGIN_ROOT}")
     target_link_libraries(sidebar-terminal-ui-test PRIVATE Qt6::Quick Qt6::Test)
     set_target_properties(sidebar-terminal-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
     qt_add_executable(sidebar-terminal-native-test tests/terminal-native-test.cpp
-        src/terminalmanager.cpp include/terminalmanager.h
-        src/terminalscreen.cpp include/terminalscreen.h
-        src/terminalcanvas.cpp include/terminalcanvas.h
+        "${TERMINAL_PLUGIN_ROOT}/src/terminalmanager.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalmanager.h"
+        "${TERMINAL_PLUGIN_ROOT}/src/terminalscreen.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalscreen.h"
+        "${TERMINAL_PLUGIN_ROOT}/src/terminalcanvas.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalcanvas.h"
         src/islandbridge.cpp include/islandbridge.h)
-    target_include_directories(sidebar-terminal-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+    target_include_directories(sidebar-terminal-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${TERMINAL_PLUGIN_ROOT}")
     target_link_libraries(sidebar-terminal-native-test PRIVATE Qt6::Quick Qt6::Test)
     set_target_properties(sidebar-terminal-native-test PROPERTIES WIN32_EXECUTABLE FALSE)
     add_dependencies(sidebar-terminal-native-test sidebar-terminal-runner)

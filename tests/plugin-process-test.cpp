@@ -34,6 +34,16 @@ static int child(QCoreApplication &app) {
 int main(int argc,char **argv) {
     QCoreApplication app(argc,argv);
     if (qEnvironmentVariableIsSet("SIDEBAR_PLUGIN_ENDPOINT")) return child(app);
+    if (app.arguments().size()==3 && app.arguments().at(1)=="--real-plugin") {
+        PluginProcess real("com.windows-sidebar.terminal",{"terminal"});
+        CHECK(real.start(app.arguments().at(2)));
+        CHECK(waitUntil([&]{ return real.status()=="running"; }));
+        real.show(); QThread::msleep(50); QCoreApplication::processEvents();
+        real.stop(); CHECK(waitUntil([&]{ return !real.running(); }));
+        CHECK(real.status()=="stopped");
+        std::cout << "REAL TERMINAL PLUGIN IPC PASS: independent UI process hello/show/close, normal host-managed shutdown; no shell auto-start\n";
+        return 0;
+    }
     PluginProcess process("test.plugin",{"main"});
     int messages=0,withdrawals=0; QString lastTitle,source;
     QObject::connect(&process,&PluginProcess::messageReceived,&app,[&](const QString &type,const QString &id,const QVariantMap &state,int priority,const QString &,int,int){

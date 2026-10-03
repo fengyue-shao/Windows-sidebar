@@ -72,6 +72,7 @@ public:
                 || secret.size()<32 || object.value("token").toString().toUtf8()!=secret) return false;
             ready=true; secret.clear(); result.type="hello"; return true;
         }
+        if (type=="closing") { if (!exactKeys(object,{"type"})) return false; result.type=type; return true; }
         if (type!="state" && type!="event" && type!="withdraw") return false;
         if (!exactKeys(object,{"type","source","state","priority","key","durationMs","validForMs"})) return false;
         const auto source=object.value("source").toString();
@@ -109,7 +110,7 @@ public:
         }
         if (type=="event") {
             result.key=object.value("key").toString();
-            if (!localId(result.key)) return false;
+            if (!QRegularExpression("^[A-Za-z0-9_-]{1,64}$").match(result.key).hasMatch()) return false;
             for (const auto &field:QStringList{"durationMs","validForMs"}) {
                 if (!object.contains(field)) continue;
                 if (!object.value(field).isDouble()) return false;

@@ -32,7 +32,6 @@
 #include "include/featuretests.h"
 #include "include/radiomanager.h"
 #include "include/pluginregistry.h"
-#include "include/terminalmanager.h"
 #include "include/wifimanager.h"
 #include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
@@ -41,14 +40,12 @@
 #include "include/thememanager.h"
 #include "include/uisettings.h"
 
-#include "include/terminalcanvas.h"
 
 int main(int argc, char *argv[])
 {
-    qmlRegisterType<TerminalCanvas>("WindowsSidebar.Terminal", 1, 0, "TerminalCanvas");
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     QGuiApplication app(argc, argv);
-    QCoreApplication::setApplicationVersion("0.8.1.4-preview");
+    QCoreApplication::setApplicationVersion("0.8.2.0-preview");
     QCoreApplication::setOrganizationName("WindowsSidebar");
     QCoreApplication::setApplicationName("WindowsSidebar");
     qRegisterMetaType<QImage>("QImage");
@@ -72,7 +69,6 @@ int main(int argc, char *argv[])
     UsbManager usbManager;
     RadioManager radioManager;
     PluginRegistry pluginRegistry;
-    TerminalManager terminalManager;
     WifiManager wifiManager;
     MediaMonitor mediaMonitor;
     NotificationModel notificationModel;
@@ -86,6 +82,15 @@ int main(int argc, char *argv[])
     UiSettings uiSettings;
     DropdownController dropdownController;
     IslandBridge islandBridge;
+    pluginRegistry.setIslandBridge(&islandBridge);
+    const auto syncPluginTheme=[&] {
+        QVariantMap tokens;
+        for (const auto &key:QStringList{"surface","border","accent","accentSoft","textPrimary","textMuted","textFaint","warning","danger","dangerSoft","success"})
+            tokens.insert(key,themeManager.property(key.toLatin1().constData()).value<QColor>().name(QColor::HexArgb));
+        pluginRegistry.setThemeTokens(tokens);
+    };
+    QObject::connect(&themeManager,&ThemeManager::themeChanged,&pluginRegistry,syncPluginTheme);
+    syncPluginTheme();
     CaptureUsageMonitor captureUsageMonitor;
     // Destroy the QML engine before its context services, avoiding null context
     // bindings and active callbacks during application teardown.
@@ -160,7 +165,6 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("usbManager", &usbManager);
     engine.rootContext()->setContextProperty("radioManager", &radioManager);
     engine.rootContext()->setContextProperty("pluginRegistry", &pluginRegistry);
-    engine.rootContext()->setContextProperty("terminalManager", &terminalManager);
     engine.rootContext()->setContextProperty("wifiManager", &wifiManager);
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
     engine.rootContext()->setContextProperty("notificationModel", &notificationModel);

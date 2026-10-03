@@ -18,6 +18,7 @@ public:
     bool start(const QString &executable);
     void show();
     void stop();
+    void setThemeTokens(const QVariantMap &tokens);
     QString status() const { return m_status; }
     bool running() const { return m_process.state()!=QProcess::NotRunning; }
 signals:
@@ -35,6 +36,7 @@ private:
     PluginProtocol::Decoder m_decoder;
     std::unique_ptr<PluginProtocol::Session> m_session;
     bool m_stopping=false;
+    QVariantMap m_themeTokens;
     void setStatus(const QString &value);
     void acceptConnection();
     void readMessages();

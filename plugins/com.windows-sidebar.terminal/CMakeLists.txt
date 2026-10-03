@@ -1,0 +1,17 @@
+cmake_minimum_required(VERSION 3.16)
+project(sidebar_terminal_plugin VERSION 0.8.2.0 LANGUAGES CXX)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+find_package(Qt6 REQUIRED COMPONENTS Quick Network)
+qt_standard_project_setup(REQUIRES 6.8)
+qt_add_executable(sidebar-terminal-runner runner/terminalrunner.cpp)
+target_link_libraries(sidebar-terminal-runner PRIVATE Qt6::Core)
+set_target_properties(sidebar-terminal-runner PROPERTIES WIN32_EXECUTABLE FALSE RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+qt_add_executable(sidebar-terminal-plugin src/main.cpp src/terminalclient.cpp include/terminalclient.h
+    src/terminalmanager.cpp include/terminalmanager.h src/terminalscreen.cpp include/terminalscreen.h
+    src/terminalcanvas.cpp include/terminalcanvas.h)
+target_include_directories(sidebar-terminal-plugin PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${CMAKE_CURRENT_SOURCE_DIR}/../..")
+target_link_libraries(sidebar-terminal-plugin PRIVATE Qt6::Quick Qt6::Network)
+set_target_properties(sidebar-terminal-plugin PROPERTIES WIN32_EXECUTABLE TRUE RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}")
+qt_add_resources(sidebar-terminal-plugin terminal_ui PREFIX "/" FILES ui/Main.qml ui/Window.qml)
+add_dependencies(sidebar-terminal-plugin sidebar-terminal-runner)

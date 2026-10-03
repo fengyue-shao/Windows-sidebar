@@ -2,7 +2,7 @@
 
 ## 定位
 
-受限终端是 Windows Sidebar 插件系统的首个后端型插件。它提供嵌入侧栏的持续 Shell 会话、智能补全和独立调试日志，同时通过单独的 Runner 进程限制命令对宿主应用的影响。
+0.8.2.0 候选已改为独立可选包：UI、字符画布、管理器与 Runner 均在插件进程中，工具箱启动和管理独立窗口，不嵌入宿主 QML。当前拆分状态、验证与限制见 [进程接口说明](PLUGIN_PROCESS_ISOLATION_2026-10-03.md) 和 [候选记录](RELEASE_0.8.2.0_CANDIDATE.md)。下文较早实现记录应按该候选说明核对，不代表安装版全面验收已经通过。
 
 当前隔离基于 Windows Job Object、PowerShell Constrained Language、受控环境继承和应用专用工作目录。它用于降低误操作和失控进程风险，但不是 AppContainer、Windows Sandbox 或虚拟机级别的安全边界。
 

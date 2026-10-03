@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 import WindowsSidebar.Terminal 1.0
 
@@ -43,6 +44,30 @@ Item {
     function formatElapsed(milliseconds) {
         const seconds = Math.max(0, Math.floor(milliseconds / 1000))
         return Math.floor(seconds / 60) + ":" + (seconds % 60 < 10 ? "0" : "") + seconds % 60
+    }
+    component TerminalCombo: Basic.ComboBox {
+        id: choice
+        implicitHeight: 34; opacity: enabled ? 1 : 0.45
+        contentItem: Text { text: choice.displayText; color: themeManager.textPrimary; font: choice.font; leftPadding: 10; rightPadding: 28; elide: Text.ElideRight; verticalAlignment: Text.AlignVCenter }
+        indicator: Item {
+            width: 12; height: 8; x: choice.width-22; y: (choice.height-height)/2
+            Rectangle { x: 0; y: 2; width: 7; height: 1.5; rotation: 45; color: themeManager.textMuted; antialiasing: true }
+            Rectangle { x: 4; y: 2; width: 7; height: 1.5; rotation: -45; color: themeManager.textMuted; antialiasing: true }
+        }
+        background: Rectangle { radius: 8; color: themeManager.surface; border.color: choice.activeFocus ? themeManager.accent : themeManager.border; border.width: 1 }
+        delegate: Basic.ItemDelegate {
+            required property var modelData
+            required property int index
+            width: choice.width; implicitHeight: 34; highlighted: choice.highlightedIndex===index
+            contentItem: Text { text: parent.modelData; color: themeManager.textPrimary; font: choice.font; verticalAlignment: Text.AlignVCenter }
+            background: Rectangle { color: parent.highlighted ? themeManager.accentSoft : themeManager.surface }
+        }
+        popup: Basic.Popup {
+            y: choice.height+4; width: choice.width; padding: 2
+            implicitHeight: Math.min(160,list.contentHeight+4)
+            contentItem: ListView { id: list; clip: true; model: choice.popup.visible ? choice.delegateModel : null; currentIndex: choice.highlightedIndex }
+            background: Rectangle { radius: 8; color: themeManager.surface; border.color: themeManager.border; border.width: 1 }
+        }
     }
     function publishActivity() {
         if (typeof islandBridge === "undefined") return
@@ -307,7 +332,7 @@ Item {
                 anchors.left: parent.left; anchors.right: parent.right; anchors.top: parent.top; anchors.margins: 9; spacing: 6
                 RowLayout {
                     Layout.fillWidth: true; spacing: 6
-                    ComboBox {
+                    TerminalCombo {
                         id: transportChooser; objectName: "terminalTransportChooser"
                         Layout.preferredWidth: Math.min(158, root.width * 0.36)
                         model: ["自动 · 原生优先", "原生 ConPTY", "兼容管道"]
@@ -324,7 +349,7 @@ Item {
                     Layout.fillWidth: true; spacing: 6
                     Text { Layout.fillWidth: true; text: (root.nativeMode ? "启动目录 · " : "当前目录 · ") + terminalManager.currentDirectory; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideMiddle }
                     Text { text: "UTF-8"; color: themeManager.textFaint; font.pixelSize: 9 }
-                    ComboBox {
+                    TerminalCombo {
                         visible: !root.nativeMode; objectName: "terminalTimeoutChooser"
                         Layout.preferredWidth: 105; model: ["超时 30 秒", "超时 60 秒", "超时 5 分钟", "关闭超时"]
                         currentIndex: terminalManager.commandTimeoutSeconds === 0 ? 3 : terminalManager.commandTimeoutSeconds === 30 ? 0 : terminalManager.commandTimeoutSeconds === 300 ? 2 : 1
