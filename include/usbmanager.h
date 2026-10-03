@@ -8,7 +8,7 @@ class UsbManager : public QObject {
     Q_PROPERTY(bool busy READ busy NOTIFY changed)
     Q_PROPERTY(QString status READ status NOTIFY changed)
 public:
-    explicit UsbManager(QObject *parent = nullptr);
+    explicit UsbManager(QObject *parent = nullptr, bool autoRefresh = true);
     QVariantList devices() const { return m_devices; }
     bool busy() const { return m_busy; }
     QString status() const { return m_status; }

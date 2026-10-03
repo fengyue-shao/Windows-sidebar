@@ -17,6 +17,7 @@ enum class NotificationType
 struct Notification{
     QString id;
     QString appName;
+    QString appId;
     QString title;
     QString content;
     QUrl appIcon;

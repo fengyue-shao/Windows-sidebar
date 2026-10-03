@@ -18,8 +18,10 @@ NetworkOperatorTetheringManager manager()
     return NetworkOperatorTetheringManager::CreateFromConnectionProfile(profile);
 }
 
-winrt::fire_and_forget operate(QPointer<HotspotManager> owner, NetworkOperatorTetheringManager hotspot, bool configure, bool active, QString ssid, QString password)
+winrt::Windows::Foundation::IAsyncAction operate(QPointer<HotspotManager> owner, quint64 generation, NetworkOperatorTetheringManager hotspot, bool configure, bool active, QString ssid, QString password)
 {
+    auto cancellation = co_await winrt::get_cancellation_token();
+    cancellation.enable_propagation();
     QString message;
     try {
         if (!hotspot) {
@@ -53,7 +55,7 @@ winrt::fire_and_forget operate(QPointer<HotspotManager> owner, NetworkOperatorTe
             .arg(static_cast<quint32>(error.code().value), 8, 16, QLatin1Char('0'));
     } catch (...) { message = QStringLiteral("热点操作失败"); }
     password.fill(QChar(0)); password.clear();
-    QMetaObject::invokeMethod(qGuiApp, [owner, message] { if (owner) owner->finished(message); }, Qt::QueuedConnection);
+    QMetaObject::invokeMethod(qGuiApp, [owner, generation, message] { if (owner) owner->finished(generation, message); }, Qt::QueuedConnection);
 }
 }
 
@@ -68,17 +70,49 @@ NetworkOperatorTetheringManager HotspotManager::resolveManager(bool allowCached)
     return current ? current : allowCached ? m_manager : nullptr;
 }
 
-HotspotManager::HotspotManager(QObject *parent) : QObject(parent)
+HotspotManager::HotspotManager(QObject *parent, bool monitorSystem) : QObject(parent), m_monitorSystem(monitorSystem)
 {
+    if (!m_monitorSystem) return; // Isolated lifecycle tests never resolve a Windows manager.
     auto *timer = new QTimer(this);
     timer->setInterval(10000);
     connect(timer, &QTimer::timeout, this, &HotspotManager::refresh);
     timer->start(); refresh();
 }
 
+HotspotManager::~HotspotManager()
+{
+    ++m_generation;
+    try { if (m_action) m_action.Cancel(); } catch (...) {}
+}
+
+quint64 HotspotManager::beginOperation(const QString &message)
+{
+    const auto generation = ++m_generation;
+    m_busy = true; m_result.clear(); m_status = message; emit changed();
+    QTimer::singleShot(45000, this, [this, generation] { timeout(generation); });
+    return generation;
+}
+
+void HotspotManager::cancel()
+{
+    if (!m_busy) return;
+    ++m_generation;
+    try { if (m_action) m_action.Cancel(); } catch (...) {}
+    m_action = nullptr; m_busy = false;
+    m_result = QStringLiteral("已停止等待；不保证 Windows 操作已撤回，请核验实际状态");
+    refresh();
+}
+
+void HotspotManager::timeout(quint64 generation)
+{
+    if (!m_busy || generation != m_generation) return;
+    cancel(); m_result = QStringLiteral("热点操作等待超过 45 秒；不保证系统操作已撤回，不自动重试"); refresh();
+}
+
 void HotspotManager::refresh()
 {
     if (m_busy) return;
+    if (!m_monitorSystem) { m_status = m_result; emit changed(); return; }
     m_supported = false; m_active = false; m_ssid.clear();
     UINT32 length = 0;
     if (GetCurrentPackageFullName(&length, nullptr) == APPMODEL_ERROR_NO_PACKAGE) {
@@ -115,9 +149,9 @@ void HotspotManager::setActive(bool active)
     if (m_busy) return;
     refresh(); // Recheck support and state immediately before any operation.
     if (!m_supported || m_active == active) return;
-    m_busy = true; m_result.clear(); m_status = QStringLiteral("正在提交热点操作…"); emit changed();
-    try { operate(this, resolveManager(!active), false, active, {}, {}); }
-    catch (...) { finished(QStringLiteral("无法获取热点控制接口，请使用 Windows 设置")); }
+    const auto generation = beginOperation(QStringLiteral("正在提交热点操作…"));
+    try { m_action = operate(this, generation, resolveManager(!active), false, active, {}, {}); }
+    catch (...) { finished(generation, QStringLiteral("无法获取热点控制接口，请使用 Windows 设置")); }
 }
 
 void HotspotManager::configure(const QString &ssid, const QString &password)
@@ -128,13 +162,15 @@ void HotspotManager::configure(const QString &ssid, const QString &password)
     }
     refresh();
     if (!m_supported || m_active) return;
-    m_busy = true; m_result.clear(); m_status = QStringLiteral("正在保存热点配置…"); emit changed();
-    try { operate(this, resolveManager(false), true, false, ssid, password); }
-    catch (...) { finished(QStringLiteral("无法获取热点配置接口，请使用 Windows 设置")); }
+    const auto generation = beginOperation(QStringLiteral("正在保存热点配置…"));
+    try { m_action = operate(this, generation, resolveManager(false), true, false, ssid, password); }
+    catch (...) { finished(generation, QStringLiteral("无法获取热点配置接口，请使用 Windows 设置")); }
 }
 
-void HotspotManager::finished(const QString &message)
+void HotspotManager::finished(quint64 generation, const QString &message)
 {
+    if (!m_busy || generation != m_generation) return;
+    m_action = nullptr;
     m_busy = false; m_result = message; refresh();
     emit operationCompleted();
 }

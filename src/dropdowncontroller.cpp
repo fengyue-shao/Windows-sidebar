@@ -1,4 +1,6 @@
 #include "include/dropdowncontroller.h"
+#include "include/fullscreenpolicy.h"
+#include "include/hotkeypolicy.h"
 
 #include <QCursor>
 #include <QDebug>
@@ -10,13 +12,12 @@
 #define NOMINMAX
 #include <windows.h>
 
-namespace { constexpr int hotkeyId = 0x5342; }
-
 DropdownController::DropdownController(QObject *parent) : QObject(parent)
 {
     qGuiApp->installNativeEventFilter(this);
     // Thread-bound registration still receives WM_HOTKEY while the window is hidden.
-    m_hotkey = RegisterHotKey(nullptr, hotkeyId, MOD_CONTROL | MOD_ALT | MOD_NOREPEAT, VK_SPACE);
+    m_hotkeyModifiers = MOD_CONTROL | MOD_ALT | MOD_NOREPEAT; m_hotkeyKey = VK_SPACE;
+    m_hotkey = RegisterHotKey(nullptr, m_hotkeyId, m_hotkeyModifiers, m_hotkeyKey);
     if (!m_hotkey) qWarning() << "Dropdown hotkey unavailable, Win32 error:" << GetLastError();
     m_timer.setInterval(60);
     connect(&m_timer, &QTimer::timeout, this, &DropdownController::pollPointer);
@@ -25,11 +26,34 @@ DropdownController::DropdownController(QObject *parent) : QObject(parent)
 
 DropdownController::~DropdownController()
 {
-    if (m_hotkey) UnregisterHotKey(nullptr, hotkeyId);
+    if (m_hotkey) UnregisterHotKey(nullptr, m_hotkeyId);
     qGuiApp->removeNativeEventFilter(this);
 }
 
 void DropdownController::attach(QWindow *window) { m_window = window; }
+
+bool DropdownController::applyShortcut(const QString &shortcut)
+{
+    const auto parsed = SidebarHotkey::parse(shortcut);
+    if (!parsed.valid) {
+        m_hotkeyStatus = QStringLiteral("快捷键无效：使用 Ctrl/Alt/Win 与字母、数字、F1–F24 或 Space 的单一组合");
+        emit hotkeyAvailableChanged(); return false;
+    }
+    if (m_hotkey && parsed.modifiers == m_hotkeyModifiers && parsed.key == m_hotkeyKey) {
+        m_hotkeyStatus = QStringLiteral("快捷键已生效"); emit hotkeyAvailableChanged(); return true;
+    }
+    const int candidate = m_hotkeyId == 0x5342 ? 0x5343 : 0x5342;
+    const auto result = SidebarHotkey::replace(m_hotkey,
+        [&] { return RegisterHotKey(nullptr, candidate, parsed.modifiers, parsed.key) ? DWORD{0} : GetLastError(); },
+        [&] { return UnregisterHotKey(nullptr, m_hotkeyId) ? DWORD{0} : GetLastError(); },
+        [&] { UnregisterHotKey(nullptr, candidate); });
+    if (!result.accepted) {
+        m_hotkeyStatus = QStringLiteral("快捷键注册失败（错误 %1）；保留原注册，不保存新值").arg(result.error);
+        emit hotkeyAvailableChanged(); return false;
+    }
+    m_hotkey = true; m_hotkeyId = candidate; m_hotkeyModifiers = parsed.modifiers; m_hotkeyKey = parsed.key; m_shortcut = parsed.text;
+    m_hotkeyStatus = QStringLiteral("快捷键已生效"); emit hotkeyAvailableChanged(); return true;
+}
 
 void DropdownController::configureEdge(int x, int y, int width)
 {
@@ -77,13 +101,31 @@ void DropdownController::pollPointer()
     if (inside != m_inside) { m_inside = inside; emit pointerInsideChanged(); }
     if (!m_edge.contains(cursor)) { m_blocked = false; m_dwell = 0; return; }
     if (m_blocked || (m_window && m_window->isVisible())) return;
+    if (m_suppressFullscreen && foregroundCoversTargetMonitor()) { m_dwell = 0; return; }
     if (++m_dwell >= 4) { m_blocked = true; m_dwell = 0; emit edgeRequested(); }
+}
+
+bool DropdownController::foregroundCoversTargetMonitor() const
+{
+    if (!m_window) return false;
+    const HWND foreground = GetForegroundWindow();
+    const HWND own = reinterpret_cast<HWND>(m_window->winId());
+    if (!foreground || foreground == own || foreground == GetDesktopWindow() || foreground == GetShellWindow()
+        || !IsWindowVisible(foreground) || IsIconic(foreground)) return false;
+    wchar_t className[128]{}; GetClassNameW(foreground, className, 128);
+    if (wcscmp(className, L"WorkerW") == 0 || wcscmp(className, L"Progman") == 0 || wcscmp(className, L"Shell_TrayWnd") == 0) return false;
+    const auto monitor = MonitorFromWindow(foreground, MONITOR_DEFAULTTONEAREST);
+    if (!monitor || monitor != MonitorFromWindow(own, MONITOR_DEFAULTTONEAREST)) return false;
+    RECT bounds{}; MONITORINFO info{}; info.cbSize = sizeof(info);
+    if (!GetWindowRect(foreground, &bounds) || !GetMonitorInfoW(monitor, &info)) return false;
+    return SidebarFullscreen::coversMonitor(QRect(bounds.left, bounds.top, bounds.right-bounds.left, bounds.bottom-bounds.top),
+        QRect(info.rcMonitor.left, info.rcMonitor.top, info.rcMonitor.right-info.rcMonitor.left, info.rcMonitor.bottom-info.rcMonitor.top));
 }
 
 bool DropdownController::nativeEventFilter(const QByteArray &, void *message, qintptr *result)
 {
     const MSG *msg = static_cast<MSG *>(message);
-    if (msg->message != WM_HOTKEY || msg->wParam != hotkeyId) return false;
+    if (msg->message != WM_HOTKEY || msg->wParam != m_hotkeyId || !m_hotkey) return false;
     emit hotkeyRequested();
     if (result) *result = 0;
     return true;

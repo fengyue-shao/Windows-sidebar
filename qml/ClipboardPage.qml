@@ -58,13 +58,14 @@ Item {
             id: ocrResult
             visible: clipboardOcr.status.length > 0
             Layout.fillWidth: true
-            Layout.preferredHeight: clipboardOcr.text.length > 0 ? 210 : 88
+            Layout.preferredHeight: clipboardOcr.text.length > 0 ? 210 : Math.max(88, ocrContent.implicitHeight + 24)
             ColumnLayout {
+                id: ocrContent
                 anchors.fill: parent; anchors.margins: 12; spacing: 8
                 RowLayout {
                     Layout.fillWidth: true
-                    Text { Layout.fillWidth: true; text: clipboardOcr.status; wrapMode: Text.Wrap; color: themeManager.textMuted; font.pixelSize: 11 }
-                    CardAction { text: "关闭"; enabled: !clipboardOcr.busy; onClicked: clipboardOcr.clear() }
+                    Text { objectName: "ocrStatus"; Layout.fillWidth: true; text: clipboardOcr.status; wrapMode: Text.Wrap; color: themeManager.textMuted; font.pixelSize: 11; textFormat: Text.PlainText }
+                    CardAction { objectName: "ocrCancelOrClose"; text: clipboardOcr.busy ? "停止识别" : "关闭"; onClicked: { if (clipboardOcr.busy) clipboardOcr.cancel(); else clipboardOcr.clear() } }
                 }
                 Basic.ScrollView {
                     Layout.fillWidth: true; Layout.fillHeight: true

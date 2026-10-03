@@ -7,10 +7,12 @@
 #include <propkeydef.h>
 #include <functiondiscoverykeys_devpkey.h>
 #include <mmdeviceapi.h>
+#include "include/audiooutputswitch.h"
 #include <wininet.h>
 #include <QFileInfo>
 #include <QVariantMap>
 #include <iterator>
+#include <algorithm>
 
 // Windows Core Audio policy interface used by the system sound flyout.
 struct __declspec(uuid("f8679f50-850a-41cf-9c72-430f290290c8")) IPolicyConfig : IUnknown {
@@ -88,16 +90,64 @@ void SystemTrayManager::toggleSessionMuted(const QString &sessionId)
 
 void SystemTrayManager::selectAudioOutput(const QString &deviceId)
 {
-    IPolicyConfig *policy = nullptr;
-    if (FAILED(CoCreateInstance(CLSID_PolicyConfigClient, nullptr, CLSCTX_ALL, __uuidof(IPolicyConfig), reinterpret_cast<void **>(&policy))))
+    if (deviceId.isEmpty()) {
+        setAudioOutputStatus(true, QStringLiteral("请选择可用的输出设备"));
         return;
+    }
+    // Never send a stale/unplugged ID or an arbitrary non-render endpoint.
+    refreshAudioOutputs();
+    const bool available = std::any_of(m_audioOutputs.cbegin(), m_audioOutputs.cend(), [&deviceId](const QVariant &item) {
+        return item.toMap().value(QStringLiteral("id")).toString() == deviceId;
+    });
+    if (!available) {
+        setAudioOutputStatus(true, QStringLiteral("输出设备已不可用，或设备列表读取失败；请刷新或打开 Windows 声音设置"));
+        return;
+    }
+    IPolicyConfig *policy = nullptr;
+    HRESULT result = CoCreateInstance(CLSID_PolicyConfigClient, nullptr, CLSCTX_ALL,
+        __uuidof(IPolicyConfig), reinterpret_cast<void **>(&policy));
+    if (FAILED(result) || !policy) {
+        setAudioOutputStatus(true, QStringLiteral("无法访问输出切换接口（%1），请使用 Windows 声音设置")
+            .arg(SidebarAudio::errorCode(FAILED(result) ? result : E_UNEXPECTED)));
+        return;
+    }
+    IMMDeviceEnumerator *enumerator = nullptr;
+    result = CoCreateInstance(__uuidof(MMDeviceEnumerator), nullptr, CLSCTX_ALL,
+        __uuidof(IMMDeviceEnumerator), reinterpret_cast<void **>(&enumerator));
+    if (FAILED(result) || !enumerator) {
+        policy->Release();
+        setAudioOutputStatus(true, QStringLiteral("无法核验默认输出设备（%1），未发起切换")
+            .arg(SidebarAudio::errorCode(FAILED(result) ? result : E_UNEXPECTED)));
+        return;
+    }
     const std::wstring id = deviceId.toStdWString();
-    policy->SetDefaultEndpoint(id.c_str(), eConsole);
-    policy->SetDefaultEndpoint(id.c_str(), eMultimedia);
-    policy->SetDefaultEndpoint(id.c_str(), eCommunications);
+    const auto outcome = SidebarAudio::switchOutput(deviceId,
+        [&](ERole role) { return policy->SetDefaultEndpoint(id.c_str(), role); },
+        [&](ERole role) {
+            IMMDevice *device = nullptr;
+            LPWSTR observedId = nullptr;
+            HRESULT hr = enumerator->GetDefaultAudioEndpoint(eRender, role, &device);
+            if (SUCCEEDED(hr)) hr = device ? device->GetId(&observedId) : E_UNEXPECTED;
+            const QString observed = SUCCEEDED(hr) && observedId ? QString::fromWCharArray(observedId) : QString();
+            if (SUCCEEDED(hr) && !observedId) hr = E_UNEXPECTED;
+            if (observedId) CoTaskMemFree(observedId);
+            if (device) device->Release();
+            return SidebarAudio::EndpointRead{hr, observed};
+        });
+    enumerator->Release();
     policy->Release();
     resetAudioEndpoint();
     refreshAudio();
+    refreshAudioOutputs();
+    setAudioOutputStatus(!outcome.confirmed, outcome.message);
+}
+
+void SystemTrayManager::setAudioOutputStatus(bool failed, const QString &status)
+{
+    if (m_audioOutputSwitchFailed == failed && m_audioOutputStatus == status) return;
+    m_audioOutputSwitchFailed = failed;
+    m_audioOutputStatus = status;
+    emit audioOutputStatusChanged();
 }
 
 void SystemTrayManager::refresh()

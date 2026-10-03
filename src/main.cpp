@@ -36,6 +36,7 @@
 #include "include/wifimanager.h"
 #include "include/notificationlistener.h"
 #include "include/notificationmodel.h"
+#include "include/notificationviewmodel.h"
 #include "include/systemtraymanager.h"
 #include "include/thememanager.h"
 #include "include/uisettings.h"
@@ -47,7 +48,7 @@ int main(int argc, char *argv[])
     qmlRegisterType<TerminalCanvas>("WindowsSidebar.Terminal", 1, 0, "TerminalCanvas");
     winrt::init_apartment(winrt::apartment_type::single_threaded);
     QGuiApplication app(argc, argv);
-    QCoreApplication::setApplicationVersion("0.8.1.3-preview");
+    QCoreApplication::setApplicationVersion("0.8.1.4-preview");
     QCoreApplication::setOrganizationName("WindowsSidebar");
     QCoreApplication::setApplicationName("WindowsSidebar");
     qRegisterMetaType<QImage>("QImage");
@@ -75,6 +76,7 @@ int main(int argc, char *argv[])
     WifiManager wifiManager;
     MediaMonitor mediaMonitor;
     NotificationModel notificationModel;
+    NotificationViewModel notificationViewModel(&notificationModel);
     NotificationListener notificationListener;
     SystemTrayManager systemTrayManager;
     AudioInputManager audioInputManager;
@@ -88,6 +90,15 @@ int main(int argc, char *argv[])
     // Destroy the QML engine before its context services, avoiding null context
     // bindings and active callbacks during application teardown.
     QQmlApplicationEngine engine;
+    dropdownController.setSuppressEdgeInFullscreen(uiSettings.suppressEdgeInFullscreen());
+    dropdownController.applyShortcut(uiSettings.activationShortcut());
+    QObject::connect(&uiSettings, &UiSettings::shortcutResetRequested, &dropdownController, [&] {
+        if (dropdownController.applyShortcut(QStringLiteral("Ctrl+Alt+Space")))
+            uiSettings.setActivationShortcut(dropdownController.shortcutText());
+    });
+    QObject::connect(&uiSettings, &UiSettings::suppressEdgeInFullscreenChanged, &dropdownController, [&] {
+        dropdownController.setSuppressEdgeInFullscreen(uiSettings.suppressEdgeInFullscreen());
+    });
 
     monitorScheduler.addModule(&cpuMonitor, 1000);
     monitorScheduler.addModule(&memoryMonitor, 1000);
@@ -107,8 +118,12 @@ int main(int argc, char *argv[])
                      &notificationModel, &NotificationModel::addNotification);
     QObject::connect(&notificationListener, &NotificationListener::notificationRemoved,
                      &notificationModel, &NotificationModel::removeById);
+    QObject::connect(&notificationListener, &NotificationListener::snapshotReady,
+                     &notificationModel, &NotificationModel::synchronize);
     QObject::connect(&notificationModel, &NotificationModel::removalRequested,
                      &notificationListener, &NotificationListener::removeNotification);
+    QObject::connect(&notificationModel, &NotificationModel::removalsRequested,
+                     &notificationListener, &NotificationListener::removeNotifications);
     QObject::connect(&notificationModel, &NotificationModel::clearRequested,
                      &notificationListener, &NotificationListener::clearNotifications);
     QObject::connect(&notificationListener, &NotificationListener::accessDenied,
@@ -119,7 +134,13 @@ int main(int argc, char *argv[])
                      [](const QString &message) {
                          qWarning() << "Windows notification listener:" << message;
                      });
-    notificationListener.start();
+    QObject::connect(&uiSettings, &UiSettings::notificationsEnabledChanged,
+                     &notificationListener, [&] {
+        if (uiSettings.notificationsEnabled()) notificationListener.start();
+        else notificationListener.stop();
+    });
+    if (uiSettings.notificationsEnabled()) notificationListener.start();
+    else notificationListener.stop();
 
     auto *coverProvider = new CoverImageProvider;
     mediaMonitor.setCoverProvider(coverProvider);
@@ -143,6 +164,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("wifiManager", &wifiManager);
     engine.rootContext()->setContextProperty("mediaMonitor", &mediaMonitor);
     engine.rootContext()->setContextProperty("notificationModel", &notificationModel);
+    engine.rootContext()->setContextProperty("notificationViewModel", &notificationViewModel);
+    engine.rootContext()->setContextProperty("notificationListener", &notificationListener);
     engine.rootContext()->setContextProperty("systemTrayManager", &systemTrayManager);
     engine.rootContext()->setContextProperty("audioInputManager", &audioInputManager);
     engine.rootContext()->setContextProperty("mediaSpectrum", &mediaSpectrum);

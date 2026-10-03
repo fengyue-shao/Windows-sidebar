@@ -20,8 +20,9 @@ CardSurface {
         Text { Layout.fillWidth: true; text: hotspotManager.status; color: themeManager.textMuted; font.pixelSize: 11; wrapMode: Text.Wrap }
         Text { Layout.fillWidth: true; visible: hotspotManager.ssid.length > 0; text: "名称 · " + hotspotManager.ssid; color: themeManager.textSecondary; font.pixelSize: 11; wrapMode: Text.Wrap; textFormat: Text.PlainText }
         RowLayout {
-            CardAction { text: hotspotManager.active ? "关闭热点" : "开启热点"; enabled: hotspotManager.supported && !hotspotManager.busy; onClicked: { root.pendingActive = !hotspotManager.active; root.pending = "toggle" } }
-            CardAction { text: "刷新"; enabled: !hotspotManager.busy; onClicked: hotspotManager.refresh() }
+            CardAction { objectName: "hotspotToggle"; text: hotspotManager.active ? "关闭热点" : "开启热点"; enabled: hotspotManager.supported && !hotspotManager.busy; onClicked: { root.pendingActive = !hotspotManager.active; root.pending = "toggle" } }
+            CardAction { objectName: "hotspotRefresh"; text: "刷新"; enabled: !hotspotManager.busy; onClicked: hotspotManager.refresh() }
+            CardAction { objectName: "hotspotCancel"; visible: hotspotManager.busy; text: "停止等待"; onClicked: hotspotManager.cancel() }
         }
         CardAction { visible: !hotspotManager.supported; text: "Windows 热点设置"; onClicked: Qt.openUrlExternally("ms-settings:network-mobilehotspot") }
         ColumnLayout {

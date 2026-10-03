@@ -11,9 +11,11 @@ class UiSettings : public QObject
     Q_PROPERTY(bool monitorEnabled READ monitorEnabled WRITE setMonitorEnabled NOTIFY monitorEnabledChanged)
     Q_PROPERTY(bool notificationsEnabled READ notificationsEnabled WRITE setNotificationsEnabled NOTIFY notificationsEnabledChanged)
     Q_PROPERTY(bool autoHide READ autoHide WRITE setAutoHide NOTIFY autoHideChanged)
+    Q_PROPERTY(bool suppressEdgeInFullscreen READ suppressEdgeInFullscreen WRITE setSuppressEdgeInFullscreen NOTIFY suppressEdgeInFullscreenChanged)
     Q_PROPERTY(bool compactMode READ compactMode WRITE setCompactMode NOTIFY compactModeChanged)
     Q_PROPERTY(int panelWidth READ panelWidth WRITE setPanelWidth NOTIFY panelWidthChanged)
     Q_PROPERTY(qreal panelOpacity READ panelOpacity WRITE setPanelOpacity NOTIFY panelOpacityChanged)
+    Q_PROPERTY(QString activationShortcut READ activationShortcut WRITE setActivationShortcut NOTIFY activationShortcutChanged)
 
 public:
     explicit UiSettings(QObject *parent = nullptr);
@@ -24,9 +26,11 @@ public:
     bool monitorEnabled() const;
     bool notificationsEnabled() const;
     bool autoHide() const;
+    bool suppressEdgeInFullscreen() const { return m_suppressEdgeInFullscreen; }
     bool compactMode() const;
     int panelWidth() const;
     qreal panelOpacity() const;
+    QString activationShortcut() const { return m_activationShortcut; }
 
 public slots:
     void setExpanded(bool expanded);
@@ -35,9 +39,11 @@ public slots:
     void setMonitorEnabled(bool enabled);
     void setNotificationsEnabled(bool enabled);
     void setAutoHide(bool enabled);
+    void setSuppressEdgeInFullscreen(bool enabled);
     void setCompactMode(bool enabled);
     void setPanelWidth(int width);
     void setPanelOpacity(qreal opacity);
+    void setActivationShortcut(const QString &shortcut);
     Q_INVOKABLE void reset();
 
 signals:
@@ -47,9 +53,12 @@ signals:
     void monitorEnabledChanged();
     void notificationsEnabledChanged();
     void autoHideChanged();
+    void suppressEdgeInFullscreenChanged();
     void compactModeChanged();
     void panelWidthChanged();
     void panelOpacityChanged();
+    void activationShortcutChanged();
+    void shortcutResetRequested();
 
 private:
     bool m_expanded = true;
@@ -58,7 +67,9 @@ private:
     bool m_monitorEnabled = true;
     bool m_notificationsEnabled = true;
     bool m_autoHide = false;
+    bool m_suppressEdgeInFullscreen = false;
     bool m_compactMode = false;
     int m_panelWidth = 420;
     qreal m_panelOpacity = 1.0;
+    QString m_activationShortcut = QStringLiteral("Ctrl+Alt+Space");
 };

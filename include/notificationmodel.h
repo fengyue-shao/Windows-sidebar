@@ -1,6 +1,7 @@
 #ifndef NOTIFICATIONMODEL_H
 #define NOTIFICATIONMODEL_H
 #include <QVector>
+#include <QStringList>
 #include <QAbstractListModel>
 #include "Notification.h"
 class NotificationModel : public QAbstractListModel
@@ -19,7 +20,9 @@ public:
         TimestampRole,
         UnreadRole,
         RemovableRole,
-        TypeRole
+        TypeRole,
+        AppIdRole,
+        AppGroupRole
     };
     int rowCount(const QModelIndex &parent=QModelIndex())const override;
     QVariant data(const QModelIndex &index,int role=Qt::DisplayRole)const override;
@@ -29,6 +32,8 @@ public:
     Q_INVOKABLE void removeNotification(int row);
     Q_INVOKABLE void removeById(const QString &id);
     Q_INVOKABLE void clear();
+    void synchronize(const QVector<Notification> &notifications);
+    void requestRemovalByIds(const QStringList &ids);
     Q_INVOKABLE void markAsRead(int row);
     Q_INVOKABLE void markAsUnread(int row);
     Q_INVOKABLE void markAllAsRead();
@@ -37,6 +42,7 @@ public:
 
 signals:
     void removalRequested(const QString &id);
+    void removalsRequested(const QStringList &ids);
     void clearRequested();
     void unreadCountChanged();
 

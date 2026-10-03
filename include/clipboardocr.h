@@ -1,6 +1,7 @@
 #pragma once
 #include <QObject>
 #include <functional>
+#include <winrt/Windows.Foundation.h>
 
 class ClipboardOcr : public QObject {
     Q_OBJECT
@@ -9,12 +10,14 @@ class ClipboardOcr : public QObject {
     Q_PROPERTY(QString text READ text NOTIFY textChanged)
 public:
     explicit ClipboardOcr(QObject *parent = nullptr, std::function<void(const QString &)> copySink = {});
+    ~ClipboardOcr() override;
     bool busy() const { return m_busy; }
     QString status() const { return m_status; }
     QString text() const { return m_text; }
     Q_INVOKABLE void recognize(const QString &historyId);
     void recognizeFixture(const QString &kind = "text"); // Explicit CLI self-test only.
     Q_INVOKABLE void clear();
+    Q_INVOKABLE void cancel();
     Q_INVOKABLE void copy(const QString &text);
     void finish(quint64 generation, const QString &text, const QString &status);
 signals:
@@ -22,8 +25,12 @@ signals:
     void textChanged();
     void completed(bool hasText);
 private:
+    friend class NativeAsyncTest;
     bool m_busy = false;
     quint64 m_generation = 0;
     QString m_status, m_text;
     std::function<void(const QString &)> m_copySink;
+    winrt::Windows::Foundation::IAsyncAction m_action{nullptr};
+    quint64 beginRecognition(const QString &status);
+    void timeout(quint64 generation);
 };

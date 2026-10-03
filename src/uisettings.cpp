@@ -9,6 +9,8 @@ constexpr auto mediaEnabledKey = "modules/mediaEnabled";
 constexpr auto monitorEnabledKey = "modules/monitorEnabled";
 constexpr auto notificationsEnabledKey = "modules/notificationsEnabled";
 constexpr auto autoHideKey = "behavior/autoHide";
+constexpr auto suppressFullscreenKey = "behavior/suppressEdgeInFullscreen";
+constexpr auto activationShortcutKey = "behavior/activationShortcut";
 constexpr auto compactModeKey = "appearance/compactMode";
 constexpr auto panelWidthKey = "appearance/panelWidth";
 constexpr auto panelOpacityKey = "appearance/panelOpacity";
@@ -39,6 +41,8 @@ UiSettings::UiSettings(QObject *parent)
     m_monitorEnabled = settings.value(monitorEnabledKey, true).toBool();
     m_notificationsEnabled = settings.value(notificationsEnabledKey, true).toBool();
     m_autoHide = settings.value(autoHideKey, false).toBool();
+    m_suppressEdgeInFullscreen = settings.value(suppressFullscreenKey, false).toBool();
+    m_activationShortcut = settings.value(activationShortcutKey, QStringLiteral("Ctrl+Alt+Space")).toString();
     m_compactMode = settings.value(compactModeKey, false).toBool();
     m_panelWidth = qBound(360, settings.value(panelWidthKey, 420).toInt(), 560);
     // Standalone cards no longer have the old sidebar background underneath.
@@ -51,6 +55,22 @@ bool UiSettings::mediaEnabled() const { return m_mediaEnabled; }
 bool UiSettings::monitorEnabled() const { return m_monitorEnabled; }
 bool UiSettings::notificationsEnabled() const { return m_notificationsEnabled; }
 bool UiSettings::autoHide() const { return m_autoHide; }
+
+void UiSettings::setSuppressEdgeInFullscreen(bool enabled)
+{
+    if (m_suppressEdgeInFullscreen == enabled) return;
+    m_suppressEdgeInFullscreen = enabled;
+    QSettings().setValue(suppressFullscreenKey, enabled);
+    emit suppressEdgeInFullscreenChanged();
+}
+
+void UiSettings::setActivationShortcut(const QString &shortcut)
+{
+    if (m_activationShortcut == shortcut) return;
+    m_activationShortcut = shortcut;
+    QSettings().setValue(activationShortcutKey, shortcut);
+    emit activationShortcutChanged();
+}
 bool UiSettings::compactMode() const { return m_compactMode; }
 int UiSettings::panelWidth() const { return m_panelWidth; }
 qreal UiSettings::panelOpacity() const { return m_panelOpacity; }
@@ -140,12 +160,14 @@ void UiSettings::setPanelOpacity(qreal opacity)
 
 void UiSettings::reset()
 {
+    emit shortcutResetRequested(); // Controller validates default registration before persisting it.
     setExpanded(true);
     setCurrentSection(0);
     setMediaEnabled(true);
     setMonitorEnabled(true);
     setNotificationsEnabled(true);
     setAutoHide(false);
+    setSuppressEdgeInFullscreen(false);
     setCompactMode(false);
     setPanelWidth(420);
     setPanelOpacity(1.0);

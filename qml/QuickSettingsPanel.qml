@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Controls
+import QtQuick.Controls.Basic as Basic
 import QtQuick.Layouts
 
 Rectangle {
@@ -9,8 +10,12 @@ Rectangle {
     property string selectedWifiSsid: ""
     property string selectedWifiProfile: ""
     property bool selectedWifiSecure: false
+    property var selectedWifiAdapter
+    property bool selectedWifiConnected: false
+    property bool confirmWifiForget: false
+    property bool showHiddenWifi: false
     readonly property int summaryHeight: systemTrayManager.batteryPresent ? 188 : 164
-    readonly property int detailHeight: (currentPanel === 0 || currentPanel === 1 || currentPanel === 4) ? 430 : 286
+    readonly property int detailHeight: (currentPanel === 0 || currentPanel === 1 || currentPanel === 3 || currentPanel === 4) ? 430 : 286
 
     function selectPanel(index) {
         if (expanded && currentPanel === index) {
@@ -144,6 +149,14 @@ Rectangle {
                                 TapHandler { onTapped: systemTrayManager.selectAudioOutput(modelData.id) }
                             }
                         }
+                        Text {
+                            objectName: "audioOutputSwitchStatus"
+                            Layout.fillWidth: true; visible: text.length > 0
+                            text: systemTrayManager.audioOutputStatus
+                            textFormat: Text.PlainText; wrapMode: Text.Wrap
+                            color: systemTrayManager.audioOutputSwitchFailed ? themeManager.warning : themeManager.textMuted
+                            font.pixelSize: 9
+                        }
                         Text { text: systemTrayManager.muted ? "当前已静音" : "主音量 " + systemTrayManager.volume + "%"; color: systemTrayManager.muted ? themeManager.danger : themeManager.textPrimary; font.pixelSize: 13; font.weight: Font.DemiBold }
                         Slider { Layout.fillWidth: true; from: 0; to: 100; value: systemTrayManager.volume; onMoved: systemTrayManager.setVolume(Math.round(value)) }
                         ControlButton { Layout.fillWidth: true; label: systemTrayManager.muted ? "取消静音" : "静音"; active: systemTrayManager.muted; onClicked: systemTrayManager.toggleMuted() }
@@ -203,14 +216,14 @@ Rectangle {
                         spacing: 8
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { Layout.fillWidth: true; text: radioManager.statusText || wifiManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            Text { objectName: "wifiConnectionStatus"; Layout.fillWidth: true; text: wifiManager.statusText + (radioManager.statusText ? "\n" + radioManager.statusText : ""); textFormat: Text.PlainText; color: themeManager.textMuted; font.pixelSize: 9; wrapMode: Text.Wrap }
                             RadioToggle { label: "Wi-Fi"; enabled: !radioManager.busy; checked: radioManager.wifiEnabled; onToggled: radioManager.setWifiEnabled(checked) }
                             Rectangle {
                                 Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
                                 color: wifiRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
                                 Text { anchors.centerIn: parent; text: wifiManager.scanning ? "…" : "↻"; color: themeManager.accent; font.pixelSize: 11 }
                                 HoverHandler { id: wifiRefreshHover }
-                                TapHandler { enabled: !wifiManager.scanning; onTapped: wifiManager.scan() }
+                                TapHandler { enabled: !wifiManager.scanning && !wifiManager.connecting; onTapped: wifiManager.scan() }
                                 ToolTip.visible: wifiRefreshHover.hovered
                                 ToolTip.text: "扫描附近 Wi-Fi"
                             }
@@ -220,9 +233,15 @@ Rectangle {
                             MetricCard { Layout.fillWidth: true; title: "下载"; value: networkMonitor.downloadSpeedText }
                             MetricCard { Layout.fillWidth: true; title: "上传"; value: networkMonitor.uploadSpeedText }
                         }
+                        RowLayout {
+                            Layout.fillWidth: true; spacing: 8
+                            ControlButton { Layout.fillWidth: true; label: root.showHiddenWifi ? "返回附近网络" : "连接隐藏网络"; enabled: !wifiManager.connecting && !wifiManager.scanning; onClicked: { root.showHiddenWifi = !root.showHiddenWifi; root.confirmWifiForget = false } }
+                            ControlButton { Layout.fillWidth: true; label: "Windows Wi-Fi 设置"; onClicked: Qt.openUrlExternally("ms-settings:network-wifi") }
+                        }
                         ListView {
                             Layout.fillWidth: true
                             Layout.fillHeight: true
+                            visible: !root.showHiddenWifi
                             clip: true
                             spacing: 5
                             model: wifiManager.networks
@@ -247,36 +266,73 @@ Rectangle {
                                 }
                                 HoverHandler { id: wifiItemHover }
                                 TapHandler {
-                                    enabled: !modelData.connected
+                                    enabled: !wifiManager.connecting && !wifiManager.scanning
                                     onTapped: {
                                         root.selectedWifiSsid = modelData.ssid
                                         root.selectedWifiProfile = modelData.profileName
                                         root.selectedWifiSecure = modelData.secure
+                                        root.selectedWifiAdapter = modelData.interfaceId
+                                        root.selectedWifiConnected = modelData.connected
+                                        root.confirmWifiForget = false
                                         wifiPassword.text = ""
-                                        if (modelData.profileName !== "" || !modelData.secure)
-                                            wifiManager.connectNetwork(modelData.ssid, modelData.profileName, "", modelData.secure)
+                                        if (!modelData.connected && (modelData.profileName !== "" || !modelData.secure))
+                                            wifiManager.connectNetwork(modelData.ssid, modelData.profileName, "", modelData.secure, modelData.interfaceId)
                                     }
                                 }
                             }
                         }
+                        ColumnLayout {
+                            Layout.fillWidth: true; Layout.fillHeight: true
+                            visible: root.showHiddenWifi
+                            spacing: 8
+                            Text { Layout.fillWidth: true; text: "隐藏网络仅支持开放/WPA2 个人版；企业/WPA3 请使用系统设置。不会覆盖同名配置。"; color: themeManager.textMuted; font.pixelSize: 10; wrapMode: Text.Wrap }
+                            WifiComboBox { id: hiddenAdapter; objectName: "hiddenWifiAdapter"; Layout.fillWidth: true; model: wifiManager.adapters; textRole: "name" }
+                            WifiTextField { id: hiddenSsid; objectName: "hiddenWifiSsid"; Layout.fillWidth: true; placeholderText: "准确的网络名称（SSID）"; enabled: !wifiManager.connecting }
+                            WifiComboBox { id: hiddenSecurity; Layout.fillWidth: true; model: ["开放网络", "WPA2 个人版"]; currentIndex: 1; enabled: !wifiManager.connecting }
+                            WifiTextField { id: hiddenPassword; objectName: "hiddenWifiPassword"; Layout.fillWidth: true; placeholderText: "WPA2 密码（8–63 字符）"; echoMode: TextInput.Password; visible: hiddenSecurity.currentIndex === 1; enabled: !wifiManager.connecting }
+                            ControlButton {
+                                objectName: "hiddenWifiConnect"
+                                Layout.fillWidth: true; label: "连接隐藏网络"
+                                enabled: hiddenSsid.text.length > 0 && hiddenAdapter.currentIndex >= 0 && !wifiManager.connecting && !wifiManager.scanning && (hiddenSecurity.currentIndex === 0 || (hiddenPassword.text.length >= 8 && hiddenPassword.text.length <= 63))
+                                onClicked: wifiManager.connectHiddenNetwork(hiddenSsid.text, hiddenPassword.text, hiddenSecurity.currentIndex === 1, wifiManager.adapters[hiddenAdapter.currentIndex].interfaceId)
+                            }
+                            Item { Layout.fillHeight: true }
+                        }
                         RowLayout {
                             Layout.fillWidth: true
-                            visible: root.selectedWifiSecure && root.selectedWifiProfile === ""
-                            TextField {
+                            visible: !root.showHiddenWifi && root.selectedWifiSsid !== ""
+                            Text { Layout.fillWidth: true; text: root.selectedWifiSsid; font.pixelSize: 10; color: themeManager.textMuted; elide: Text.ElideRight }
+                            ControlButton { label: "断开"; visible: root.selectedWifiConnected; enabled: !wifiManager.connecting && !wifiManager.scanning; onClicked: wifiManager.disconnectNetwork(root.selectedWifiSsid, root.selectedWifiProfile, root.selectedWifiAdapter) }
+                            ControlButton { objectName: "wifiForgetButton"; label: "忘记"; visible: root.selectedWifiProfile !== ""; enabled: !wifiManager.connecting && !wifiManager.scanning; onClicked: root.confirmWifiForget = true }
+                        }
+                        ColumnLayout {
+                            Layout.fillWidth: true
+                            visible: root.confirmWifiForget && !root.showHiddenWifi
+                            Text { Layout.fillWidth: true; text: "确认忘记“" + root.selectedWifiSsid + "”？若它仍在连接，将先断开再删除配置；再次连接可能需要密码。"; textFormat: Text.PlainText; wrapMode: Text.Wrap; color: themeManager.warning; font.pixelSize: 10 }
+                            RowLayout {
+                                Layout.fillWidth: true
+                                ControlButton { Layout.fillWidth: true; label: "取消"; onClicked: root.confirmWifiForget = false }
+                                ControlButton { objectName: "wifiForgetConfirm"; Layout.fillWidth: true; label: "确认忘记"; enabled: !wifiManager.connecting && !wifiManager.scanning; onClicked: { root.confirmWifiForget = false; wifiManager.forgetNetwork(root.selectedWifiSsid, root.selectedWifiProfile, root.selectedWifiAdapter, true) } }
+                            }
+                        }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            visible: !root.showHiddenWifi && root.selectedWifiSecure && root.selectedWifiProfile === ""
+                            WifiTextField {
                                 id: wifiPassword
                                 Layout.fillWidth: true
                                 placeholderText: root.selectedWifiSsid ? "输入 " + root.selectedWifiSsid + " 的密码" : "选择需要密码的网络"
                                 echoMode: TextInput.Password
                                 color: themeManager.textPrimary
-                                enabled: root.selectedWifiSsid !== ""
+                                enabled: root.selectedWifiSsid !== "" && !wifiManager.connecting
                                 onAccepted: wifiConnectButton.clicked()
                             }
                             ControlButton {
                                 id: wifiConnectButton
                                 Layout.preferredWidth: 64
                                 label: "连接"
-                                enabled: wifiPassword.text.length >= 8
-                                onClicked: wifiManager.connectNetwork(root.selectedWifiSsid, "", wifiPassword.text, true)
+                                enabled: wifiPassword.text.length >= 8 && wifiPassword.text.length <= 63 && !wifiManager.connecting && !wifiManager.scanning
+                                onClicked: wifiManager.connectNetwork(root.selectedWifiSsid, "", wifiPassword.text, true, root.selectedWifiAdapter)
                             }
                         }
                     }
@@ -301,6 +357,14 @@ Rectangle {
                         Slider { Layout.fillWidth: true; from: 360; to: 560; stepSize: 10; value: uiSettings.panelWidth; onMoved: uiSettings.panelWidth = Math.round(value) }
                         Text { Layout.fillWidth: true; text: "顶部居中 · 边缘唤出精简栏\n点击展开后才显示卡片"; color: themeManager.textMuted; font.pixelSize: 11 }
                         ControlButton { Layout.fillWidth: true; label: "自动隐藏"; active: uiSettings.autoHide; onClicked: uiSettings.autoHide = !uiSettings.autoHide }
+                        ControlButton { Layout.fillWidth: true; label: "全屏时暂停边缘唤出"; active: uiSettings.suppressEdgeInFullscreen; onClicked: uiSettings.suppressEdgeInFullscreen = !uiSettings.suppressEdgeInFullscreen }
+                        Text { Layout.fillWidth: true; text: "默认关闭；只影响同屏前台窗口的鼠标边缘唤出，快捷键仍可使用。"; color: themeManager.textMuted; font.pixelSize: 10; wrapMode: Text.Wrap }
+                        RowLayout {
+                            Layout.fillWidth: true
+                            WifiTextField { id: shortcutField; objectName: "activationShortcutField"; Layout.fillWidth: true; text: uiSettings.activationShortcut; placeholderText: "Ctrl+Alt+Space" }
+                            ControlButton { label: "应用"; onClicked: { if (dropdownController.applyShortcut(shortcutField.text)) uiSettings.activationShortcut = dropdownController.shortcutText } }
+                        }
+                        Text { objectName: "activationShortcutStatus"; Layout.fillWidth: true; text: dropdownController.hotkeyStatus; textFormat: Text.PlainText; color: themeManager.textMuted; font.pixelSize: 10; wrapMode: Text.Wrap }
                         Item { Layout.fillHeight: true }
                     }
 
@@ -308,18 +372,22 @@ Rectangle {
                         spacing: 8
                         RowLayout {
                             Layout.fillWidth: true
-                            Text { Layout.fillWidth: true; text: radioManager.statusText || bluetoothManager.statusText; color: themeManager.textMuted; font.pixelSize: 9; elide: Text.ElideRight }
+                            Text { Layout.fillWidth: true; text: bluetoothManager.statusText + (radioManager.statusText ? "\n" + radioManager.statusText : ""); textFormat: Text.PlainText; color: themeManager.textMuted; font.pixelSize: 9; wrapMode: Text.Wrap }
                             RadioToggle { label: "蓝牙"; enabled: !radioManager.busy; checked: radioManager.bluetoothEnabled; onToggled: radioManager.setBluetoothEnabled(checked) }
                             Rectangle {
+                                objectName: "bluetoothRefreshButton"
                                 Layout.preferredWidth: 28; Layout.preferredHeight: 26; radius: 8
+                                enabled: !bluetoothManager.scanning && !bluetoothManager.busy
+                                opacity: enabled ? 1 : 0.5
                                 color: bluetoothRefreshHover.hovered ? themeManager.accentSoft : themeManager.surfaceStrong
                                 Text { anchors.centerIn: parent; text: bluetoothManager.scanning ? "…" : "↻"; color: themeManager.accent; font.pixelSize: 11 }
                                 HoverHandler { id: bluetoothRefreshHover }
-                                TapHandler { enabled: !bluetoothManager.scanning; onTapped: bluetoothManager.scan() }
+                                TapHandler { onTapped: bluetoothManager.scan() }
                                 ToolTip.visible: bluetoothRefreshHover.hovered
                                 ToolTip.text: "扫描蓝牙设备"
                             }
                         }
+                        ControlButton { objectName: "bluetoothStopButton"; Layout.fillWidth: true; visible: bluetoothManager.scanning || bluetoothManager.busy; label: bluetoothManager.busy ? "停止等待配对操作" : "停止扫描"; onClicked: { if (bluetoothManager.busy) bluetoothManager.cancelOperation(); else bluetoothManager.cancelScan() } }
                         ListView {
                             Layout.fillWidth: true; Layout.fillHeight: true; clip: true; spacing: 6
                             model: bluetoothManager.devices
@@ -339,10 +407,13 @@ Rectangle {
                                     ColumnLayout {
                                         Layout.fillWidth: true; spacing: 2
                                         Text { Layout.fillWidth: true; text: modelData.name; color: themeManager.textPrimary; font.pixelSize: 10; font.weight: Font.DemiBold; elide: Text.ElideRight }
-                                        Text { text: modelData.connected ? "已连接" : modelData.paired ? "已配对" : "可配对"; color: modelData.connected ? themeManager.success : themeManager.textMuted; font.pixelSize: 8 }
+                                        Text { text: modelData.connected ? "已连接" : modelData.paired ? "已配对" : modelData.canPair ? "可配对" : "尚不可配对"; color: modelData.connected ? themeManager.success : themeManager.textMuted; font.pixelSize: 8 }
                                     }
                                     Rectangle {
+                                        objectName: "bluetoothAction_" + modelData.id
                                         Layout.preferredWidth: modelData.paired ? 58 : 48; Layout.preferredHeight: 28; radius: 9
+                                        enabled: !bluetoothManager.busy && (modelData.paired || modelData.canPair)
+                                        opacity: enabled ? 1 : 0.5
                                         color: bluetoothActionHover.hovered ? (modelData.paired ? themeManager.dangerSoft : themeManager.accentSoft) : themeManager.overlayStart
                                         Text { anchors.centerIn: parent; text: modelData.paired ? "取消配对" : "配对"; color: modelData.paired ? themeManager.danger : themeManager.accent; font.pixelSize: 8; font.weight: Font.DemiBold }
                                         HoverHandler { id: bluetoothActionHover }
@@ -383,13 +454,43 @@ Rectangle {
         property string label
         property bool active: false
         signal clicked()
+        implicitWidth: Math.max(56, controlLabel.implicitWidth + 24)
         implicitHeight: 40; radius: 12
         opacity: enabled ? 1 : 0.45
         color: active ? themeManager.accentSoft : controlTap.pressed ? themeManager.overlayStart : controlHover.hovered ? themeManager.surfaceHover : themeManager.surfaceStrong
         border.width: 1; border.color: active ? themeManager.accent : themeManager.border
-        Text { anchors.centerIn: parent; text: control.label; color: control.active ? themeManager.accent : themeManager.textPrimary; font.pixelSize: 9; font.weight: Font.DemiBold }
+        Text { id: controlLabel; anchors.centerIn: parent; text: control.label; color: control.active ? themeManager.accent : themeManager.textPrimary; font.pixelSize: 9; font.weight: Font.DemiBold }
         HoverHandler { id: controlHover }
         TapHandler { id: controlTap; enabled: control.enabled; onTapped: control.clicked() }
+    }
+
+    component WifiTextField: Basic.TextField {
+        id: field
+        implicitHeight: 34
+        color: themeManager.textPrimary; placeholderTextColor: themeManager.textMuted
+        selectionColor: themeManager.accent; font.pixelSize: 10
+        background: Rectangle { radius: 9; color: themeManager.surfaceStrong; border.width: 1; border.color: field.activeFocus ? themeManager.accent : themeManager.border }
+    }
+    component WifiComboBox: Basic.ComboBox {
+        id: combo
+        implicitHeight: 34
+        font.pixelSize: 10
+        background: Rectangle { radius: 9; color: themeManager.surfaceStrong; border.width: 1; border.color: combo.activeFocus ? themeManager.accent : themeManager.border }
+        contentItem: Text { leftPadding: 10; rightPadding: 24; text: combo.displayText; color: themeManager.textPrimary; verticalAlignment: Text.AlignVCenter; elide: Text.ElideRight; font: combo.font }
+        indicator: Text { x: combo.width - width - 10; anchors.verticalCenter: parent.verticalCenter; text: "⌄"; color: themeManager.textMuted }
+        delegate: Basic.ItemDelegate {
+            width: combo.width
+            text: combo.textRole ? modelData[combo.textRole] : modelData
+            contentItem: Text { text: parent.text; color: themeManager.textPrimary; font: combo.font; elide: Text.ElideRight }
+            background: Rectangle { color: parent.highlighted ? themeManager.surfaceHover : themeManager.surfaceStrong }
+            highlighted: combo.highlightedIndex === index
+        }
+        popup: Basic.Popup {
+            y: combo.height + 4; width: combo.width; padding: 4
+            implicitHeight: Math.min(contentItem.implicitHeight + 8, 160)
+            background: Rectangle { radius: 9; color: themeManager.surfaceStrong; border.width: 1; border.color: themeManager.border }
+            contentItem: ListView { implicitHeight: contentHeight; clip: true; model: combo.popup.visible ? combo.delegateModel : null; currentIndex: combo.highlightedIndex }
+        }
     }
 
     component RadioToggle: Rectangle {

@@ -14,6 +14,8 @@ class SystemTrayManager : public QObject
     Q_PROPERTY(bool muted READ muted NOTIFY audioChanged)
     Q_PROPERTY(QString audioDeviceName READ audioDeviceName NOTIFY audioChanged)
     Q_PROPERTY(QVariantList audioOutputs READ audioOutputs NOTIFY audioOutputsChanged)
+    Q_PROPERTY(QString audioOutputStatus READ audioOutputStatus NOTIFY audioOutputStatusChanged)
+    Q_PROPERTY(bool audioOutputSwitchFailed READ audioOutputSwitchFailed NOTIFY audioOutputStatusChanged)
     Q_PROPERTY(QVariantList audioSessions READ audioSessions NOTIFY audioSessionsChanged)
     Q_PROPERTY(bool online READ online NOTIFY networkChanged)
     Q_PROPERTY(bool batteryPresent READ batteryPresent NOTIFY powerChanged)
@@ -29,6 +31,8 @@ public:
     QString audioDeviceName() const;
     QVariantList audioSessions() const;
     QVariantList audioOutputs() const;
+    QString audioOutputStatus() const { return m_audioOutputStatus; }
+    bool audioOutputSwitchFailed() const { return m_audioOutputSwitchFailed; }
     bool online() const;
     bool batteryPresent() const;
     int batteryPercent() const;
@@ -44,6 +48,7 @@ signals:
     void audioChanged();
     void audioSessionsChanged();
     void audioOutputsChanged();
+    void audioOutputStatusChanged();
     void powerChanged();
     void networkChanged();
 
@@ -56,6 +61,7 @@ private:
     void refreshAudioSessions();
     void refreshAudioOutputs();
     void resetAudioEndpoint();
+    void setAudioOutputStatus(bool failed, const QString &status);
     bool updateSession(const QString &sessionId, int volume, bool toggleMute);
     void refreshPower();
     void refreshNetwork();
@@ -68,6 +74,8 @@ private:
     int m_volume = 0;
     int m_batteryPercent = 0;
     QString m_audioDeviceName;
+    QString m_audioOutputStatus;
+    bool m_audioOutputSwitchFailed = false;
     bool m_muted = false;
     bool m_batteryPresent = false;
     bool m_charging = false;

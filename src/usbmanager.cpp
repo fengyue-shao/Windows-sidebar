@@ -1,4 +1,5 @@
 #include "include/usbmanager.h"
+#include "include/usbejectresult.h"
 #include <QGuiApplication>
 #include <QPointer>
 #include <QTimer>
@@ -23,20 +24,6 @@ struct DeviceInfoSet {
     HDEVINFO value;
     ~DeviceInfoSet() { if (value != INVALID_HANDLE_VALUE) SetupDiDestroyDeviceInfoList(value); }
 };
-QString vetoReason(PNP_VETO_TYPE veto)
-{
-    switch (veto) {
-    case PNP_VetoOutstandingOpen: return QStringLiteral("文件或句柄仍被占用");
-    case PNP_VetoPendingClose: return QStringLiteral("正在等待关闭文件");
-    case PNP_VetoWindowsApp: return QStringLiteral("应用程序阻止移除");
-    case PNP_VetoWindowsService: return QStringLiteral("系统服务阻止移除");
-    case PNP_VetoDevice: return QStringLiteral("设备阻止移除");
-    case PNP_VetoDriver: return QStringLiteral("驱动程序阻止移除");
-    case PNP_VetoInsufficientRights: return QStringLiteral("权限不足");
-    case PNP_VetoNonDisableable: return QStringLiteral("设备不能被禁用");
-    default: return QStringLiteral("系统或设备拒绝移除（%1）").arg(static_cast<int>(veto));
-    }
-}
 QString property(DEVINST node, ULONG key)
 {
     wchar_t value[1024]{}; ULONG size = sizeof(value), type = 0;
@@ -183,9 +170,7 @@ winrt::fire_and_forget run(QPointer<UsbManager> owner, QString ejectId)
                 wchar_t vetoName[MAX_PATH]{};
                 const auto result = CM_Request_Device_EjectW(it->node, &veto, vetoName, MAX_PATH, 0);
                 operationResult = result == CR_SUCCESS ? 1 : -1;
-                status = result == CR_SUCCESS ? QStringLiteral("Windows 已接受安全弹出请求，请确认设备消失后再拔出")
-                    : QStringLiteral("%1（代码 %2）%3；请关闭占用文件后重试")
-                        .arg(vetoReason(veto)).arg(result).arg(vetoName[0] ? " · " + QString::fromWCharArray(vetoName) : QString());
+                status = SidebarUsb::ejectMessage(result, veto, QString::fromWCharArray(vetoName));
             }
         }
         for (const auto &device : devices) {
@@ -207,9 +192,9 @@ bool UsbManager::safeDisk(bool usb, bool numberKnown, bool systemDisk, bool boot
     return usb && numberKnown && !systemDisk && !bootOrUnknown;
 }
 
-UsbManager::UsbManager(QObject *parent) : QObject(parent)
+UsbManager::UsbManager(QObject *parent, bool autoRefresh) : QObject(parent)
 {
-    QTimer::singleShot(0, this, &UsbManager::refresh);
+    if (autoRefresh) QTimer::singleShot(0, this, &UsbManager::refresh);
 }
 void UsbManager::refresh()
 {

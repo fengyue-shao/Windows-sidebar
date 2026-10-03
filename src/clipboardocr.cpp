@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QPainter>
 #include <QBuffer>
+#include <QTimer>
 #include <windows.h>
 #include <appmodel.h>
 #include <winrt/Windows.ApplicationModel.DataTransfer.h>
@@ -15,8 +16,10 @@
 #include <winrt/Windows.Storage.Streams.h>
 
 namespace {
-winrt::fire_and_forget recognizeHistory(QPointer<ClipboardOcr> owner, QString id, quint64 generation, QByteArray fixture = {})
+winrt::Windows::Foundation::IAsyncAction recognizeHistory(QPointer<ClipboardOcr> owner, QString id, quint64 generation, QByteArray fixture = {})
 {
+    auto cancellation = co_await winrt::get_cancellation_token();
+    cancellation.enable_propagation();
     QString text, status;
     try {
         using namespace winrt::Windows::ApplicationModel::DataTransfer;
@@ -48,6 +51,7 @@ winrt::fire_and_forget recognizeHistory(QPointer<ClipboardOcr> owner, QString id
             status = QStringLiteral("图片为空或超过 12 MB，未进行识别");
         } else {
             co_await winrt::resume_background();
+            if (cancellation()) throw winrt::hresult_canceled();
             const auto engine = OcrEngine::TryCreateFromUserProfileLanguages();
             if (!engine) {
                 status = QStringLiteral("没有可用的 OCR 语言，请在 Windows 语言设置中安装语言支持");
@@ -89,6 +93,37 @@ ClipboardOcr::ClipboardOcr(QObject *parent, std::function<void(const QString &)>
     if (!m_copySink) m_copySink = [](const QString &text) { QGuiApplication::clipboard()->setText(text); };
 }
 
+ClipboardOcr::~ClipboardOcr()
+{
+    ++m_generation;
+    try { if (m_action) m_action.Cancel(); } catch (...) {}
+}
+
+quint64 ClipboardOcr::beginRecognition(const QString &status)
+{
+    const auto generation = ++m_generation;
+    m_busy = true; m_text.clear(); m_status = status;
+    emit textChanged(); emit changed();
+    QTimer::singleShot(30000, this, [this, generation] { timeout(generation); });
+    return generation;
+}
+
+void ClipboardOcr::cancel()
+{
+    if (!m_busy) return;
+    ++m_generation;
+    try { if (m_action) m_action.Cancel(); } catch (...) {}
+    m_action = nullptr; m_busy = false;
+    m_status = QStringLiteral("已停止识别等待；Windows 取消是尽力请求，旧结果不会显示");
+    emit changed();
+}
+
+void ClipboardOcr::timeout(quint64 generation)
+{
+    if (!m_busy || generation != m_generation) return;
+    cancel(); m_status = QStringLiteral("识别等待超过 30 秒，已停止等待；可重试，不保证 Windows 操作已撤回"); emit changed();
+}
+
 void ClipboardOcr::recognize(const QString &historyId)
 {
     if (m_busy || historyId.isEmpty()) return;
@@ -100,18 +135,15 @@ void ClipboardOcr::recognize(const QString &historyId)
         emit changed();
         return;
     }
-    m_busy = true;
-    m_text.clear();
-    emit textChanged();
-    m_status = QStringLiteral("正在本地识别原图…");
-    emit changed();
-    recognizeHistory(this, historyId, ++m_generation);
+    const auto generation = beginRecognition(QStringLiteral("正在本地识别原图…"));
+    m_action = recognizeHistory(this, historyId, generation);
 }
 
 void ClipboardOcr::finish(quint64 generation, const QString &text, const QString &status)
 {
-    if (generation != m_generation) return;
+    if (generation != m_generation || (!m_busy && generation != 0)) return;
     const bool wasBusy = m_busy;
+    m_action = nullptr;
     m_busy = false; m_text = text; m_status = status;
     emit textChanged();
     emit changed();
@@ -137,9 +169,8 @@ void ClipboardOcr::recognizeFixture(const QString &kind)
         }
         QBuffer buffer(&bytes); buffer.open(QIODevice::WriteOnly); image.save(&buffer, "PNG");
     }
-    m_busy = true; m_text.clear(); m_status = QStringLiteral("识别生成的测试图");
-    emit textChanged(); emit changed();
-    recognizeHistory(this, {}, ++m_generation, bytes);
+    const auto generation = beginRecognition(QStringLiteral("识别生成的测试图"));
+    m_action = recognizeHistory(this, {}, generation, bytes);
 }
 
 void ClipboardOcr::clear()

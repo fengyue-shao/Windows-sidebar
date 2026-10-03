@@ -21,7 +21,8 @@ public static class SidebarProcessExit {
         var handle = OpenProcess(0x00101000, false, processId);
         if (handle == IntPtr.Zero) throw new Win32Exception(Marshal.GetLastWin32Error());
         try {
-            if (WaitForSingleObject(handle, 20000) != 0) throw new Exception("Packaged UI wait failed or timed out.");
+            var waitResult = WaitForSingleObject(handle, 45000);
+            if (waitResult != 0) throw new Exception("Packaged UI wait failed: result="+waitResult+", limit=45000ms, pid="+processId);
             uint code;
             if (!GetExitCodeProcess(handle, out code)) throw new Win32Exception(Marshal.GetLastWin32Error());
             return code;

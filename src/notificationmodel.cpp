@@ -1,4 +1,5 @@
 #include "include/notificationmodel.h"
+#include <QSet>
 //#include "include/notificationlistener.h"
 NotificationModel::NotificationModel(QObject *parent):QAbstractListModel(parent) {
   //  connect(&NotificationListener,&NotificationListener::notificationAdded,);
@@ -19,6 +20,10 @@ QVariant NotificationModel::data(const QModelIndex &index,int role)const{
         return notification.id;
     case AppNameRole:
         return notification.appName;
+    case AppIdRole:
+        return notification.appId;
+    case AppGroupRole:
+        return notification.appId.isEmpty() ? QStringLiteral("name:") + notification.appName : QStringLiteral("id:") + notification.appId;
     case TitleRole:
         return notification.title;
     case ContentRole:
@@ -58,7 +63,9 @@ QHash<int, QByteArray> NotificationModel::roleNames() const
         {TimestampRole, "timestamp"},
         {UnreadRole, "unread"},
         {RemovableRole, "removable"},
-        {TypeRole, "type"}
+        {TypeRole, "type"},
+        {AppIdRole, "appId"},
+        {AppGroupRole, "appGroup"}
     };
 }
 
@@ -91,17 +98,7 @@ void NotificationModel::removeNotification(int row)
         return;
 
     const QString id = m_notifications.at(row).id;
-    const bool wasUnread = m_notifications.at(row).unread;
-
-    beginRemoveRows(QModelIndex(), row, row);
-
-    m_notifications.removeAt(row);
-
-    endRemoveRows();
-    if (wasUnread)
-        emit unreadCountChanged();
-
-    if (!id.isEmpty())
+    if (!id.isEmpty() && m_notifications.at(row).removable)
         emit removalRequested(id);
 }
 void NotificationModel::removeById(const QString &id)
@@ -125,15 +122,36 @@ void NotificationModel::clear()
     if (m_notifications.isEmpty())
         return;
 
-    const bool hadUnread = unreadCount() > 0;
-    beginResetModel();
-
-    m_notifications.clear();
-
-    endResetModel();
-    if (hadUnread)
-        emit unreadCountChanged();
     emit clearRequested();
+}
+
+void NotificationModel::synchronize(const QVector<Notification> &notifications)
+{
+    QHash<QString, bool> previousUnread;
+    for (const auto &item : m_notifications)
+        previousUnread.insert(item.id, item.unread);
+    const int oldUnread = unreadCount();
+    beginResetModel();
+    m_notifications.clear();
+    QSet<QString> seen;
+    for (auto item : notifications) {
+        if (item.id.isEmpty() || seen.contains(item.id)) continue;
+        seen.insert(item.id);
+        if (previousUnread.contains(item.id)) item.unread = previousUnread.value(item.id);
+        m_notifications.append(item);
+    }
+    endResetModel();
+    if (oldUnread != unreadCount()) emit unreadCountChanged();
+}
+
+void NotificationModel::requestRemovalByIds(const QStringList &ids)
+{
+    const QSet<QString> wanted(ids.cbegin(), ids.cend());
+    QStringList targets;
+    for (const auto &notice : m_notifications)
+        if (!notice.id.isEmpty() && notice.removable && wanted.contains(notice.id) && !targets.contains(notice.id))
+            targets.append(notice.id);
+    if (!targets.isEmpty()) emit removalsRequested(targets);
 }
 
 Notification NotificationModel::notification(int row) const

@@ -11,7 +11,7 @@ Item {
     }
     ColumnLayout {
         anchors.fill: parent; spacing: 16
-        NotificationArea { id: notices; Layout.fillWidth: true; Layout.fillHeight: true; visible: uiSettings.notificationsEnabled; model: notificationModel }
+        NotificationArea { id: notices; Layout.fillWidth: true; Layout.fillHeight: true; visible: uiSettings.notificationsEnabled; model: notificationModel; viewModel: notificationViewModel; service: notificationListener }
         CardSurface {
             id: disabled
             visible: !uiSettings.notificationsEnabled
