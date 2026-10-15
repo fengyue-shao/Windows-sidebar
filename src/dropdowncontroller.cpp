@@ -105,6 +105,7 @@ void DropdownController::setRegions(const QVariantList &rectangles)
     if (region == m_region) return;
     m_region = region;
     m_window->setMask(region);
+    m_window->requestUpdate();
 }
 
 void DropdownController::pollPointer()
@@ -114,7 +115,7 @@ void DropdownController::pollPointer()
         && (m_region.contains(m_window->mapFromGlobal(cursor)) || m_edge.contains(cursor));
     if (inside != m_inside) { m_inside = inside; emit pointerInsideChanged(); }
     if (!m_edge.contains(cursor)) { m_blocked = false; m_dwell = 0; return; }
-    if (m_blocked || (m_window && m_window->isVisible())) return;
+    if (m_blocked || (m_window && m_window->isVisible() && !m_edgeRevealAllowed)) return;
     if (m_suppressFullscreen && foregroundCoversTargetMonitor()) { m_dwell = 0; return; }
     if (++m_dwell >= 4) { m_blocked = true; m_dwell = 0; emit edgeRequested(); }
 }

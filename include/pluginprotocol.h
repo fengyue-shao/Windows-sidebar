@@ -7,6 +7,7 @@
 #include <QSet>
 #include <QStringList>
 #include <QVariantMap>
+#include <QHash>
 #include <cmath>
 
 // Data-only protocol. This class never launches processes or executes messages.
@@ -73,14 +74,44 @@ public:
             ready=true; secret.clear(); result.type="hello"; return true;
         }
         if (type=="closing") { if (!exactKeys(object,{"type"})) return false; result.type=type; return true; }
-        if (type!="state" && type!="event" && type!="withdraw") return false;
-        if (!exactKeys(object,{"type","source","state","priority","key","durationMs","validForMs"})) return false;
+        if (type!="state" && type!="event" && type!="withdraw" && type!="result") return false;
+        if (!exactKeys(object,type=="result" ? QStringList{"type","schemaVersion","source","priority","key","result"}
+                                           : QStringList{"type","source","state","priority","key","durationMs","validForMs"})) return false;
         const auto source=object.value("source").toString();
         if (!localId(source)) return false;
         result.type=type; result.sourceId=prefix+'.'+source;
         if (type=="withdraw") {
             if (!exactKeys(object,{"type","source"})) return false;
             owned.remove(result.sourceId); return true;
+        }
+        if (type=="result") {
+            if (object.value("schemaVersion")!=1 || !object.value("result").isObject() || !object.value("priority").isDouble()) return false;
+            const auto data=object.value("result").toObject();
+            if (!exactKeys(data,{"pageId","label","outcome","exitCode","elapsedMs"})) return false;
+            const auto page=data.value("pageId").toString(), label=data.value("label").toString(), outcome=data.value("outcome").toString();
+            if (!pageIds.contains(page) || !localId(page) || !data.value("label").isString() || label.isEmpty() || label.size()>64 || label.contains(QChar::Null)
+                || !QStringList{"success","failed","cancelled","timeout","crashed","start-failed"}.contains(outcome)) return false;
+            auto integer=[](const QJsonValue &value,double low,double high){ const auto n=value.toDouble(); return value.isDouble() && std::isfinite(n) && std::floor(n)==n && n>=low && n<=high; };
+            if (!integer(object.value("priority"),0,95) || !integer(data.value("elapsedMs"),0,604800000)
+                || !integer(data.value("exitCode"),-2147483648.0,2147483647.0)) return false;
+            const int exitCode=int(data.value("exitCode").toDouble());
+            if ((outcome=="success" && exitCode!=0) || (outcome=="failed" && exitCode==0)) return false;
+            const auto key=object.value("key").toString();
+            if (!QRegularExpression("^[A-Za-z0-9_-]{1,64}$").match(key).hasMatch()) return false;
+            if (owned.size()>=8 && !owned.contains(result.sourceId)) return false;
+            const QHash<QString,QString> labels{{"success","已完成"},{"failed","未成功"},{"cancelled","已停止"},
+                {"timeout","已超时"},{"crashed","异常退出"},{"start-failed","启动失败"}};
+            const bool failed=outcome=="failed" || outcome=="crashed" || outcome=="start-failed";
+            const bool exited=outcome=="success" || outcome=="failed" || outcome=="crashed";
+            const QString subtitle=QStringLiteral("耗时 %1 秒").arg(data.value("elapsedMs").toDouble()/1000.0,0,'f',1)
+                +(exited ? QStringLiteral(" · 退出码 %1").arg(exitCode) : QStringLiteral(" · ")+labels.value(outcome));
+            // Host-owned rendering: the plugin reports facts, never UI code/actions.
+            result.type="event"; result.key=key; result.priority=int(object.value("priority").toDouble());
+            result.state={{"title",label+labels.value(outcome)},{"subtitle",subtitle},{"detailText",exited ? QStringLiteral("退出码 %1").arg(exitCode) : labels.value(outcome)},
+                {"iconName",failed ? "alert" : outcome=="success" ? "checkmark" : "timer"},
+                {"tone",failed ? "danger" : outcome=="success" ? "success" : "neutral"},{"route",prefix+'.'+page},{"kind","task"},
+                {"exitCode",exitCode},{"elapsedMs",data.value("elapsedMs").toVariant()},{"outcome",outcome}};
+            owned.insert(result.sourceId); return true;
         }
         if (!object.value("state").isObject() || !object.value("priority").isDouble()) return false;
         const double priority=object.value("priority").toDouble();

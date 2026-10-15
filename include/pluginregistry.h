@@ -36,6 +36,7 @@ public:
     Q_INVOKABLE void stop(const QString &pluginId);
     Q_INVOKABLE bool openRoute(const QString &route);
     Q_INVOKABLE void trustAndEnable(const QString &pluginId);
+    Q_INVOKABLE bool selectVersion(const QString &pluginId, const QString &version, bool confirmStop = false);
     Q_INVOKABLE bool importTrustedFolder(const QString &path);
     Q_INVOKABLE void openPluginFolder();
 
@@ -51,9 +52,11 @@ private:
     QString m_errorDetails;
     QHash<QString, PluginProcess *> m_processes;
     QHash<QString, QString> m_executables, m_routes;
+    QHash<QString, QString> m_runningExecutables, m_pendingVersions;
     QHash<QString, QSet<QString>> m_pageIds;
     QPointer<IslandBridge> m_bridge;
     QString m_rootPath;
     QVariantMap m_themeTokens;
     void updateProcessStatus();
+    void finishVersionSelection(const QString &pluginId, const QString &version);
 };

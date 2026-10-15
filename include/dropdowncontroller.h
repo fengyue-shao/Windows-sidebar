@@ -17,6 +17,7 @@ class DropdownController : public QObject, public QAbstractNativeEventFilter
     Q_PROPERTY(QString shortcutText READ shortcutText NOTIFY hotkeyAvailableChanged)
     Q_PROPERTY(QString hotkeyStatus READ hotkeyStatus NOTIFY hotkeyAvailableChanged)
     Q_PROPERTY(bool systemAnimationsEnabled READ systemAnimationsEnabled NOTIFY systemAnimationsEnabledChanged)
+    Q_PROPERTY(bool edgeRevealAllowed READ edgeRevealAllowed WRITE setEdgeRevealAllowed)
 public:
     explicit DropdownController(QObject *parent = nullptr);
     ~DropdownController() override;
@@ -25,6 +26,8 @@ public:
     QString shortcutText() const { return m_shortcut; }
     QString hotkeyStatus() const { return m_hotkeyStatus; }
     bool systemAnimationsEnabled() const { return m_systemAnimationsEnabled; }
+    bool edgeRevealAllowed() const { return m_edgeRevealAllowed; }
+    void setEdgeRevealAllowed(bool value) { m_edgeRevealAllowed=value; }
     Q_INVOKABLE bool applyShortcut(const QString &shortcut);
     Q_INVOKABLE void attach(QWindow *window);
     Q_INVOKABLE void configureEdge(int x, int y, int width);
@@ -54,6 +57,7 @@ private:
     bool m_inside = false;
     bool m_hotkey = false;
     bool m_suppressFullscreen = false;
+    bool m_edgeRevealAllowed = false;
     int m_hotkeyId = 0x5342;
     unsigned int m_hotkeyModifiers = 0, m_hotkeyKey = 0;
     QString m_shortcut = QStringLiteral("Ctrl+Alt+Space"), m_hotkeyStatus;

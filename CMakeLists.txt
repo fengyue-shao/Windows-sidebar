@@ -1,250 +1,166 @@
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 
 project(qt_rainmeter VERSION 0.8.2.0 LANGUAGES CXX)
 
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
+if(NOT WIN32 OR NOT MSVC)
+    message(FATAL_ERROR "Windows Sidebar requires Windows and the MSVC x64 toolchain.")
+endif()
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "Windows Sidebar requires a 64-bit build matching the x64 MSIX manifest.")
+endif()
+enable_language(RC)
+
 set(CMAKE_CXX_STANDARD 20)
-
-find_package(Qt6 REQUIRED COMPONENTS Quick)
-find_package(Qt6 REQUIRED COMPONENTS Core)
-find_package(Qt6 REQUIRED COMPONENTS Svg)
-find_package(Qt6 REQUIRED COMPONENTS Network)
-
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+find_package(Qt6 6.8 REQUIRED COMPONENTS Core Quick Svg Network)
 qt_standard_project_setup(REQUIRES 6.8)
-file(GLOB FLUENT_SELECTED_ICONS CONFIGURE_DEPENDS RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "assets/fluent/*.svg")
 
-qt_add_executable(appqt_rainmeter
-    src/main.cpp
+# The host has no build-time dependency on optional plugin implementations.
+option(SIDEBAR_BUILD_TESTS "Build and register isolated host regression tests" OFF)
+option(SIDEBAR_BUILD_INTEGRATION_TESTS "Build opt-in real Windows/device integration helpers (not automatic tests)" OFF)
+
+set(SIDEBAR_MONITOR_SOURCES
+    include/periodicmodule.h
+    include/monitorbase.h src/monitorbase.cpp
+    include/monitorscheduler.h src/monitorscheduler.cpp
+    include/cpumonitor.h src/cpumonitor.cpp
+    include/gpumonitor.h src/gpumonitor.cpp
+    include/memorymonitor.h src/memorymonitor.cpp
+    include/diskmonitor.h src/diskmonitor.cpp
+    include/networkmonitor.h src/networkmonitor.cpp
+    include/networkdetails.h src/networkdetails.cpp
+)
+set(SIDEBAR_CONTROL_SOURCES
+    include/systemtraymanager.h src/systemtraymanager.cpp
+    include/audiooutputswitch.h
+    include/audioinputmanager.h src/audioinputmanager.cpp
+    include/wificonnectionstate.h
+    include/wifimanager.h src/wifimanager.cpp
+    include/bluetoothmanager.h src/bluetoothmanager.cpp
+    include/radiomanager.h src/radiomanager.cpp
+    include/hotspotmanager.h src/hotspotmanager.cpp
+    include/awakemanager.h src/awakemanager.cpp
+    include/usbejectresult.h
+    include/usbmanager.h src/usbmanager.cpp
+)
+set(SIDEBAR_MEDIA_SOURCES
+    include/mediamonitor.h src/mediamonitor.cpp
+    include/mediaworker.h src/mediaworker.cpp
+    include/mediaspectrum.h src/mediaspectrum.cpp
+    include/spectrumanalyzer.h
+    include/coverimageprovider.h src/coverimageprovider.cpp
+    include/captureusagemonitor.h src/captureusagemonitor.cpp
+    include/islandbridge.h src/islandbridge.cpp
+    include/focustimer.h src/focustimer.cpp
+)
+set(SIDEBAR_CONTENT_SOURCES
+    include/Notification.h
+    include/notificationmodel.h src/notificationmodel.cpp
+    include/notificationlistener.h src/notificationlistener.cpp
+    include/notificationviewmodel.h src/notificationviewmodel.cpp
+    include/clipboardmanager.h src/clipboardmanager.cpp
+    include/clipboardocr.h src/clipboardocr.cpp
+    include/boundedasync.h
+)
+set(SIDEBAR_SHELL_SOURCES
+    include/displaymanager.h src/displaymanager.cpp
+    include/dropdowncontroller.h src/dropdowncontroller.cpp
+    include/fullscreenpolicy.h
+    include/hotkeypolicy.h
+    include/thememanager.h src/thememanager.cpp
+    include/uisettings.h src/uisettings.cpp
+    include/uicard.h
+    include/uicardmanager.h src/uicardmanager.cpp
+    include/fluenticonprovider.h
+)
+set(SIDEBAR_PLUGIN_HOST_SOURCES
+    include/pluginprotocol.h
+    include/pluginregistry.h src/pluginregistry.cpp
+    include/pluginprocess.h src/pluginprocess.cpp
 )
 
+set(SIDEBAR_QML_FILES
+    # Shell, reusable card controls and selected-icon adapter.
+    qml/Main.qml qml/Sidebar.qml qml/SystemControlBar.qml qml/Timebar.qml
+    qml/CardSurface.qml qml/CardRegions.js qml/CardAction.qml qml/CardSlider.qml
+    qml/FluentIcon.qml qml/SystemMetricGauge.qml
+    # Default monitoring and the opt-in editable desktop both remain available.
+    qml/DropdownMonitor.qml qml/QuickSettingsPanel.qml qml/DiskPanel.qml
+    qml/NativeCardCanvas.qml qml/NativeMonitorCards.qml qml/DesktopCardCanvas.qml
+    qml/NetworkDetailsCard.qml qml/HotspotCard.qml qml/AwakeCard.qml qml/UsbCard.qml
+    # Media, microphone and Dynamic Island presentation.
+    qml/AudioLevelBar.qml qml/MicrophoneCard.qml
+    qml/MediaBar.qml qml/MediaMarquee.qml qml/MediaSpectrumBars.qml
+    qml/IslandSources.qml qml/TopIslandHost.qml
+    # Built-in pages and host-owned plugin management.
+    qml/NotificationPage.qml qml/NotificationArea.qml qml/NotificationItem.qml
+    qml/FocusPage.qml qml/FocusClockCard.qml qml/FocusPresetCard.qml
+    qml/ClipboardPage.qml qml/ToolboxPage.qml
+    # Existing explicit --ui-self-test hook; not a plugin component.
+    qml/MediaBarSelfTest.qml
+)
+file(GLOB FLUENT_SELECTED_ICONS CONFIGURE_DEPENDS
+    RELATIVE "${CMAKE_CURRENT_SOURCE_DIR}" "assets/fluent/*.svg")
+
+qt_add_executable(appqt_rainmeter src/main.cpp)
 qt_add_qml_module(appqt_rainmeter
     URI qt_rainmeter
     VERSION 1.0
-    QML_FILES
-        qml/Main.qml
-        SOURCES include/bluetoothmanager.h include/clipboardmanager.h include/coverimageprovider.h include/cpumonitor.h include/diskmonitor.h include/displaymanager.h include/focustimer.h include/gpumonitor.h include/mediamonitor.h include/mediaworker.h include/memorymonitor.h include/monitorbase.h include/monitorscheduler.h include/networkmonitor.h include/Notification.h include/notificationmodel.h include/periodicmodule.h include/systemtraymanager.h include/thememanager.h include/uisettings.h include/wifimanager.h src/bluetoothmanager.cpp src/clipboardmanager.cpp src/coverimageprovider.cpp src/cpumonitor.cpp src/diskmonitor.cpp src/displaymanager.cpp src/focustimer.cpp src/gpumonitor.cpp src/mediamonitor.cpp src/mediaworker.cpp src/memorymonitor.cpp src/monitorbase.cpp src/monitorscheduler.cpp src/networkmonitor.cpp src/notificationmodel.cpp src/systemtraymanager.cpp src/thememanager.cpp src/uisettings.cpp src/wifimanager.cpp
-        QML_FILES qml/ClipboardPage.qml qml/DashboardPage.qml qml/DiskPanel.qml qml/FocusPage.qml qml/MediaBar.qml qml/MediaMarquee.qml qml/NotificationArea.qml qml/NotificationItem.qml qml/QuickSettingsPanel.qml qml/Sidebar.qml qml/SystemControlBar.qml qml/SystemMetricGauge.qml qml/SystemMonitorPanel.qml qml/Timebar.qml qml/ToolboxPage.qml qml/WidgetCard.qml
-        RESOURCES assets/icons/ic_fluent_next_48_regular.svg assets/icons/ic_fluent_pause_48_regular.svg assets/icons/ic_fluent_play_48_regular.svg assets/icons/ic_fluent_previous_48_regular.svg
-        SOURCES include/notificationlistener.h src/notificationlistener.cpp
-        SOURCES include/notificationviewmodel.h src/notificationviewmodel.cpp
-        SOURCES include/radiomanager.h src/radiomanager.cpp
-        SOURCES include/pluginregistry.h src/pluginregistry.cpp
-        SOURCES include/pluginprocess.h src/pluginprocess.cpp
-        SOURCES include/dropdowncontroller.h src/dropdowncontroller.cpp
-        QML_FILES qml/DropdownMonitor.qml qml/CardSurface.qml qml/CardRegions.js qml/FocusClockCard.qml qml/FocusPresetCard.qml qml/NotificationPage.qml
-        QML_FILES qml/FluentIcon.qml
-        QML_FILES qml/AudioLevelBar.qml qml/MicrophoneCard.qml
-        SOURCES include/fluenticonprovider.h
-        SOURCES include/audioinputmanager.h src/audioinputmanager.cpp
-        SOURCES include/mediaspectrum.h src/mediaspectrum.cpp include/spectrumanalyzer.h
-        QML_FILES qml/MediaSpectrumBars.qml
-        SOURCES include/islandbridge.h src/islandbridge.cpp
-        SOURCES include/captureusagemonitor.h src/captureusagemonitor.cpp
-        QML_FILES qml/IslandSources.qml
-        QML_FILES qml/TopIslandHost.qml
-        QML_FILES qml/MediaBarSelfTest.qml
-        QML_FILES qml/CardSlider.qml qml/CardAction.qml
-        SOURCES include/clipboardocr.h src/clipboardocr.cpp
-        SOURCES include/networkdetails.h src/networkdetails.cpp
-        QML_FILES qml/NetworkDetailsCard.qml
-        SOURCES include/hotspotmanager.h src/hotspotmanager.cpp
-        QML_FILES qml/HotspotCard.qml
-        SOURCES include/awakemanager.h src/awakemanager.cpp
-        QML_FILES qml/AwakeCard.qml
-        SOURCES include/usbmanager.h src/usbmanager.cpp
-        QML_FILES qml/UsbCard.qml
-        SOURCES include/featuretests.h src/featuretests.cpp
-        RESOURCES ${FLUENT_SELECTED_ICONS} assets/fluent/LICENSE
+    QML_FILES ${SIDEBAR_QML_FILES}
+    SOURCES
+        ${SIDEBAR_MONITOR_SOURCES}
+        ${SIDEBAR_CONTROL_SOURCES}
+        ${SIDEBAR_MEDIA_SOURCES}
+        ${SIDEBAR_CONTENT_SOURCES}
+        ${SIDEBAR_SHELL_SOURCES}
+        ${SIDEBAR_PLUGIN_HOST_SOURCES}
+        include/featuretests.h src/featuretests.cpp
+    RESOURCES ${FLUENT_SELECTED_ICONS} assets/fluent/LICENSE
+)
+target_include_directories(appqt_rainmeter PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
+configure_file(packaging/version.rc.in "${CMAKE_CURRENT_BINARY_DIR}/app-version.rc" @ONLY)
+target_sources(appqt_rainmeter PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/app-version.rc")
+set_target_properties(appqt_rainmeter PROPERTIES WIN32_EXECUTABLE TRUE)
+target_link_libraries(appqt_rainmeter PRIVATE
+    Qt6::Core Qt6::Quick Qt6::Svg Qt6::Network
+    windowsapp iphlpapi ws2_32 setupapi cfgmgr32 pdh dxgi ole32 wininet wlanapi user32
 )
 
-# Qt for iOS sets MACOSX_BUNDLE_GUI_IDENTIFIER automatically since Qt 6.1.
-# If you are developing for iOS or macOS you should consider setting an
-# explicit, fixed bundle identifier manually though.
-set_target_properties(appqt_rainmeter PROPERTIES
-#    MACOSX_BUNDLE_GUI_IDENTIFIER com.example.appqt_rainmeter
-    MACOSX_BUNDLE_BUNDLE_VERSION ${PROJECT_VERSION}
-    MACOSX_BUNDLE_SHORT_VERSION_STRING ${PROJECT_VERSION_MAJOR}.${PROJECT_VERSION_MINOR}
-    MACOSX_BUNDLE TRUE
-    WIN32_EXECUTABLE TRUE
+get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
+get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
+set(SIDEBAR_MSVC_RUNTIME_DIR "" CACHE PATH "MSVC x64 redistributable CRT folder for packaging")
+add_custom_target(deploy_runtime
+    COMMAND powershell.exe -NoProfile
+        -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/deploy-runtime.ps1"
+        -Executable "$<TARGET_FILE:appqt_rainmeter>"
+        -QtBin "${QT_BIN_DIR}"
+        -SourceDir "${CMAKE_CURRENT_SOURCE_DIR}"
+    DEPENDS appqt_rainmeter
+    COMMENT "Deploying and verifying the host Qt runtime"
+    VERBATIM
 )
-
-target_link_libraries(appqt_rainmeter
-    PRIVATE Qt6::Quick
-    windowsapp
+add_custom_target(package_msix
+    COMMAND powershell.exe -NoProfile
+        -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/build-msix.ps1"
+        -Executable "$<TARGET_FILE:appqt_rainmeter>"
+        -QtBin "${QT_BIN_DIR}"
+        -SourceDir "${CMAKE_CURRENT_SOURCE_DIR}"
+        -OutputDir "${CMAKE_CURRENT_BINARY_DIR}/msix"
+        -MsvcRuntimeDir "${SIDEBAR_MSVC_RUNTIME_DIR}"
+    DEPENDS appqt_rainmeter
+    COMMENT "Creating the host-only development MSIX (no installation or certificate trust)"
+    VERBATIM
 )
-target_link_libraries(appqt_rainmeter PRIVATE Qt6::Core)
-target_link_libraries(appqt_rainmeter PRIVATE iphlpapi)
-target_link_libraries(appqt_rainmeter PRIVATE ws2_32)
-target_link_libraries(appqt_rainmeter PRIVATE setupapi cfgmgr32)
-target_link_libraries(appqt_rainmeter PRIVATE pdh)
-target_link_libraries(appqt_rainmeter PRIVATE dxgi)
-target_link_libraries(appqt_rainmeter PRIVATE ole32)
-target_link_libraries(appqt_rainmeter PRIVATE wininet)
-target_link_libraries(appqt_rainmeter PRIVATE wlanapi)
-target_link_libraries(appqt_rainmeter PRIVATE Qt6::Svg)
-target_link_libraries(appqt_rainmeter PRIVATE Qt6::Network)
-target_link_libraries(appqt_rainmeter PRIVATE user32)
+# Installation/certificate trust is an explicit user action via install-msix.ps1,
+# never a side effect of a build target or of the regression suite.
 
-option(SIDEBAR_BUILD_TERMINAL_PLUGIN "Build the independent optional terminal package" OFF)
-option(SIDEBAR_BUILD_TERMINAL_TESTS "Build isolated regression tests" OFF)
-set(TERMINAL_PLUGIN_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/plugins/com.windows-sidebar.terminal")
-if(SIDEBAR_BUILD_TERMINAL_PLUGIN OR SIDEBAR_BUILD_TERMINAL_TESTS)
-    add_subdirectory(plugins/com.windows-sidebar.terminal)
+if(SIDEBAR_BUILD_TESTS)
+    enable_testing()
 endif()
-
-if(WIN32)
-    set(SIDEBAR_MSVC_RUNTIME_DIR "" CACHE PATH "MSVC x64 redistributable CRT folder for packaging")
-    get_target_property(QT_QMAKE_EXECUTABLE Qt6::qmake IMPORTED_LOCATION)
-    get_filename_component(QT_BIN_DIR "${QT_QMAKE_EXECUTABLE}" DIRECTORY)
-
-    add_custom_target(package_msix
-        COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
-            -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/build-msix.ps1"
-            -Executable "$<TARGET_FILE:appqt_rainmeter>"
-            -QtBin "${QT_BIN_DIR}"
-            -SourceDir "${CMAKE_CURRENT_SOURCE_DIR}"
-            -OutputDir "${CMAKE_CURRENT_BINARY_DIR}/msix"
-            -MsvcRuntimeDir "${SIDEBAR_MSVC_RUNTIME_DIR}"
-        DEPENDS appqt_rainmeter
-        COMMENT "Deploying Qt and creating a signed MSIX package"
-        VERBATIM
-    )
-
-    add_custom_target(install_msix
-        COMMAND powershell.exe -NoProfile -ExecutionPolicy Bypass
-            -File "${CMAKE_CURRENT_SOURCE_DIR}/scripts/install-msix.ps1"
-            -PackagePath "${CMAKE_CURRENT_BINARY_DIR}/msix/WindowsSidebar.msix"
-            -TrustDevelopmentCertificate
-        DEPENDS package_msix
-        COMMENT "Installing the Windows Sidebar MSIX package"
-        VERBATIM
-    )
+if(SIDEBAR_BUILD_TESTS OR SIDEBAR_BUILD_INTEGRATION_TESTS)
+    add_subdirectory(tests)
 endif()
 
 include(GNUInstallDirs)
-if(SIDEBAR_BUILD_TERMINAL_TESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    find_package(Qt6 REQUIRED COMPONENTS Network)
-    qt_add_executable(sidebar-plugin-package-test tests/plugin-package-test.cpp src/pluginregistry.cpp include/pluginregistry.h src/pluginprocess.cpp include/pluginprocess.h src/islandbridge.cpp include/islandbridge.h)
-    target_include_directories(sidebar-plugin-package-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-plugin-package-test PRIVATE Qt6::Gui Qt6::Network)
-    set_target_properties(sidebar-plugin-package-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-plugin-process-test tests/plugin-process-test.cpp src/pluginprocess.cpp include/pluginprocess.h)
-    target_include_directories(sidebar-plugin-process-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-plugin-process-test PRIVATE Qt6::Core Qt6::Network)
-    set_target_properties(sidebar-plugin-process-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-plugin-protocol-test tests/plugin-protocol-test.cpp)
-    target_include_directories(sidebar-plugin-protocol-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-plugin-protocol-test PRIVATE Qt6::Core)
-    set_target_properties(sidebar-plugin-protocol-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-clipboard-result-test tests/clipboard-result-test.cpp src/clipboardmanager.cpp include/clipboardmanager.h)
-    target_include_directories(sidebar-clipboard-result-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-clipboard-result-test PRIVATE Qt6::Gui windowsapp)
-    set_target_properties(sidebar-clipboard-result-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-notification-model-test tests/notification-model-test.cpp src/notificationmodel.cpp include/notificationmodel.h)
-    target_include_directories(sidebar-notification-model-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-notification-model-test PRIVATE Qt6::Core Qt6::Test)
-    set_target_properties(sidebar-notification-model-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-notification-listener-test tests/notification-listener-test.cpp src/notificationlistener.cpp include/notificationlistener.h)
-    target_include_directories(sidebar-notification-listener-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-notification-listener-test PRIVATE Qt6::Core Qt6::Test windowsapp)
-    set_target_properties(sidebar-notification-listener-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-notification-view-test tests/notification-view-test.cpp src/notificationmodel.cpp include/notificationmodel.h src/notificationviewmodel.cpp include/notificationviewmodel.h)
-    target_include_directories(sidebar-notification-view-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-notification-view-test PRIVATE Qt6::Core Qt6::Test)
-    set_target_properties(sidebar-notification-view-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-notification-ui-test tests/notification-ui-test.cpp src/notificationmodel.cpp include/notificationmodel.h src/notificationviewmodel.cpp include/notificationviewmodel.h)
-    target_include_directories(sidebar-notification-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-notification-ui-test PRIVATE Qt6::Quick Qt6::Test)
-    set_target_properties(sidebar-notification-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-terminal-screen-test tests/terminal-screen-test.cpp "${TERMINAL_PLUGIN_ROOT}/src/terminalscreen.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalscreen.h")
-    target_include_directories(sidebar-terminal-screen-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${TERMINAL_PLUGIN_ROOT}")
-    target_link_libraries(sidebar-terminal-screen-test PRIVATE Qt6::Core)
-    set_target_properties(sidebar-terminal-screen-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-terminal-host-test tests/terminal-host-test.cpp "${TERMINAL_PLUGIN_ROOT}/src/terminalmanager.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalmanager.h" "${TERMINAL_PLUGIN_ROOT}/src/terminalscreen.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalscreen.h")
-    target_include_directories(sidebar-terminal-host-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${TERMINAL_PLUGIN_ROOT}")
-    target_link_libraries(sidebar-terminal-host-test PRIVATE Qt6::Quick Qt6::Test)
-    set_target_properties(sidebar-terminal-host-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    add_dependencies(sidebar-terminal-host-test sidebar-terminal-runner)
-    qt_add_executable(sidebar-terminal-ui-test tests/terminal-ui-test.cpp "${TERMINAL_PLUGIN_ROOT}/src/terminalscreen.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalscreen.h" "${TERMINAL_PLUGIN_ROOT}/src/terminalcanvas.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalcanvas.h")
-    target_include_directories(sidebar-terminal-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${TERMINAL_PLUGIN_ROOT}")
-    target_link_libraries(sidebar-terminal-ui-test PRIVATE Qt6::Quick Qt6::Test)
-    set_target_properties(sidebar-terminal-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-terminal-native-test tests/terminal-native-test.cpp
-        "${TERMINAL_PLUGIN_ROOT}/src/terminalmanager.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalmanager.h"
-        "${TERMINAL_PLUGIN_ROOT}/src/terminalscreen.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalscreen.h"
-        "${TERMINAL_PLUGIN_ROOT}/src/terminalcanvas.cpp" "${TERMINAL_PLUGIN_ROOT}/include/terminalcanvas.h"
-        src/islandbridge.cpp include/islandbridge.h)
-    target_include_directories(sidebar-terminal-native-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}" "${TERMINAL_PLUGIN_ROOT}")
-    target_link_libraries(sidebar-terminal-native-test PRIVATE Qt6::Quick Qt6::Test)
-    set_target_properties(sidebar-terminal-native-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    add_dependencies(sidebar-terminal-native-test sidebar-terminal-runner)
-endif()
-option(SIDEBAR_BUILD_MEDIA_TESTS "Build silent desktop SMTC integration helpers" OFF)
-if(SIDEBAR_BUILD_MEDIA_TESTS)
-    find_package(Qt6 REQUIRED COMPONENTS Test)
-    qt_add_executable(sidebar-wifi-state-test tests/wifi-state-test.cpp include/wificonnectionstate.h)
-    target_include_directories(sidebar-wifi-state-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-wifi-state-test PRIVATE Qt6::Core)
-    set_target_properties(sidebar-wifi-state-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-fullscreen-policy-test tests/fullscreen-policy-test.cpp include/fullscreenpolicy.h)
-    target_include_directories(sidebar-fullscreen-policy-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-fullscreen-policy-test PRIVATE Qt6::Core)
-    set_target_properties(sidebar-fullscreen-policy-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-hotkey-policy-test tests/hotkey-policy-test.cpp include/hotkeypolicy.h)
-    target_include_directories(sidebar-hotkey-policy-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-hotkey-policy-test PRIVATE Qt6::Gui)
-    set_target_properties(sidebar-hotkey-policy-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-bluetooth-lifecycle-test tests/bluetooth-lifecycle-test.cpp src/bluetoothmanager.cpp include/bluetoothmanager.h)
-    target_include_directories(sidebar-bluetooth-lifecycle-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-bluetooth-lifecycle-test PRIVATE Qt6::Gui windowsapp)
-    set_target_properties(sidebar-bluetooth-lifecycle-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-native-async-test tests/native-async-test.cpp src/clipboardocr.cpp include/clipboardocr.h src/hotspotmanager.cpp include/hotspotmanager.h)
-    target_include_directories(sidebar-native-async-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-native-async-test PRIVATE Qt6::Gui windowsapp)
-    set_target_properties(sidebar-native-async-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-native-operation-ui-test tests/native-operation-ui-test.cpp)
-    target_link_libraries(sidebar-native-operation-ui-test PRIVATE Qt6::Quick Qt6::Test)
-    set_target_properties(sidebar-native-operation-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-usb-result-test tests/usb-result-test.cpp src/usbmanager.cpp include/usbmanager.h include/usbejectresult.h)
-    target_include_directories(sidebar-usb-result-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-usb-result-test PRIVATE Qt6::Gui windowsapp setupapi cfgmgr32)
-    set_target_properties(sidebar-usb-result-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-audio-output-test tests/audio-output-test.cpp include/audiooutputswitch.h)
-    target_include_directories(sidebar-audio-output-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-audio-output-test PRIVATE Qt6::Core)
-    set_target_properties(sidebar-audio-output-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-audio-output-ui-test tests/audio-output-ui-test.cpp include/audiooutputswitch.h)
-    target_include_directories(sidebar-audio-output-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-audio-output-ui-test PRIVATE Qt6::Quick Qt6::Test)
-    set_target_properties(sidebar-audio-output-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-island-ui-test tests/island-ui-test.cpp src/islandbridge.cpp include/islandbridge.h)
-    target_include_directories(sidebar-island-ui-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-island-ui-test PRIVATE Qt6::Quick Qt6::Svg Qt6::Test)
-    set_target_properties(sidebar-island-ui-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-island-core-test tests/island-core-test.cpp src/islandbridge.cpp include/islandbridge.h src/awakemanager.cpp include/awakemanager.h src/focustimer.cpp include/focustimer.h)
-    target_include_directories(sidebar-island-core-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-island-core-test PRIVATE Qt6::Core)
-    set_target_properties(sidebar-island-core-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    add_executable(sidebar-stability-test tests/stability-test.cpp)
-    target_include_directories(sidebar-stability-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-stability-test PRIVATE windowsapp)
-    qt_add_executable(sidebar-island-test tests/island-test.cpp src/islandbridge.cpp include/islandbridge.h src/captureusagemonitor.cpp include/captureusagemonitor.h)
-    target_include_directories(sidebar-island-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-island-test PRIVATE Qt6::Core ole32 uuid)
-    set_target_properties(sidebar-island-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-spectrum-test tests/spectrum-test.cpp src/mediaspectrum.cpp include/mediaspectrum.h)
-    target_include_directories(sidebar-spectrum-test PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-spectrum-test PRIVATE Qt6::Core ole32 uuid)
-    set_target_properties(sidebar-spectrum-test PROPERTIES WIN32_EXECUTABLE FALSE)
-    qt_add_executable(sidebar-media-fixture tests/mediafixture.cpp)
-    target_link_libraries(sidebar-media-fixture PRIVATE Qt6::Core windowsapp shell32 user32)
-    qt_add_executable(sidebar-media-integration tests/media-integration.cpp src/mediaworker.cpp include/mediaworker.h)
-    target_include_directories(sidebar-media-integration PRIVATE "${CMAKE_CURRENT_SOURCE_DIR}")
-    target_link_libraries(sidebar-media-integration PRIVATE Qt6::Core Qt6::Gui windowsapp)
-endif()
-install(TARGETS appqt_rainmeter
-    BUNDLE DESTINATION .
-    LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
-    RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
-)
+install(TARGETS appqt_rainmeter RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})

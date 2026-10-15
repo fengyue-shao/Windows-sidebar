@@ -7,15 +7,18 @@ Item {
     id: root
     property bool expanded: false
     property bool islandOnly: false
+    property var cardCanvas: null
+    readonly property alias nativeCards: nativeMonitorCards
     readonly property alias islandItem: island
     readonly property bool compactTopbar: width < 900
     readonly property int barHeight: topbar.height + 8
     readonly property int bodyTop: topbar.height + 78
-    property int currentSection: uiSettings.currentSection
-    function setFeatureTestState(enabled) { monitor.setFeatureTestState(enabled) }
-    function revealUtility(route) { monitor.revealUtility(route) }
-    function verifyFeatureTestLayout(path) { return monitor.verifyFeatureTestLayout(path) }
-    function scheduleFeatureCapture(path) { monitor.scheduleFeatureCapture(path) }
+    property int previewSection: 0
+    property int currentSection: nativeCardPreview ? previewSection : uiSettings.currentSection
+    function setFeatureTestState(enabled) { if (legacyMonitor.item) legacyMonitor.item.setFeatureTestState(enabled) }
+    function revealUtility(route) { if (nativeCardPreview && cardCanvas) cardCanvas.revealCard("monitor."+route); else if (legacyMonitor.item) legacyMonitor.item.revealUtility(route) }
+    function verifyFeatureTestLayout(path) { return legacyMonitor.item ? legacyMonitor.item.verifyFeatureTestLayout(path) : false }
+    function scheduleFeatureCapture(path) { if (legacyMonitor.item) legacyMonitor.item.scheduleFeatureCapture(path) }
     function captureOcrTest(path) { return clipboard.captureOcrTest(path) }
     function scheduleOcrCapture(path) { clipboard.scheduleOcrCapture(path) }
     function scheduleToolboxCapture(path) { toolbox.scheduleCapture(path) }
@@ -23,10 +26,15 @@ Item {
     property bool settingsOpen: false
     readonly property bool blockingPopupOpen: calendarOpen || settingsOpen || notifications.popupOpen || toolbox.popupOpen
     readonly property bool transientUiOpen: blockingPopupOpen || island.controlsOpen
-    readonly property bool interacting: pointerGuard.pressed
+    readonly property bool interacting: pointerGuard.pressed || (cardCanvas && cardCanvas.editing)
     signal expandRequested()
     signal collapseRequested()
     signal hideRequested()
+    function selectSection(index) {
+        if (cardCanvas && cardCanvas.editing) { cardCanvas.interactionHint="请先保存或取消卡片编辑，再切换页面"; return }
+        if(nativeCardPreview) previewSection=index
+        else uiSettings.currentSection=index
+    }
     function toggleCards() { expanded ? collapseRequested() : expandRequested() }
     function openSettings() { navigation.openSettings() }
     onSettingsOpenChanged: if (settingsOpen && root.Window.window) Qt.callLater(root.Window.window.requestActivate)
@@ -45,7 +53,7 @@ Item {
         if (!islandOnly) regions.push(rectFor(topbar, 18))
         if (!expanded) return regions
         regions.push(rectFor(navigation, 16))
-        if (currentSection === 0) regions = regions.concat(monitor.inputRegions(root))
+        if (currentSection === 0) regions = regions.concat(legacyMonitor.item ? legacyMonitor.item.inputRegions(root) : [])
         else if (currentSection === 1) regions = regions.concat(notifications.inputRegions(root))
         else if (currentSection === 2) regions = regions.concat(focus.inputRegions(root))
         else if (currentSection === 3) regions = regions.concat(clipboard.inputRegions(root))
@@ -55,7 +63,7 @@ Item {
     }
     Component.onCompleted: ensureValidSection()
     Connections { target: pluginRegistry; function onPagesChanged() { root.ensureValidSection() } }
-    TapHandler { id: pointerGuard; gesturePolicy: TapHandler.DragThreshold; acceptedButtons: Qt.AllButtons }
+    TapHandler { id: pointerGuard; enabled: !nativeCardPreview; gesturePolicy: TapHandler.DragThreshold; acceptedButtons: Qt.AllButtons }
     Rectangle {
         id: topbar
         visible: !root.islandOnly
@@ -133,19 +141,20 @@ Item {
         currentIndex: root.currentSection
         mediaEnabled: uiSettings.mediaEnabled; monitorEnabled: uiSettings.monitorEnabled; notificationsEnabled: uiSettings.notificationsEnabled
         pluginPages: pluginRegistry.pages
-        onSectionRequested: index => uiSettings.currentSection = index
+        onSectionRequested: index => root.selectSection(index)
         onMediaEnabledRequested: enabled => uiSettings.mediaEnabled = enabled
         onMonitorEnabledRequested: enabled => uiSettings.monitorEnabled = enabled
         onNotificationsEnabledRequested: enabled => uiSettings.notificationsEnabled = enabled
         onPopupVisibilityChanged: visible => root.settingsOpen = visible
-        onExitRequested: Qt.quit()
+        onExitRequested: { if (cardCanvas && cardCanvas.editing) cardCanvas.interactionHint="请先保存或取消卡片编辑，再退出"; else Qt.quit() }
     }
     Item {
         id: body
         x: 0; y: root.bodyTop; width: parent.width; height: Math.max(0, parent.height - y - 8)
         opacity: uiSettings.panelOpacity
         visible: root.expanded; clip: true
-        DropdownMonitor { id: monitor; anchors.fill: parent; visible: root.currentSection === 0 }
+        Loader { id: legacyMonitor; anchors.fill: parent; active: !nativeCardPreview; visible: root.currentSection === 0 && !nativeCardPreview; sourceComponent: Component { DropdownMonitor {} } }
+        NativeMonitorCards { id: nativeMonitorCards; manager: uiCardManager }
         Rectangle {
             id: legacySurface
             anchors.fill: parent; visible: root.currentSection >= 5; radius: 18

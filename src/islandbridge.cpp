@@ -20,6 +20,10 @@ QVariantMap sanitize(const QString &id,const QVariantMap &state,int priority) {
     if (countOk) safe.insert("applicationCount",qBound(0,count,999));
     bool ok=false; const auto progress=state.value("progress").toDouble(&ok);
     if (ok && std::isfinite(progress)) safe.insert("progress",qBound(0.0,progress,1.0));
+    // Typed result metadata arrives only through trusted internal adapters.
+    if (state.contains("exitCode")) safe.insert("exitCode",state.value("exitCode"));
+    if (state.contains("elapsedMs")) safe.insert("elapsedMs",state.value("elapsedMs"));
+    if (state.contains("outcome")) safe.insert("outcome",state.value("outcome").toString().left(24));
     return safe;
 }
 }

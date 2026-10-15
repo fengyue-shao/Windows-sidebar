@@ -2,6 +2,8 @@
 #include <QCoreApplication>
 #include <QEventLoop>
 #include <QThread>
+#include <QTemporaryDir>
+#include <QFile>
 #include <iostream>
 #define CHECK(v) do { if (!(v)) { std::cerr << "FAIL " << __LINE__ << '\n'; return 1; } } while(false)
 static bool waitUntil(const std::function<bool()> &predicate,int timeout=6000) {
@@ -51,6 +53,12 @@ int main(int argc,char **argv) {
     });
     QObject::connect(&process,&PluginProcess::sourcesWithdrawn,&app,[&](const QStringList &ids){ if (ids.contains(source)) ++withdrawals; });
     CHECK(!process.start("Z:/definitely-missing-sidebar-plugin.exe") && process.status()=="start-failed");
+    QTemporaryDir invalidPackage; CHECK(invalidPackage.isValid());
+    QFile invalidExe(invalidPackage.filePath("invalid.exe")); CHECK(invalidExe.open(QIODevice::WriteOnly));
+    invalidExe.write("not a Windows executable"); invalidExe.close();
+    int stopped=0; QObject::connect(&process,&PluginProcess::stopped,&app,[&]{++stopped;});
+    CHECK(process.start(invalidExe.fileName()));
+    CHECK(waitUntil([&]{return process.status()=="start-failed" && stopped==1 && !process.running();}));
     CHECK(process.start(QCoreApplication::applicationFilePath()));
     CHECK(waitUntil([&]{ return process.status()=="running" && messages==1; }));
     CHECK(lastTitle=="ready" && source==PluginProtocol::namespaceFor("test.plugin")+".running");

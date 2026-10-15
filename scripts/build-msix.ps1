@@ -10,7 +10,8 @@ param(
 
     [Parameter(Mandatory = $true)]
     [string]$OutputDir,
-    [string]$MsvcRuntimeDir = ''
+    [string]$MsvcRuntimeDir = '',
+    [switch]$CreateDevelopmentCertificate
 )
 
 $ErrorActionPreference = 'Stop'
@@ -59,14 +60,7 @@ Copy-Item -LiteralPath $resolvedExecutable -Destination $stageDir
 Copy-Item -LiteralPath (Join-Path $resolvedSourceDir 'packaging\AppxManifest.xml') -Destination $stageDir
 Copy-Item -Path (Join-Path $resolvedSourceDir 'packaging\Assets\*.png') -Destination (Join-Path $stageDir 'Assets')
 
-$winDeployQt = Join-Path $resolvedQtBin 'windeployqt.exe'
-if (-not (Test-Path -LiteralPath $winDeployQt)) {
-    throw "windeployqt.exe was not found in $resolvedQtBin"
-}
-& $winDeployQt --release --qmldir (Join-Path $resolvedSourceDir 'qml') --no-translations $stageDir
-if ($LASTEXITCODE -ne 0) {
-    throw "windeployqt failed with exit code $LASTEXITCODE"
-}
+& (Join-Path $PSScriptRoot 'deploy-runtime.ps1') -Executable (Join-Path $stageDir (Split-Path -Leaf $resolvedExecutable)) -QtBin $resolvedQtBin -SourceDir $resolvedSourceDir
 
 $makeAppx = Find-WindowsSdkTool 'makeappx.exe'
 if ($MsvcRuntimeDir) { Copy-Item -LiteralPath @((Get-ChildItem -LiteralPath $MsvcRuntimeDir -Filter '*.dll' -File).FullName) -Destination $stageDir }
@@ -92,6 +86,9 @@ $certificate = Get-ChildItem Cert:\CurrentUser\My |
     Select-Object -First 1
 
 if (-not $certificate) {
+    if (-not $CreateDevelopmentCertificate) {
+        throw 'No usable signing certificate. Creating one changes the user certificate store; rerun explicitly with -CreateDevelopmentCertificate only after deciding to create a local development certificate.'
+    }
     $certificate = New-SelfSignedCertificate `
         -Type Custom `
         -Subject $subject `

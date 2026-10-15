@@ -23,6 +23,7 @@ public:
     bool running() const { return m_process.state()!=QProcess::NotRunning; }
 signals:
     void statusChanged();
+    void stopped();
     void messageReceived(const QString &type,const QString &sourceId,const QVariantMap &state,int priority,const QString &key,int durationMs,int validForMs);
     void sourcesWithdrawn(const QStringList &sourceIds);
 private:

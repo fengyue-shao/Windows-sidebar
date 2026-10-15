@@ -3,6 +3,7 @@
 #include <QProcessEnvironment>
 #include <QRandomGenerator>
 #include <QUuid>
+#include <QJsonArray>
 
 PluginProcess::PluginProcess(QString id,QSet<QString> pages,QObject *parent)
     :QObject(parent),m_id(std::move(id)),m_pages(std::move(pages)) {
@@ -14,13 +15,14 @@ PluginProcess::PluginProcess(QString id,QSet<QString> pages,QObject *parent)
     connect(&m_handshakeTimer,&QTimer::timeout,this,[this]{ fail("handshake-timeout"); });
     connect(&m_killTimer,&QTimer::timeout,this,[this]{ if (running()) m_process.kill(); });
     connect(&m_process,&QProcess::errorOccurred,this,[this](QProcess::ProcessError error){
-        if (error==QProcess::FailedToStart) { cleanup(); setStatus("start-failed"); }
+        if (error==QProcess::FailedToStart) { cleanup(); setStatus("start-failed"); emit stopped(); }
     });
     connect(&m_process,qOverload<int,QProcess::ExitStatus>(&QProcess::finished),this,[this](int code,QProcess::ExitStatus exitStatus){
         const auto previous=m_status; const bool stopping=m_stopping;
         cleanup();
         if (previous.endsWith("-failed") || previous=="handshake-timeout" || previous=="protocol-error" || previous=="disconnected") setStatus(previous);
         else setStatus(stopping ? "stopped" : exitStatus==QProcess::CrashExit || code!=0 ? "crashed" : "stopped");
+        emit stopped();
     });
     // Do not forward plugin stdout/stderr into host logs (may contain commands).
     connect(&m_process,&QProcess::readyReadStandardOutput,this,[this]{ m_process.readAllStandardOutput(); });
@@ -86,6 +88,7 @@ void PluginProcess::send(const QString &type) {
     if (m_socket && m_socket->state()==QLocalSocket::ConnectedState && m_session && m_session->authenticated()) {
         QJsonObject object{{"type",type},{"protocolVersion",PluginProtocol::Version}};
         if (type=="ready" || type=="theme") object.insert("tokens",QJsonObject::fromVariantMap(m_themeTokens));
+        if (type=="ready") object.insert("capabilities",QJsonArray{"task.result.v1"});
         m_socket->write(QJsonDocument(object).toJson(QJsonDocument::Compact)+'\n');
         m_socket->flush();
     }

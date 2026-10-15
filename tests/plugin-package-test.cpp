@@ -31,6 +31,7 @@ int main(int argc,char **argv) {
     CHECK(PluginRegistry::packageError(QDir::current().relativeFilePath(source)).isEmpty());
     auto bad=manifest; bad["schemaVersion"]=1; CHECK(writeManifest(bad)); CHECK(!PluginRegistry::packageError(source).isEmpty());
     bad=manifest; bad["minimumHostVersion"]="99.0.0"; CHECK(writeManifest(bad)); CHECK(!PluginRegistry::packageError(source).isEmpty());
+    bad=manifest; bad["version"]="1.0.0/../../other"; CHECK(writeManifest(bad)); CHECK(!PluginRegistry::packageError(source).isEmpty());
     bad=manifest; bad["files"]=QJsonObject{{"../outside.exe",hash}}; CHECK(writeManifest(bad)); CHECK(!PluginRegistry::packageError(source).isEmpty());
     bad=manifest; bad["files"]=QJsonObject{{"bin/test.exe","wrong"}}; CHECK(writeManifest(bad)); CHECK(!PluginRegistry::packageError(source).isEmpty());
     CHECK(writeManifest(manifest));
@@ -43,9 +44,27 @@ int main(int argc,char **argv) {
     CHECK(registry.plugins().first().toMap().value("enabled").toBool());
     CHECK(registry.plugins().first().toMap().value("processStatus")=="stopped"); // Never auto-execute.
     CHECK(!registry.importTrustedFolder(source)); // Never overwrite an existing installation.
+    manifest["version"]="1.0.0.0"; CHECK(writeManifest(manifest)); CHECK(!registry.importTrustedFolder(source));
+    manifest["version"]="2.0.0"; CHECK(writeManifest(manifest)); CHECK(registry.importTrustedFolder(source));
+    CHECK(registry.plugins().size()==1 && registry.plugins().first().toMap().value("versions").toList().size()==2);
+    CHECK(registry.plugins().first().toMap().value("version")=="1.0.0"); // Import is not a switch.
+    CHECK(registry.selectVersion("test.plugin","2.0.0"));
+    CHECK(registry.plugins().first().toMap().value("version")=="2.0.0");
+    CHECK(registry.plugins().first().toMap().value("processStatus")=="stopped");
+    CHECK(!registry.selectVersion("test.plugin","99.0.0"));
+    CHECK(registry.selectVersion("test.plugin","1.0.0"));
+    { PluginRegistry reopened(nullptr,temporary.path()+"/installed"); CHECK(reopened.plugins().first().toMap().value("version")=="1.0.0"); }
     registry.setPluginEnabled("test.plugin",false); CHECK(!registry.plugins().first().toMap().value("enabled").toBool());
     registry.setPluginEnabled("test.plugin",true); CHECK(registry.plugins().first().toMap().value("enabled").toBool());
-    QFile installed(temporary.path()+"/installed/test.plugin/bin/test.exe"); CHECK(installed.open(QIODevice::Append)); installed.write("tampered"); installed.close();
-    registry.reload(); CHECK(registry.plugins().isEmpty() && !registry.errorDetails().isEmpty());
+    QFile installed(temporary.path()+"/installed/test.plugin@1.0.0/bin/test.exe"); CHECK(installed.open(QIODevice::Append)); installed.write("tampered"); installed.close();
+    registry.reload(); CHECK(registry.plugins().size()==1 && !registry.errorDetails().isEmpty());
+    CHECK(!registry.plugins().first().toMap().value("enabled").toBool()); // Do not silently use 2.0.0.
+    CHECK(registry.plugins().first().toMap().value("version")=="1.0.0");
+    CHECK(registry.selectVersion("test.plugin","2.0.0"));
+    CHECK(registry.plugins().first().toMap().value("enabled").toBool());
+    const auto duplicate=temporary.path()+"/installed/duplicate"; QDir().mkpath(duplicate+"/bin");
+    CHECK(QFile::copy(source+"/plugin.json",duplicate+"/plugin.json"));
+    CHECK(QFile::copy(source+"/bin/test.exe",duplicate+"/bin/test.exe"));
+    registry.reload(); CHECK(!registry.errorDetails().isEmpty() && registry.plugins().isEmpty());
     std::cout << "PLUGIN PACKAGE PASS: API/version/path/hash/extra-file rejection, explicit import, no auto-run, no overwrite, enable/disable, tamper rejection; temporary settings/data only\n";
 }

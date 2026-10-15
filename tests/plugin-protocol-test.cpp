@@ -47,5 +47,26 @@ int main(int argc,char **argv) {
     int accepted=0; for (int i=0;i<40;++i) if (session.accept(state,3000,message)) ++accepted;
     CHECK(accepted==30); CHECK(session.accept(state,4000,message));
     CHECK(session.sourceIds().size()==8);
+    Session results("test.plugin",token,{"main"});
+    CHECK(results.accept(hello,0,message));
+    QJsonObject result{{"type","result"},{"schemaVersion",1},{"source","result"},{"key","job-1"},{"priority",85},
+        {"result",QJsonObject{{"pageId","main"},{"label","Task"},{"outcome","success"},{"exitCode",0},{"elapsedMs",1250}}}};
+    CHECK(results.accept(result,0,message));
+    CHECK(message.type=="event" && message.state.value("exitCode")==0 && message.state.value("outcome")=="success");
+    CHECK(message.state.value("subtitle").toString().contains("1.3") && message.state.value("route")==namespaceFor("test.plugin")+".main");
+    auto resultData=result["result"].toObject(); resultData["outcome"]="failed"; resultData["exitCode"]=7;
+    result["result"]=resultData; CHECK(results.accept(result,0,message) && message.state.value("tone")=="danger");
+    auto invalid=result; invalid["schemaVersion"]=2; CHECK(!results.accept(invalid,0,message));
+    invalid=result; resultData["exitCode"]=0; invalid["result"]=resultData; CHECK(!results.accept(invalid,0,message));
+    resultData["exitCode"]=0.5; invalid["result"]=resultData; CHECK(!results.accept(invalid,0,message));
+    resultData["exitCode"]=7; resultData["pageId"]="settings"; invalid["result"]=resultData; CHECK(!results.accept(invalid,0,message));
+    resultData["pageId"]="main"; resultData["command"]="ignored?"; invalid["result"]=resultData; CHECK(!results.accept(invalid,0,message));
+    resultData.remove("command"); resultData["elapsedMs"]=-1; invalid["result"]=resultData; CHECK(!results.accept(invalid,0,message));
+    for (const auto &outcome:QStringList{"cancelled","timeout","crashed","start-failed"}) {
+        resultData=result["result"].toObject(); resultData["outcome"]=outcome; resultData["exitCode"]=-1;
+        auto status=result; status["result"]=resultData; CHECK(results.accept(status,1000,message));
+        CHECK(message.state.value("outcome")==outcome);
+        CHECK(message.state.value("subtitle").toString().contains(QStringLiteral("退出码"))==(outcome=="crashed"));
+    }
     std::cout << "PLUGIN PROTOCOL PASS: fragmented/batched bounded frames, strict handshake, source/route ownership, priorities, fields, events, source cap, rate limit; no process/system actions\n";
 }

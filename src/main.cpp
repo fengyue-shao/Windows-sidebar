@@ -39,6 +39,7 @@
 #include "include/systemtraymanager.h"
 #include "include/thememanager.h"
 #include "include/uisettings.h"
+#include "include/uicardmanager.h"
 
 
 int main(int argc, char *argv[])
@@ -80,6 +81,10 @@ int main(int argc, char *argv[])
     MonitorScheduler monitorScheduler;
     ThemeManager themeManager;
     UiSettings uiSettings;
+    QString cardLayoutPath;
+    for (const auto &argument : app.arguments())
+        if (argument.startsWith("--card-layout-file=")) cardLayoutPath=argument.mid(19);
+    UiCardManager uiCardManager(nullptr,cardLayoutPath);
     DropdownController dropdownController;
     IslandBridge islandBridge;
     pluginRegistry.setIslandBridge(&islandBridge);
@@ -177,6 +182,8 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty("captureUsageMonitor", &captureUsageMonitor);
     engine.rootContext()->setContextProperty("themeManager", &themeManager);
     engine.rootContext()->setContextProperty("uiSettings", &uiSettings);
+    engine.rootContext()->setContextProperty("uiCardManager", &uiCardManager);
+    engine.rootContext()->setContextProperty("nativeCardPreview", app.arguments().contains("--native-card-preview"));
     engine.rootContext()->setContextProperty("dropdownController", &dropdownController);
     engine.rootContext()->setContextProperty("previewCards", app.arguments().contains("--preview-cards"));
     engine.rootContext()->setContextProperty("uiSelfTest", app.arguments().contains("--ui-self-test"));

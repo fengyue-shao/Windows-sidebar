@@ -1,4 +1,13 @@
 build/
+out/
+*.user
+*.qmltrace
+*.qtd
+*.dmp
+*.msix
+*.pfx
+*.p12
+*.cer
 .git/
 .agents/
 .qtcreator/
