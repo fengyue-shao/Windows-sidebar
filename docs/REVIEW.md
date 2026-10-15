@@ -95,3 +95,24 @@ C:\Users\34575\Desktop\qt-rainmeter-local\work\backups\host-minimal-20261016\
 用户已授权按顺序将审核后的主体源码提交到 `codex-do`、合并到 `main`、运行静态检查、通过后正常推送 `origin/main`。保留全部历史，不强推、不修改远程其他分支，不创建新安装包或 Git 标签。
 
 静态检查覆盖：Git 补丁空白、PowerShell 语法、CMake 全新生成及文件依赖、文档链接、版本一致性、敏感文件/高风险密钥特征以及 QML 静态诊断；人工复核构建/插件/布局边界。静态检查不等同于真实硬件或 MSIX 功能验收；上文 26 项回归是另有证据的动态测试结果。
+
+### 2026-10-16 主分支合并检查结果
+
+主体精简提交为 `1005eb0`，已从 `codex-do` 快进合并到 `main`，无冲突，不改写历史。下列检查在合并后完成；本报告提交后按用户授权正常推送 `origin/main`，不推送其他分支或标签。
+
+| 项目 | 结果 |
+| --- | --- |
+| Git 补丁空白 | `git diff --check origin/main..HEAD` 通过 |
+| PowerShell 脚本 | 5 个脚本在 Windows PowerShell 5.1.26100.9711 和 PowerShell 7.6.6 中均无语法错误；仅解析，不执行安装脚本 |
+| 全新 CMake 生成 | VS2022 x64、Qt 6.9.3 配置及生成成功，主体测试开启、真实设备辅助测试关闭；可选 Vulkan 头文件仍缺失，不阻断生成 |
+| 文件清单与文档 | `src/`、`include/`、`qml/` 的所有现存源码均在 CMake 清单内；78 个本地文档文件链接均存在 |
+| 版本一致性 | CMake / MSIX / EXE 资源版本保持 `0.8.2.0`，运行标识保持 `0.8.2.0-preview` |
+| 候选敏感内容 | 当前候选树未检出私钥/令牌高风险特征、私钥证书包或实际用户配置；待推送对象中无超过 10 MB 的单个文件。特征扫描不是完整历史安全认证 |
+| 人工源码复核 | 通用插件进程 / JSON / 单活动版本、卡片布局持久化、构建部署边界未发现可确认的 P1/P2 阻断项 |
+| 合并后自动回归 | 使用本轮同源 VS 构建产物重跑 26 项隔离 / mock / 离屏回归，26/26 通过，27.06 秒；未操作真实设备 |
+
+Qt 6.9.3 `qmllint` 对全部 36 个 QML / JS 文件报告 **0 个 error、1419 个 warning、2 个 info**，不是零警告通过。警告分类为：1357 个 `unqualified`、60 个 `missing-property`、1 个 `duplicate-property-binding`、1 个 `use-proper-function`；另有 2 个未使用 import 提示。原始 JSON 完整保留，没有关闭警告类别来降低计数。
+
+主要技术债是宿主 context property、动态 Loader / delegate 和宽泛 QObject / QQuickItem 类型缺少显式静态类型；应后续逐步改为显式属性 / 类型接口，不能仅凭工具退出码 0 判断这些访问都正确。`Main.qml` 的 callback 为测试截图延迟回调；`TopIslandHost.qml` 的透明度初值和 `SequentialAnimation on opacity` 经人工核对，是初值加属性动画的用法，[Qt 官方也提供同类示例](https://doc.qt.io/qt-6.8/qtquick-statesanimations-animations.html#using-predefined-targets-and-properties)，未确认为运行缺陷。相关界面回归本轮通过，但不代表所有动态运行路径均已覆盖。
+
+本次没有运行 clang-tidy / cppcheck，也不声称进行了完整 C++ 静态分析或安全认证。检查日志、QML JSON 和本轮 JUnit 在仓库外 `work/reviews/host-publish-20261016/`。本次不增加安装包、不修改版本、不重新安装应用；仍按上文边界保留人工硬件验收事项。
